@@ -1,0 +1,46 @@
+@import './variables';
+
+.u-backface{
+  backface-visibility: visible;
+}
+
+.u-textHuge{
+  font-size: var(--size-huge);
+}
+
+.u-textUnderscore:before{
+  content: '_';
+}
+
+.u-textLarge{
+  font-size: var(--size-large);
+}
+
+.u-textBold{
+  font-weight: bold;
+}
+
+.u-pad-top-5 {
+  padding-top: 5px;
+}
+
+.u-pad-top-10 {
+  padding-top: 10px;
+}
+
+.u-pad-top-20 {
+  padding-top: 20px;
+}
+
+.u-pad-left-20 {
+  padding-left: 20px;
+}
+
+
+.u-pad-bottom-10 {
+  padding-bottom: 10px;
+}
+
+.u-pad-bottom-20 {
+  padding-bottom: 20px;
+}

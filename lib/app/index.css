@@ -1,0 +1,55 @@
+@import 'suitcss-base';
+@import 'suitcss-utils-text';
+@import 'suitcss-components-grid';
+@import 'suitcss-utils-size';
+@import 'suitcss-utils-offset';
+@import './utilities';
+@import './variables';
+
+
+:root {
+  --Grid-gutter-size: 40px;
+}
+
+
+html, body {
+  font-family: 'Open Sans', sans-serif;
+  font-size: var(--size-normal);
+  color: var(--color-black);
+  font-weight: 100;
+}
+
+.title {
+  font-family: 'Andale Mono';
+  font-weight: 100;
+}
+
+.title:before {
+  content: '_'
+}
+
+.title--intro {
+  font-size: var(--size-xlarge);
+}
+
+.title--section {
+  font-size: var(--size-large);
+}
+
+.title--pink {
+  color: var(--color-pink);
+}
+
+.note {
+  font-size: var(--size-small);
+}
+
+.note--gray {
+  color: var(--color-gray);
+}
+
+
+.Grid-cell--withBorder {
+  border-left: 1px solid var(--color-gray);
+  border-right: 1px solid var(--color-gray);
+}
