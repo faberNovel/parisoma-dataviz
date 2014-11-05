@@ -48,102 +48,154 @@
 	 * load styles
 	 */
 	
+	__webpack_require__(15);
 	__webpack_require__(12);
-	__webpack_require__(9);
 	
 	/*!
 	 * module deps
 	 */
 	
-	var Engine = __webpack_require__(14),
-	    RenderController = __webpack_require__(16),
-	    ScrollView = __webpack_require__(17),
-	    Modifier = __webpack_require__(15),
-	    ContainerSurface = __webpack_require__(18),
-	    Page1 = __webpack_require__(1),
-	    Page2 = __webpack_require__(2),
-	    Page3 = __webpack_require__(3),
-	    Page4 = __webpack_require__(4),
-	    Page5 = __webpack_require__(5),
-	    Page6 = __webpack_require__(6),
-	    Page7 = __webpack_require__(7),
-	    Logo = __webpack_require__(8);
+	var Engine = __webpack_require__(17),
+	    KeyCodes = __webpack_require__(20),
+	    Transform = __webpack_require__(18),
+	    ScrollContainer = __webpack_require__(21),
+	    Modifier = __webpack_require__(19),
+	    ContainerSurface = __webpack_require__(22),
+	    Slide01 = __webpack_require__(1),
+	    Slide02 = __webpack_require__(2),
+	    Slide03 = __webpack_require__(3),
+	    Slide04 = __webpack_require__(4),
+	    Slide05 = __webpack_require__(5),
+	    Slide06 = __webpack_require__(6),
+	    Slide07 = __webpack_require__(7),
+	    Slide08 = __webpack_require__(8),
+	    Slide09 = __webpack_require__(9),
+	    Slide10 = __webpack_require__(10),
+	    Logo = __webpack_require__(11);
 	
 	
-	/*!
-	 * register animation
-	 */
+	var mainContext = Engine.createContext();
+	mainContext.setPerspective(500);
 	
-	var Transitionable = __webpack_require__(19),
-	    SpringTransition = __webpack_require__(20),
-	    WallTransition = __webpack_require__(21),
-	    SnapTransition = __webpack_require__(22);
+	var Slides = [Slide01, Slide02, Slide03, Slide04, Slide05, Slide06, Slide07, Slide08, Slide09, Slide10];
+	// var Slides = [Slide02];
 	
-	Transitionable.registerMethod('spring', SpringTransition);
-	Transitionable.registerMethod('spring', SpringTransition);
-	Transitionable.registerMethod('wall', WallTransition);
-	Transitionable.registerMethod('snap', SnapTransition);
+	var views = [];
+	var surfaces = [];
 	
-	/*!
-	 * globals
-	 */
-	
-	var mainContext = Engine.createContext(),
-	    renderController = new RenderController(),
-	    Pages = [Page1, Page2, Page3, Page4, Page5, Page6, Page7],
-	    surfaces = [];
+	var scrollContainer = new ScrollContainer();
+	scrollContainer.sequenceFrom(surfaces);
 	
 	/*!
 	 * kick off
 	 */
 	
-	mainContext.setPerspective(500);
+	// var logo, container;
 	
-	
+	var logo = new Logo();
 	var container = new ContainerSurface({
-	  size: [980, 800]
+	  size: [undefined, undefined]
 	});
 	
-	container.add(new Modifier({
-	  align: [0.5, 0.5],
-	  origin: [0.5, 0.5]
-	}))
-	.add(new Logo());
+	container
+	  .add(new Modifier({
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.multiply(
+	      Transform.translate(0, 32, 0),
+	      Transform.scale(0.5)
+	    )
+	  }))
+	  .add(logo);
+	
+	container.pipe(scrollContainer);
+	views.push(logo);
 	surfaces.push(container);
 	
-	Pages.forEach(function (Page) {
-	  var container = new ContainerSurface({
-	    size: [980, 800],
-	    properties: {
-	      outline: '2px solid rgb(255, 31, 171)'
-	    }
+	// genericSync.pipe(logo);
+	// Engine.pipe(logo);
+	
+	// logo.on('update', function() {
+	//   console.log('xxxx');
+	// });
+	
+	// logo._eventInput.on('update', function() {
+	//   console.log('xxxx');
+	// });
+	
+	// logo._eventInput.on('keydown', function() {
+	//   console.log('keydown');
+	// });
+	
+	// logo._eventOutput.on('update', function() {
+	//   console.log('xxxx');
+	// });
+	
+	
+	
+	// mainContext.add(new Modifier({
+	//   origin: [0.5, 0.5],
+	//   align: [0.5, 0],
+	//   opacity: 0.5
+	// })).add(new ImageSurface({
+	//   content: '/assets/layer.png',
+	//   size: [true, true],
+	//   properties: {
+	//     zIndex: 2
+	//   }
+	// }));
+	
+	Slides.forEach(function (Slide) {
+	  var slide, container;
+	
+	  container = new ContainerSurface({
+	    size: [980, window.innerHeight]
 	  });
-	  container.add(new Page());
+	
+	  slide = new Slide();
+	  container.add(slide);
+	  views.push(slide);
 	  surfaces.push(container);
+	  Engine.pipe(slide);
 	});
 	
+	container = new ContainerSurface({
+	  size: [980, undefined]
+	});
+	
+	container.add(scrollContainer);
 	
 	mainContext
 	  .add(new Modifier({
 	    align: [0.5, 0.5],
 	    origin: [0.5, 0.5],
 	  }))
-	  .add(renderController);
+	  .add(container);
 	
-	var counter = 0;
-	renderController.show(surfaces[counter]);
+	
 	Engine.on('keydown', function(e) {
+	  var current;
+	  setTimeout(function() {
+	    if (e.defaultPrevented) return;
+	    if (e.which === KeyCodes.UP_ARROW) {
+	      current = scrollContainer.scrollview.goToPreviousPage();
+	      if (current) views[current.index]._eventInput.trigger('enter', { direction: -1 });
+	      if (current && views[current.index + 1]) views[current.index + 1]._eventInput.trigger('leave', { direction: - 1 });
+	    }
+	    else if (e.which === KeyCodes.DOWN_ARROW) {
+	      current = scrollContainer.scrollview.goToNextPage();
+	      if (current) views[current.index]._eventInput.trigger('enter', { direction: 1 });
+	      if (current && views[current.index - 1]) views[current.index - 1]._eventInput.trigger('leave', { direction: 1 });
+	    }
+	  }, 0);
+	});
 	
-	  if (e.which === 39) {
-	    counter++;
-	  } else if (counter > 0 && e.which === 37) {
-	    counter--;
-	  }
+	window.scrollview = scrollContainer.scrollview;
 	
-	  if (e.which === 38) {}
-	
-	  this.show(surfaces[counter % surfaces.length]);
-	}.bind(renderController));
+	// setTimeout(function() {
+	//   var scroller = window.scroller = scrollContainer.scrollview;
+	//   scroller.goToPage(1);
+	// }, 100);
 
 
 /***/ },
@@ -155,20 +207,256 @@
 	 */
 	
 	var Surface = __webpack_require__(23),
+	    ImageSurface = __webpack_require__(24),
 	    StateModifier = __webpack_require__(26),
-	    Transform = __webpack_require__(24),
+	    Easing = __webpack_require__(27),
+	    Transform = __webpack_require__(18),
 	    View = __webpack_require__(25);
 	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
 	
 	/*!
 	 * templates
 	 */
 	
-	var title1 = ("\n<h1 class='title title--intro title--pink u-textRight'>Who starts a Startup?</h1>"
+	var title1 = ("\n<h1 class='title title--intro text--white u-textRight'>Who starts a Startup?</h1>"
 	);
 	
-	var content1 = ("\n<p>\nStarting a company has never been easier.\nWhile entrepreneurship was once the calling of the venturous few,\nit has since become a career path chosen by many.\nAt PARISOMA, we have hosted over 450 entrepreneurs for the past six years.\nWe know that two startup founders are the same,\nwe chose to ask our members - who starts a startup?\n</p>"
+	var who = ("\n<h1 class='title title--intro'>Who</h1>"
+	);
 	
+	var content1 = ("\n<div class='text--white'>\n  <p>Starting a company has never been easier. While entrepreneurship was once the calling of the venturous few, it has since become a career path chosen by many. At PARISOMA, we have hosted over 450 entrepreneurs for the past six years.</p>\n  <p class='u-pad-top-10'>We know that two startup founders are the same, we chose to ask our members - who starts a startup?</p>\n</div>"
+	
+	
+	
+	);
+	
+	/**
+	 * create view layout
+	 */
+	
+	function _createLayout(){
+	
+	  // background surface
+	  this.bg = {};
+	  this.bg.surface = new ImageSurface({
+	    content: '/assets/images/01-parisoma.png',
+	    size: [true, true]
+	  });
+	
+	  this.bg.modifier = new StateModifier({
+	    transform: Transform.translate(0, -600, 0)
+	  });
+	
+	  // text
+	  this.text = {};
+	  this.text.surface = new Surface({
+	    size: [780, 300],
+	    content: content1
+	  });
+	
+	  this.text.modifier = new StateModifier({
+	    origin: [0.5, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(0, 50, 0)
+	  });
+	
+	  // yellow ticker
+	  this.yellowTicker = {};
+	  this.yellowTicker.surface = new Surface({
+	    size: [139, 112],
+	    classes: ['ticker', 'ticker--yellow']
+	  });
+	
+	  this.yellowTicker.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, -39 * toRadian, 0)
+	  });
+	
+	  this.yellowTicker.modifier = new StateModifier({
+	    origin: [1, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(0, 220, 0)
+	  });
+	
+	  // title 1
+	  this.title1 = {};
+	  this.title1.surface = new Surface({
+	    content: title1,
+	    size: [400, true]
+	  });
+	
+	  this.title1.modifier = new StateModifier({
+	    origin: [0, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(-115, 280, 0)
+	  });
+	
+	  // title 1
+	  this.who = {};
+	  this.who.surface = new Surface({
+	    content: who,
+	    size: [105, true],
+	    properties: {
+	      overflow: 'hidden'
+	    }
+	  });
+	
+	  this.who.modifier = new StateModifier({
+	    origin: [1, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(0, 280, 0)
+	  });
+	
+	  // pink ticker
+	  this.pinkTicker = {};
+	  this.pinkTicker.surface = new Surface({
+	    size: [148, 120],
+	    classes: ['ticker', 'ticker--pink']
+	  });
+	
+	  this.pinkTicker.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, 39 * toRadian, 0)
+	  });
+	
+	  this.pinkTicker.modifier = new StateModifier({
+	    origin: [0, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(0, 400, 0)
+	  });
+	
+	  // light image
+	  this.lightImg = {};
+	  this.lightImg.surface = new ImageSurface({
+	    content: '/assets/images/02-light.png',
+	    size: [true, true]
+	  });
+	
+	  this.lightImg.modifier = new StateModifier({
+	    origin: [1, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(0, 518, 0)
+	  });
+	
+	  // group image
+	  this.groupImg = {};
+	  this.groupImg.surface = new ImageSurface({
+	    content: '/assets/images/03-group.png',
+	    size: [true, true]
+	  });
+	
+	  this.groupImg.modifier = new StateModifier({
+	    transform: Transform.translate(0, 750, 0)
+	  });
+	
+	  this.modifier = new StateModifier({
+	    opacity: 0
+	  });
+	
+	  var node = this
+	    .add(this.modifier);
+	
+	  node
+	    .add(this.bg.modifier)
+	    .add(this.bg.surface);
+	
+	  node
+	    .add(this.lightImg.modifier)
+	    .add(this.lightImg.surface);
+	
+	  node
+	    .add(this.groupImg.modifier)
+	    .add(this.groupImg.surface);
+	
+	  node
+	    .add(this.yellowTicker.modifier)
+	    .add(this.yellowTicker.tickerModifier)
+	    .add(this.yellowTicker.surface);
+	
+	  node
+	    .add(this.pinkTicker.modifier)
+	    .add(this.pinkTicker.tickerModifier)
+	    .add(this.pinkTicker.surface);
+	
+	  node
+	    .add(this.text.modifier)
+	    .add(this.text.surface);
+	
+	  node
+	    .add(this.who.modifier)
+	    .add(this.who.surface);
+	
+	  node
+	    .add(this.title1.modifier)
+	    .add(this.title1.surface);
+	}
+	
+	function _onEnter() {
+	  this.modifier.setOpacity(1, { duration : 1500, curve: Easing.outBack });
+	  this.bg.modifier.setTransform(Transform.translate(0, 0, 0), { duration : 500, curve: Easing.outBack });
+	}
+	
+	function _onLeave() {
+	  this.modifier.setOpacity(0, { duration : 500, curve: Easing.outBack });
+	  // this.bg.modifier.setTransform(Transform.translate(0, 100, 0), { duration : 1500, curve: Easing.outBack });
+	}
+	
+	/**
+	 * Slide Constructor
+	 */
+	
+	function Slide() {
+	  View.apply(this, arguments);
+	  _createLayout.call(this);
+	
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
+	}
+	
+	/*!
+	 * extend View
+	 */
+	
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 1100]
+	};
+	
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = Slide;
+
+/***/ },
+/* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var Surface = __webpack_require__(23),
+	    Easing = __webpack_require__(27),
+	    StateModifier = __webpack_require__(26),
+	    Transform = __webpack_require__(18),
+	    View = __webpack_require__(25);
+	
+	/*!
+	 * templates
+	 */
+	
+	var title1 = ("\n<h1 class='title title--section title--pink u-textRight'>they come from all over</h1>"
+	);
+	
+	var number1 = ("<span class='u-textHuge'>20</span>");
+	
+	var content1 = ("\n<div>\n  <p>different countries represented</p>\n  <div class='u-pad-top-10'>\n    <p>54% USA</p>\n    <p>34% Europe</p>\n  </div>\n</div>"
 	
 	
 	
@@ -187,61 +475,94 @@
 	  this.title1 = {};
 	  this.title1.surface = new Surface({
 	    content: title1,
-	    size: [400, true]
+	    size: [300, true]
 	  });
 	
 	  this.title1.modifier = new StateModifier({
-	    origin: [0.5, 0.5],
-	    align: [0.5, 0.5]
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-10, 0, 0)
 	  });
 	
-	  // text
-	  this.text = {};
-	  this.text.surface = new Surface({
-	    size: [780, 300],
-	    content: content1
+	  // content 1
+	  this.content1 = {};
+	  this.content1.surface = new Surface({
+	    content: content1,
+	    size: [160, true]
 	  });
 	
-	  this.text.modifier = new StateModifier({
-	    origin: [0.5, 0],
-	    align: [0.5, 0],
-	    transform: Transform.translate(0, 50, 0)
+	  this.content1.modifier = new StateModifier({
+	    origin: [0, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(10, 0, 0)
 	  });
 	
-	  this
-	    .add(this.text.modifier)
-	    .add(this.text.surface);
+	  this.number1 = {};
+	  this.number1.surface = new Surface({
+	    content: number1,
+	    size: [160, true]
+	  });
 	
-	  this
+	  this.number1.modifier = new StateModifier({
+	    origin: [0, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(10, 0, 0)
+	  });
+	
+	  this.modifier = new StateModifier({
+	    transform: Transform.translate(0, 700, 0)
+	  });
+	
+	  var node = this.add(this.modifier);
+	
+	  node
 	    .add(this.title1.modifier)
 	    .add(this.title1.surface);
+	
+	  node
+	    .add(this.content1.modifier)
+	    .add(this.content1.surface);
+	}
+	
+	function _onEnter() {
+	  this.modifier
+	    .setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack }
+	  );
+	}
+	
+	function _onLeave() {
 	}
 	
 	/**
-	 * Page1 Constructor
+	 * Slide Constructor
 	 */
 	
-	function Page1() {
+	function Slide() {
 	  View.apply(this, arguments);
 	  _createLayout.call(this);
+	
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Page1.prototype = Object.create(View.prototype);
-	Page1.prototype.constructor = Page1;
-	Page1.DEFAULT_OPTIONS = {};
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 240]
+	};
 	
 	/*!
 	 * module exports
 	 */
 	
-	module.exports = Page1;
+	module.exports = Slide;
 
 /***/ },
-/* 2 */
+/* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -250,29 +571,26 @@
 	
 	var Surface = __webpack_require__(23),
 	    StateModifier = __webpack_require__(26),
-	    Transform = __webpack_require__(24),
+	    KeyCodes = __webpack_require__(20),
+	    ImageSurface = __webpack_require__(24),
+	    Easing = __webpack_require__(27),
+	    Transform = __webpack_require__(18),
 	    View = __webpack_require__(25);
+	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
 	
 	/*!
 	 * templates
 	 */
 	
-	var title1 = ("\n<h1 class='title title--section title--pink u-textRight'>they come from all over</h1>"
-	);
-	
-	var content1 = ("\n<div>\n  <p><span class='u-textHuge'>20</span> different countries represented</p>\n  <div class='u-pad-top-10'>\n    <p>54% USA</p>\n    <p>34% Europe</p>\n  </div>\n</div>"
-	
-	
-	
-	
-	
-	
-	);
-	
 	var title2 = ("\n<h1 class='title title--section title--pink u-textRight'>they know what they are getting into</h1>"
 	);
 	
-	var content2 = ("\n<div class='Grid Grid--alignTop Grid--withGutter'>\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>40</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n  </div>\n  <div class='Grid-cell u-size2of3'>\n    <span> consider themselves to be </span>\n    <span class='u-textBold'> serial entrepreneurs</span>\n  </div>\n</div>"
+	var content2 = ("\n<div class='Grid Grid--alignMiddle'>\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>40</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n  </div>\n  <div class='Grid-cell u-size2of3'>\n    <span> consider themselves to be </span>\n    <span class='u-textBold'> serial entrepreneurs</span>\n  </div>\n</div>"
 	
 	
 	
@@ -314,7 +632,8 @@
 	
 	);
 	
-	var content4 = ("\n  <div>\n    <div class='u-pad-bottom-20 u-textUnderscore'>before joining PARISOMA</div>\n    <div class='Grid Grid--alignTop Grid--withGutter'>\n\n      <div class='Grid-cell u-size1of3'>\n        <div>\n          <span class='u-textHuge'>44</span>\n          <span class='u-textLarge'>%</span>\n        </div>\n        <span> worked for a large organisation</span>\n      </div>\n\n      <div class='Grid-cell u-size1of3 Grid-cell--withBorder'>\n        <div>\n          <span class='u-textHuge'>27</span>\n          <span class='u-textLarge'>%</span>\n        </div>\n        <span> worked for another startup<span>\n      </div>\n\n      <div class='Grid-cell u-size1of3'>\n        <div>\n          <span class='u-textHuge'>2</span>\n          <span class='u-textLarge'>%</span>\n        </div>\n        <span> were still in school</span>\n      </div>\n    </div>\n  </div>"
+	var content4 = ("\n<div>\n  <div class='u-pad-bottom-20 u-textUnderscore'>before joining PARISOMA</div>\n  <div class='Grid Grid--alignTop Grid--withGutter'>\n\n    <div class='Grid-cell u-size1of3'>\n      <div>\n        <span class='u-textHuge'>44</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <span> worked for a large organisation</span>\n    </div>\n\n    <div class='Grid-cell u-size1of3 Grid-cell--withBorder'>\n      <div>\n        <span class='u-textHuge'>27</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <span> worked for another startup</span>\n    </div>\n\n    <div class='Grid-cell u-size1of3'>\n      <div>\n        <span class='u-textHuge'>2</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <span> were still in school</span>\n    </div>\n  </div>\n\n</div>"
+	
 	
 	
 	
@@ -344,11 +663,208 @@
 	
 	
 	);
+	
+	
+	/**
+	 * create view layout
+	 */
+	
+	function _createLayout(){
+	
+	  // title 2
+	  this.title2 = {};
+	  this.title2.surface = new Surface({
+	    content: title2,
+	    size: [300, true]
+	  });
+	
+	  this.title2.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, -150, 0)
+	  });
+	
+	  // content 2
+	  this.content2 = {};
+	  this.content2.surface = new Surface({
+	    content: content2,
+	    size: [400, true],
+	    properties: {
+	      zIndex: 1
+	    }
+	  });
+	
+	  this.content2.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 0, 0)
+	  });
+	
+	  // yellow ticker 1
+	  this.yellowTicker1 = {};
+	  this.yellowTicker1.surface = new Surface({
+	    size: [70, 80],
+	    classes: ['ticker', 'ticker--yellow']
+	  });
+	
+	  this.yellowTicker1.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, 0, -39 * toRadian, 0)
+	  });
+	
+	  this.yellowTicker1.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-310, 0, 0)
+	  });
+	
+	  // content 3
+	  this.content3 = {};
+	  this.content3.surface = new Surface({
+	    content: content3,
+	    size: [450, true]
+	  });
+	
+	  this.content3.modifier = new StateModifier({
+	    transform: Transform.translate(0, 550, 0)
+	  });
+	
+	  // content 4
+	  this.content4 = {};
+	  this.content4.surface = new Surface({
+	    content: content4,
+	    size: [450, true]
+	  });
+	
+	  this.content4.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(40, 200, 0),
+	    opacity: 0
+	  });
+	
+	  // lego image
+	  this.legoImg = {};
+	  this.legoImg.surface = new ImageSurface({
+	    content: '/assets/images/04-lego.png',
+	    size: [true, true]
+	  });
+	
+	  this.legoImg.modifier = new StateModifier({
+	    origin: [0, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(100, 0, 0)
+	  });
+	
+	  this.modifier = new StateModifier();
+	
+	  var node = this.add(this.modifier);
+	
+	  node
+	    .add(this.legoImg.modifier)
+	    .add(this.legoImg.surface);
+	
+	  node
+	    .add(this.yellowTicker1.modifier)
+	    .add(this.yellowTicker1.tickerModifier)
+	    .add(this.yellowTicker1.surface);
+	
+	
+	  node
+	    .add(this.title2.modifier)
+	    .add(this.title2.surface);
+	
+	  node
+	    .add(this.content2.modifier)
+	    .add(this.content2.surface);
+	
+	  node
+	    .add(this.content3.modifier)
+	    .add(this.content3.surface);
+	
+	  node
+	    .add(this.content4.modifier)
+	    .add(this.content4.surface);
+	}
+	
+	function _onEnter() {
+	  var step = function(e) {
+	    e.preventDefault();
+	    this._eventInput.removeListener('keydown', step);
+	
+	    if (e.which === KeyCodes.DOWN_ARROW) {
+	      this.content3.modifier.setOpacity(0, { duration : 1000, curve: Easing.outBack });
+	      this.content4.modifier.setOpacity(1, { duration : 1000, curve: Easing.outBack });
+	    }
+	
+	    if (e.which === KeyCodes.UP_ARROW) {
+	      this.content3.modifier.setOpacity(1, { duration : 1000, curve: Easing.outBack });
+	      this.content4.modifier.setOpacity(0, { duration : 1000, curve: Easing.outBack });
+	    }
+	  }.bind(this);
+	
+	  this._eventInput.on('keydown', step);
+	}
+	
+	function _onLeave() {
+	}
+	
+	/**
+	 * Slide Constructor
+	 */
+	
+	function Slide() {
+	  View.apply(this, arguments);
+	  _createLayout.call(this);
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
+	}
+	
+	/*!
+	 * extend View
+	 */
+	
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 600]
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = Slide;
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var Surface = __webpack_require__(23),
+	    Easing = __webpack_require__(27),
+	    StateModifier = __webpack_require__(26),
+	    ImageSurface = __webpack_require__(24),
+	    Transform = __webpack_require__(18),
+	    View = __webpack_require__(25);
+	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
+	
+	/*!
+	 * templates
+	 */
+	
 	
 	var title3 = ("\n<h1 class='title title--section title--pink'>and they know who they are getting into it with</h1>"
 	);
 	
-	var content5 = ("\n<div>\n  <div class='Grid Grid--alignTop'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>2</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>average size of founding team</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>75</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>knew their cofounders before going into business together</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>20</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>worked with their cofounders at a previous job</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>14</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>have known each other since childhood</div>\n  </div>\n\n</div>"
+	var content5 = ("\n<div>\n  <div class='Grid Grid--alignTop'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge' style='padding-left: 37px;'>2</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>average size of founding team</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>75</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>knew their cofounders before going into business together</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>20</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>worked with their cofounders at a previous job</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>14</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>have known each other since childhood</div>\n  </div>\n\n</div>"
 	
 	
 	
@@ -397,134 +913,91 @@
 	
 	function _createLayout(){
 	
-	  // title 1
-	  this.title1 = {};
-	  this.title1.surface = new Surface({
-	    content: title1,
-	    size: [300, true]
+	  // rocket image
+	  this.rocketImg = {};
+	  this.rocketImg.surface = new ImageSurface({
+	    content: '/assets/images/05-rocket.png',
+	    size: [true, true]
 	  });
 	
-	  this.title1.modifier = new StateModifier({
-	    transform: Transform.translate(360, 20, 0)
+	  this.rocketImg.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-360, 180, 0)
 	  });
 	
-	  // content 1
-	  this.content1 = {};
-	  this.content1.surface = new Surface({
-	    content: content1,
-	    size: [200, true]
+	  // yellow ticker 2
+	  this.yellowTicker2 = {};
+	  this.yellowTicker2.surface = new Surface({
+	    size: [170, 120],
+	    classes: ['ticker', 'ticker--yellow']
 	  });
 	
-	  this.content1.modifier = new StateModifier({
-	    transform: Transform.translate(720, 10, 0)
+	  this.yellowTicker2.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, -39 * toRadian, 0)
 	  });
 	
-	  // title 2
-	  this.title2 = {};
-	  this.title2.surface = new Surface({
-	    content: title2,
-	    size: [350, true]
-	  });
-	
-	  this.title2.modifier = new StateModifier({
-	    transform: Transform.translate(90, 350, 0)
-	  });
-	
-	  // content 2
-	  this.content2 = {};
-	  this.content2.surface = new Surface({
-	    content: content2,
-	    size: [400, true]
-	  });
-	
-	  this.content2.modifier = new StateModifier({
-	    transform: Transform.translate(40, 550, 0)
-	  });
-	
-	  // content 3
-	  this.content3 = {};
-	  this.content3.surface = new Surface({
-	    content: content3,
-	    size: [450, true]
-	  });
-	
-	  this.content3.modifier = new StateModifier({
-	    transform: Transform.translate(40, 200, 0)
-	  });
-	
-	  // content 4
-	  this.content4 = {};
-	  this.content4.surface = new Surface({
-	    content: content4,
-	    size: [450, true]
-	  });
-	
-	  this.content4.modifier = new StateModifier({
-	    transform: Transform.translate(40, 450, 0)
+	  this.yellowTicker2.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-200, -80, 0)
 	  });
 	
 	  // title 3
 	  this.title3 = {};
 	  this.title3.surface = new Surface({
 	    content: title3,
-	    size: [550, true]
+	    size: [510, true]
 	  });
 	
 	  this.title3.modifier = new StateModifier({
-	    transform: Transform.translate(450, 0, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 0, 0)
 	  });
 	
 	  // content 5
 	  this.content5 = {};
 	  this.content5.surface = new Surface({
 	    content: content5,
-	    size: [400, true]
+	    size: [400, true],
+	    properties: {
+	      zIndex: 1
+	    }
 	  });
 	
 	  this.content5.modifier = new StateModifier({
-	    transform: Transform.translate(450, 200, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 0, 0)
 	  });
 	
 	  // content 6
 	  this.content6 = {};
 	  this.content6.surface = new Surface({
 	    content: content6,
-	    size: [400, true]
+	    size: [300, true]
 	  });
 	
 	  this.content6.modifier = new StateModifier({
-	    transform: Transform.translate(500, 600, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(50, 250, 0)
 	  });
 	
 	
-	  // this
-	  //   .add(this.title1.modifier)
-	  //   .add(this.title1.surface);
+	  this
+	    .add(this.rocketImg.modifier)
+	    .add(this.rocketImg.surface);
 	
-	  // this
-	  //   .add(this.content1.modifier)
-	  //   .add(this.content1.surface);
-	
-	  // this
-	  //   .add(this.title2.modifier)
-	  //   .add(this.title2.surface);
-	
-	  // this
-	  //   .add(this.content2.modifier)
-	  //   .add(this.content2.surface);
-	
-	  // this
-	  //   .add(this.content3.modifier)
-	  //   .add(this.content3.surface);
-	
-	  // this
-	  //   .add(this.content4.modifier)
-	  //   .add(this.content4.surface);
+	  this
+	    .add(this.yellowTicker2.modifier)
+	    .add(this.yellowTicker2.tickerModifier)
+	    .add(this.yellowTicker2.surface);
 	
 	  this
 	    .add(this.title3.modifier)
 	    .add(this.title3.surface);
-	
 	
 	  this
 	    .add(this.content5.modifier)
@@ -535,31 +1008,44 @@
 	    .add(this.content6.surface);
 	}
 	
+	function _onEnter() {
+	  this.title3.modifier
+	    .setTransform(Transform.translate(0, -350, 0), { duration : 800, curve: Easing.outBack });
+	}
+	
+	function _onLeave() {
+	}
+	
 	/**
-	 * Page2 Constructor
+	 * Slide Constructor
 	 */
 	
-	function Page2() {
+	function Slide() {
 	  View.apply(this, arguments);
 	  _createLayout.call(this);
+	
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Page2.prototype = Object.create(View.prototype);
-	Page2.prototype.constructor = Page2;
-	Page2.DEFAULT_OPTIONS = {};
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 720]
+	};
 	
 	/*!
 	 * module exports
 	 */
 	
-	module.exports = Page2;
+	module.exports = Slide;
 
 /***/ },
-/* 3 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -567,16 +1053,24 @@
 	 */
 	
 	var Surface = __webpack_require__(23),
+	    Easing = __webpack_require__(27),
+	    ImageSurface = __webpack_require__(24),
 	    StateModifier = __webpack_require__(26),
-	    Transform = __webpack_require__(24),
+	    Transform = __webpack_require__(18),
 	    View = __webpack_require__(25);
+	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
 	
 	/*!
 	 * templates
 	 */
 	
-	var title1 = ("<h1 class='title title--section title--pink'>they have an app for that</h1>");
-	var content1 = ("\n<div class='Grid Grid--alignTop Grid--withGutter'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>55</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>are building a web app</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>have an IOS app<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>13</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>an Android app</span>\n  </div>\n</div>"
+	var title1 = ("<h1 class='title title--section title--white'>they have an app for that</h1>");
+	var content1 = ("\n<div class='Grid Grid--alignTop Grid--withGutter text--white'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>55</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>are building a web app</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>have an IOS app<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>13</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>an Android app</span>\n  </div>\n</div>"
 	
 	
 	
@@ -603,81 +1097,94 @@
 	
 	
 	);
-	
-	var title2 = ("<h1 class='title title--section title--pink'>they code across the board</h1>");
-	var content2 = ("\n<div class='Grid Grid--alignTop Grid--withGutter'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>55</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Javascript</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>41</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>HTML5<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>34</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>PHP</span>\n  </div>\n\n</div>\n\n<div class='Grid Grid--alignTop Grid--withGutter u-pad-top-20'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Node.js</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Python.js</span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>17</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Ruby</span>\n  </div>\n</div>\n\n<div class='u-pad-top-20'>\n  <div>\n    <span class='u-textHuge'>14</span>\n    <span class='u-textLarge'>%</span>\n  </div>\n  <span>Java</span>\n</div>\n\n\n"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
 	
 	/**
 	 * create view layout
 	 */
 	
 	function _createLayout(){
+	
+	  // parisoma image
+	  this.parisomaImg = {};
+	  this.parisomaImg.surface = new ImageSurface({
+	    content: '/assets/images/07-parisoma.png',
+	    size: [true, true]
+	  });
+	
+	  this.parisomaImg.modifier = new StateModifier({
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(0, -100, 0)
+	  });
+	
+	  // shelf image
+	  this.shelfImg = {};
+	  this.shelfImg.surface = new ImageSurface({
+	    content: '/assets/images/06-shelf.png',
+	    size: [true, true]
+	  });
+	
+	  this.shelfImg.modifier = new StateModifier({
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(-200, -440, 0)
+	  });
+	
+	  // shelf image
+	  this.keyboardImg = {};
+	  this.keyboardImg.surface = new ImageSurface({
+	    content: '/assets/images/08-keyboard.png',
+	    size: [true, true]
+	  });
+	
+	  // donut image
+	  this.donutImg = {};
+	  this.donutImg.surface = new ImageSurface({
+	    content: '/assets/images/10-donut.png',
+	    size: [true, true]
+	  });
+	
+	  this.donutImg.modifier = new StateModifier({
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(-140, 580, 0)
+	  });
+	
+	  this.keyboardImg.modifier = new StateModifier({
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(380, 30, 0)
+	  });
+	
+	  // pink ticker
+	  this.pinkTicker = {};
+	  this.pinkTicker.surface = new Surface({
+	    size: [70, 180],
+	    classes: ['ticker', 'ticker--pink']
+	  });
+	
+	  this.pinkTicker.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, -39 * toRadian, 0)
+	  });
+	
+	  this.pinkTicker.modifier = new StateModifier({
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(-345, -320, 0)
+	  });
+	
+	  // tagline image
+	  this.taglineImg = {};
+	  this.taglineImg.surface = new ImageSurface({
+	    content: '/assets/images/09-tagline.png',
+	    size: [true, true]
+	  });
+	
+	  this.taglineImg.modifier = new StateModifier({
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(-200, 320, 0)
+	  });
 	
 	  // title 1
 	  this.title1 = {};
@@ -687,7 +1194,9 @@
 	  });
 	
 	  this.title1.modifier = new StateModifier({
-	    transform: Transform.translate(0, 0, 0)
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(0, -65, 0)
 	  });
 	
 	  // content 1
@@ -698,8 +1207,173 @@
 	  });
 	
 	  this.content1.modifier = new StateModifier({
-	    transform: Transform.translate(0, 100, 0)
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    transform: Transform.translate(0, 65, 0)
 	  });
+	
+	  this
+	    .add(this.parisomaImg.modifier)
+	    .add(this.parisomaImg.surface);
+	
+	  this
+	    .add(this.shelfImg.modifier)
+	    .add(this.shelfImg.surface);
+	
+	  this
+	    .add(this.pinkTicker.modifier)
+	    .add(this.pinkTicker.tickerModifier)
+	    .add(this.pinkTicker.surface);
+	
+	  this
+	    .add(this.keyboardImg.modifier)
+	    .add(this.keyboardImg.surface);
+	
+	  this
+	    .add(this.taglineImg.modifier)
+	    .add(this.taglineImg.surface);
+	
+	  this
+	    .add(this.donutImg.modifier)
+	    .add(this.donutImg.surface);
+	
+	  this
+	    .add(this.title1.modifier)
+	    .add(this.title1.surface);
+	
+	  this
+	    .add(this.content1.modifier)
+	    .add(this.content1.surface);
+	}
+	
+	function _onEnter() {
+	  this.donutImg.modifier
+	    .setTransform(Transform.translate(-140, 580, 0));
+	
+	}
+	
+	function _onLeave() {
+	  this.donutImg.modifier
+	    .setTransform(Transform.translate(-140, 580, 0), { duration : 500 })
+	    .setTransform(Transform.translate(-140, 0, 0), { duration : 500, curve: Easing.outBack });
+	}
+	
+	/**
+	 * Slide Constructor
+	 */
+	
+	function Slide() {
+	  View.apply(this, arguments);
+	  _createLayout.call(this);
+	
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
+	}
+	
+	/*!
+	 * extend View
+	 */
+	
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 1110]
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = Slide;
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var Surface = __webpack_require__(23),
+	    Easing = __webpack_require__(27),
+	    StateModifier = __webpack_require__(26),
+	    Transform = __webpack_require__(18),
+	    View = __webpack_require__(25);
+	
+	/*!
+	 * templates
+	 */
+	
+	var title2 = ("<h1 class='title title--section title--pink'>they code across the board</h1>");
+	var content2 = ("\n<div class='Grid Grid--alignTop Grid--withGutter'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>55</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Javascript</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>41</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>HTML5<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>34</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>PHP</span>\n  </div>\n\n</div>\n\n<div class='Grid Grid--alignTop Grid--withGutter u-pad-top-20'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Node.js</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Python.js</span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>17</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Ruby</span>\n  </div>\n</div>\n\n<div class='u-pad-top-20'>\n  <div>\n    <span class='u-textHuge'>14</span>\n    <span class='u-textLarge'>%</span>\n  </div>\n  <span>Java</span>\n</div>"
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	);
+	
+	/**
+	 * create view layout
+	 */
+	
+	function _createLayout(){
 	
 	  // title 2
 	  this.title2 = {};
@@ -709,27 +1383,23 @@
 	  });
 	
 	  this.title2.modifier = new StateModifier({
-	    transform: Transform.translate(500, 200, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(250, -250, 0)
 	  });
 	
 	  // content 2
 	  this.content2 = {};
 	  this.content2.surface = new Surface({
 	    content: content2,
-	    size: [450, true]
+	    size: [420, true]
 	  });
 	
 	  this.content2.modifier = new StateModifier({
-	    transform: Transform.translate(500, 340, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 0, 0)
 	  });
-	
-	  this
-	    .add(this.title1.modifier)
-	    .add(this.title1.surface);
-	
-	  this
-	    .add(this.content1.modifier)
-	    .add(this.content1.surface);
 	
 	  this
 	    .add(this.title2.modifier)
@@ -740,31 +1410,46 @@
 	    .add(this.content2.surface);
 	}
 	
-	/**
-	 * Page3 Constructor
-	 */
-	
-	function Page3() {
-	  View.apply(this, arguments);
-	  _createLayout.call(this);
+	function _onEnter() {
+	  this.title2.modifier
+	    .setTransform(Transform.translate(250, -300, 0), { duration : 500 })
+	    .setTransform(Transform.translate(0, -250, 0), { duration : 500, curve: Easing.outBack });
 	}
 	
+	function _onLeave() {
+	  this.title2.modifier
+	    .setTransform(Transform.translate(250, -300, 0));
+	}
+	
+	/**
+	 * Slide Constructor
+	 */
+	
+	function Slide() {
+	  View.apply(this, arguments);
+	  _createLayout.call(this);
+	
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
+	}
 	/*!
 	 * extend View
 	 */
 	
-	Page3.prototype = Object.create(View.prototype);
-	Page3.prototype.constructor = Page3;
-	Page3.DEFAULT_OPTIONS = {};
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 480]
+	};
 	
 	/*!
 	 * module exports
 	 */
 	
-	module.exports = Page3;
+	module.exports = Slide;
 
 /***/ },
-/* 4 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -772,9 +1457,18 @@
 	 */
 	
 	var Surface = __webpack_require__(23),
+	    KeyCodes = __webpack_require__(20),
+	    ImageSurface = __webpack_require__(24),
+	    Easing = __webpack_require__(27),
 	    StateModifier = __webpack_require__(26),
-	    Transform = __webpack_require__(24),
+	    Transform = __webpack_require__(18),
 	    View = __webpack_require__(25);
+	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
 	
 	/*!
 	 * templates
@@ -818,27 +1512,62 @@
 	
 	function _createLayout(){
 	
+	  /*!
+	   * first part
+	   */
+	
 	  // title 1
 	  this.title1 = {};
 	  this.title1.surface = new Surface({
 	    content: title1,
-	    size: [400, true]
+	    size: [400, true],
+	    properties: {
+	      zIndex: 1
+	    }
 	  });
 	
 	  this.title1.modifier = new StateModifier({
-	    transform: Transform.translate(20, 0, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, -200, 0)
+	  });
+	
+	  // yellow ticker
+	  this.yellowTicker = {};
+	  this.yellowTicker.surface = new Surface({
+	    size: [120, 100],
+	    classes: ['ticker', 'ticker--yellow']
+	  });
+	
+	  this.yellowTicker.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, -39 * toRadian, 0)
+	  });
+	
+	  this.yellowTicker.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-170, -80, 0)
 	  });
 	
 	  // content 1
 	  this.content1 = {};
 	  this.content1.surface = new Surface({
 	    content: content1,
-	    size: [400, true]
+	    size: [400, true],
+	    properties: {
+	      zIndex: 1
+	    }
 	  });
 	
 	  this.content1.modifier = new StateModifier({
-	    transform: Transform.translate(20, 100, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, -100, 0)
 	  });
+	
+	  /*!
+	   * second part
+	   */
 	
 	  // title 2
 	  this.title2 = {};
@@ -848,7 +1577,64 @@
 	  });
 	
 	  this.title2.modifier = new StateModifier({
-	    transform: Transform.translate(20, 200, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-200, -500, 0)
+	  });
+	
+	  // 3d printing image
+	  this.printingImg = {};
+	  this.printingImg.surface = new ImageSurface({
+	    content: '/assets/images/11-3Dprinting.png',
+	    size: [true, true],
+	    properties: {
+	      zIndex: 1
+	    }
+	  });
+	
+	  this.printingImg.modifier = new StateModifier({
+	    origin: [0, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(100, 100, 0)
+	  });
+	
+	   // pink ticker
+	  this.pinkTicker1 = {};
+	  this.pinkTicker1.surface = new Surface({
+	    size: [55, 45],
+	    classes: ['ticker', 'ticker--pink'],
+	    properties: {
+	      zIndex: 1
+	    }
+	  });
+	
+	  this.pinkTicker1.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, -39 * toRadian, 0)
+	  });
+	
+	  this.pinkTicker1.modifier = new StateModifier({
+	    origin: [0, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(0, 150, 0)
+	  });
+	
+	  this.pinkTicker2 = {};
+	  this.pinkTicker2.surface = new Surface({
+	    size: [55, 45],
+	    classes: ['ticker', 'ticker--pink'],
+	    properties: {
+	      zIndex: 1
+	    }
+	  });
+	
+	  this.pinkTicker2.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, -39 * toRadian, 0)
+	  });
+	
+	  this.pinkTicker2.modifier = new StateModifier({
+	    origin: [0, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(0, 230, 0)
 	  });
 	
 	  // content 2
@@ -859,51 +1645,107 @@
 	  });
 	
 	  this.content2.modifier = new StateModifier({
-	    transform: Transform.translate(20, 300, 0)
+	    transform: Transform.translate(100, 50, 0)
 	  });
 	
-	  this
+	  this.part1Modifier = new StateModifier();
+	  var node = this.add(this.part1Modifier);
+	
+	  node
+	    .add(this.yellowTicker.modifier)
+	    .add(this.yellowTicker.tickerModifier)
+	    .add(this.yellowTicker.surface);
+	
+	  node
 	    .add(this.title1.modifier)
 	    .add(this.title1.surface);
 	
-	  this
+	  node
 	    .add(this.content1.modifier)
 	    .add(this.content1.surface);
 	
-	  this
+	  this.part2Modifier = new StateModifier({
+	    opacity: 0
+	  });
+	
+	  node = this.add(this.part2Modifier);
+	
+	  node
+	    .add(this.printingImg.modifier)
+	    .add(this.printingImg.surface);
+	
+	  node
+	    .add(this.pinkTicker1.modifier)
+	    .add(this.pinkTicker1.tickerModifier)
+	    .add(this.pinkTicker1.surface);
+	
+	  node
+	    .add(this.pinkTicker2.modifier)
+	    .add(this.pinkTicker2.tickerModifier)
+	    .add(this.pinkTicker2.surface);
+	
+	  node
 	    .add(this.title2.modifier)
 	    .add(this.title2.surface);
 	
-	  this
+	  node
 	    .add(this.content2.modifier)
 	    .add(this.content2.surface);
+	
+	}
+	
+	function _onEnter() {
+	  var step = function(e) {
+	    e.preventDefault();
+	    this._eventInput.removeListener('keydown', step);
+	
+	    if (e.which === KeyCodes.DOWN_ARROW) {
+	      this.part1Modifier.setTransform(Transform.translate(250, -200, 0), { duration : 1000, curve: Easing.outBack });
+	
+	      this.part2Modifier
+	        .setTransform(Transform.translate(0, 900, 0))
+	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
+	        .setTransform(Transform.translate(0, 200, 0), { duration : 1000, curve: Easing.outBack });
+	    }
+	
+	  }.bind(this);
+	
+	  this._eventInput.on('keydown', step);
+	}
+	
+	function _onLeave() {
+	
 	}
 	
 	/**
-	 * Page4 Constructor
+	 * Slide Constructor
 	 */
 	
-	function Page4() {
+	function Slide() {
 	  View.apply(this, arguments);
 	  _createLayout.call(this);
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Page4.prototype = Object.create(View.prototype);
-	Page4.prototype.constructor = Page4;
-	Page4.DEFAULT_OPTIONS = {};
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 600]
+	};
 	
 	/*!
 	 * module exports
 	 */
 	
-	module.exports = Page4;
+	module.exports = Slide;
 
 /***/ },
-/* 5 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -911,8 +1753,9 @@
 	 */
 	
 	var Surface = __webpack_require__(23),
+	    ImageSurface = __webpack_require__(24),
 	    StateModifier = __webpack_require__(26),
-	    Transform = __webpack_require__(24),
+	    Transform = __webpack_require__(18),
 	    View = __webpack_require__(25);
 	
 	/*!
@@ -958,15 +1801,30 @@
 	
 	function _createLayout(){
 	
+	  // group image
+	  this.groupImg = {};
+	  this.groupImg.surface = new ImageSurface({
+	    content: '/assets/images/12-group.png',
+	    size: [true, true]
+	  });
+	
+	  this.groupImg.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(200, -100, 0)
+	  });
+	
 	  // title 1
 	  this.title1 = {};
 	  this.title1.surface = new Surface({
 	    content: title1,
-	    size: [200, true]
+	    size: [300, true]
 	  });
 	
 	  this.title1.modifier = new StateModifier({
-	    transform: Transform.translate(500, 20, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(200, 0, 0)
 	  });
 	
 	  // content 1
@@ -977,8 +1835,14 @@
 	  });
 	
 	  this.content1.modifier = new StateModifier({
-	    transform: Transform.translate(300, 200, 0)
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-180, 100, 0)
 	  });
+	
+	  this
+	    .add(this.groupImg.modifier)
+	    .add(this.groupImg.surface);
 	
 	  this
 	    .add(this.title1.modifier)
@@ -1004,7 +1868,9 @@
 	
 	Page5.prototype = Object.create(View.prototype);
 	Page5.prototype.constructor = Page5;
-	Page5.DEFAULT_OPTIONS = {};
+	Page5.DEFAULT_OPTIONS = {
+	  size: [undefined, 750]
+	};
 	
 	/*!
 	 * module exports
@@ -1013,7 +1879,7 @@
 	module.exports = Page5;
 
 /***/ },
-/* 6 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -1021,9 +1887,18 @@
 	 */
 	
 	var Surface = __webpack_require__(23),
+	    KeyCodes = __webpack_require__(20),
+	    Easing = __webpack_require__(27),
+	    ImageSurface = __webpack_require__(24),
 	    StateModifier = __webpack_require__(26),
-	    Transform = __webpack_require__(24),
+	    Transform = __webpack_require__(18),
 	    View = __webpack_require__(25);
+	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
 	
 	/*!
 	 * templates
@@ -1065,11 +1940,29 @@
 	
 	);
 	
+	
 	/**
 	 * create view layout
 	 */
 	
 	function _createLayout(){
+	
+	  /*!
+	   * part 1
+	   */
+	
+	  // truck image
+	  this.truckImg = {};
+	  this.truckImg.surface = new ImageSurface({
+	    content: '/assets/images/13-truck.png',
+	    size: [true, true]
+	  });
+	
+	  this.truckImg.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 0, 0)
+	  });
 	
 	  // title 1
 	  this.title1 = {};
@@ -1079,7 +1972,9 @@
 	  });
 	
 	  this.title1.modifier = new StateModifier({
-	    transform: Transform.translate(20, 200, 0)
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(50, -150, 0)
 	  });
 	
 	  // content 1
@@ -1090,8 +1985,14 @@
 	  });
 	
 	  this.content1.modifier = new StateModifier({
-	    transform: Transform.translate(400, 0, 0)
+	    origin: [0, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(30, -100, 0)
 	  });
+	
+	  /*!
+	   * part 2
+	   */
 	
 	  // title 2
 	  this.title2 = {};
@@ -1101,62 +2002,136 @@
 	  });
 	
 	  this.title2.modifier = new StateModifier({
-	    transform: Transform.translate(0, 500, 0)
+	    origin: [0.5, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(-80, 80, 0)
 	  });
 	
 	  // content 2
 	  this.content2 = {};
 	  this.content2.surface = new Surface({
 	    content: content2,
-	    size: [300, true]
+	    size: [300, true],
+	    properties: {
+	      zIndex: 1
+	    }
 	  });
 	
 	  this.content2.modifier = new StateModifier({
-	    transform: Transform.translate(300, 500, 0)
+	    origin: [1, 0],
+	    align: [1, 0],
+	    transform: Transform.translate(-100, 80, 0)
 	  });
 	
-	  this
+	  // yellow ticker
+	  this.yellowTicker = {};
+	  this.yellowTicker.surface = new Surface({
+	    size: [140, 100],
+	    classes: ['ticker', 'ticker--yellow']
+	  });
+	
+	  this.yellowTicker.tickerModifier = new StateModifier({
+	    transform: Transform.skew(0, -39 * toRadian, 0)
+	  });
+	
+	  this.yellowTicker.modifier = new StateModifier({
+	    origin: [1, 0],
+	    align: [1, 0],
+	    transform: Transform.translate(-280, 0, 0)
+	  });
+	
+	
+	  this.part1Modifier = new StateModifier({
+	  });
+	
+	  this.part2Modifier = new StateModifier({
+	    opacity: 0
+	  });
+	
+	  var node = this.add(this.part1Modifier);
+	
+	  node
+	    .add(this.truckImg.modifier)
+	    .add(this.truckImg.surface);
+	
+	  node
 	    .add(this.title1.modifier)
 	    .add(this.title1.surface);
 	
-	  this
+	  node
 	    .add(this.content1.modifier)
 	    .add(this.content1.surface);
 	
-	  this
+	
+	  node = this.add(this.part2Modifier);
+	
+	
+	  node
 	    .add(this.title2.modifier)
 	    .add(this.title2.surface);
 	
-	  this
+	  node
 	    .add(this.content2.modifier)
 	    .add(this.content2.surface);
+	
+	  node
+	    .add(this.yellowTicker.modifier)
+	    .add(this.yellowTicker.tickerModifier)
+	    .add(this.yellowTicker.surface);
+	
+	}
+	
+	function _onEnter() {
+	  var step = function(e) {
+	    e.preventDefault();
+	    this._eventInput.removeListener('keydown', step);
+	
+	    if (e.which === KeyCodes.DOWN_ARROW) {
+	      this.part1Modifier.setTransform(Transform.translate(-100, -200, 0), { duration : 1000, curve: Easing.outBack });
+	
+	      this.part2Modifier
+	        .setTransform(Transform.translate(0, 900, 0))
+	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
+	        .setTransform(Transform.translate(-100, 400, 0), { duration : 1000, curve: Easing.outBack });
+	    }
+	
+	  }.bind(this);
+	
+	  this._eventInput.on('keydown', step);
+	}
+	
+	function _onLeave() {
 	}
 	
 	/**
-	 * Page6 Constructor
+	 * Slide Constructor
 	 */
 	
-	function Page6() {
+	function Slide() {
 	  View.apply(this, arguments);
 	  _createLayout.call(this);
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Page6.prototype = Object.create(View.prototype);
-	Page6.prototype.constructor = Page6;
-	Page6.DEFAULT_OPTIONS = {};
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	Slide.DEFAULT_OPTIONS = {
+	  size: [undefined, 600]
+	};
 	
 	/*!
 	 * module exports
 	 */
 	
-	module.exports = Page6;
+	module.exports = Slide;
 
 /***/ },
-/* 7 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -1164,6 +2139,8 @@
 	 */
 	
 	var Surface = __webpack_require__(23),
+	    ImageSurface = __webpack_require__(24),
+	    Transform = __webpack_require__(18),
 	    StateModifier = __webpack_require__(26),
 	    View = __webpack_require__(25);
 	
@@ -1171,7 +2148,16 @@
 	 * templates
 	 */
 	
-	var content1 = ("<p>These numbers were taken between September 1st and September 15th, 2014 from the 135 members of PARISOMA. Over the past 6 years, we’ve been there through it all - through launch parties and pivot strategies, through wireframes and W9’s, from ramen noodles to funding rounds. We’ve seen many failures and a few great successes. While members come and go, the core DNA of our community remains the same. PARISOMA is a space where ideas meet execution. We foster an experimental environment through coworking, classes, and events.</p>");
+	var content1 = ("\n<div>\n  <div style='float: left; width: 280px; height: 450px; shape-outside: polygon(0px 0px, 283px -1px, 282px 199px, -4px 424px);'></div>\n  <div>\n    <p class='u-pad-top-20'>These numbers were taken between September 1st and September 15th, 2014 from the 135 members of PARISOMA.</p>\n    <p class='u-pad-top-20'>Over the past 6 years, we’ve been there through it all - through launch parties and pivot strategies, through wireframes and W9’s, from ramen noodles to funding rounds. We’ve seen many failures and a few great successes.</p>\n    <p class='u-pad-top-20'>While members come and go, the core DNA of our community remains the same.</p>\n    <p class='u-pad-top-20'>PARISOMA is a space where ideas meet execution. We foster an experimental environment through coworking, classes, and events.</p>\n  </div>\n</div>"
+	
+	
+	
+	
+	
+	
+	
+	
+	);
 	
 	/**
 	 * create view layout
@@ -1179,15 +2165,52 @@
 	
 	function _createLayout(){
 	
+	  // fawn image
+	  this.fawnImg = {};
+	  this.fawnImg.surface = new ImageSurface({
+	    content: '/assets/images/14-fawn.png',
+	    size: [true, true]
+	  });
+	
+	  this.fawnImg.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-250, -140, 0)
+	  });
+	
+	  // open image
+	  this.openImg = {};
+	  this.openImg.surface = new ImageSurface({
+	    content: '/assets/images/15-open.png',
+	    size: [true, true]
+	  });
+	
+	  this.openImg.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-400, 300, 0)
+	  });
+	
 	  // content 1
 	  this.content1 = {};
 	  this.content1.surface = new Surface({
 	    content: content1,
-	    size: [500, undefined]
+	    size: [700, 470]
 	  });
 	
 	  this.content1.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(100, 0, 0)
 	  });
+	
+	  this
+	    .add(this.fawnImg.modifier)
+	    .add(this.fawnImg.surface);
+	
+	  this
+	    .add(this.openImg.modifier)
+	    .add(this.openImg.surface);
 	
 	  this
 	    .add(this.content1.modifier)
@@ -1218,7 +2241,7 @@
 	module.exports = Page7;
 
 /***/ },
-/* 8 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -1227,7 +2250,7 @@
 	
 	var Surface = __webpack_require__(23),
 	    StateModifier = __webpack_require__(26),
-	    Transform = __webpack_require__(24),
+	    Transform = __webpack_require__(18),
 	    Easing = __webpack_require__(27),
 	    View = __webpack_require__(25);
 	
@@ -1268,7 +2291,7 @@
 	  var side;
 	  this.sides = [];
 	
-	  var curve = { duration : 800, curve: Easing.outBack };
+	  var curve = { duration : 1000, curve: Easing.outBack };
 	  // var curve = {
 	  //   method: 'spring',
 	  //   period: 5000,
@@ -1344,16 +2367,16 @@
 	module.exports = Logo;
 
 /***/ },
-/* 9 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(10);
+	var content = __webpack_require__(13);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(11)(content);
+	var update = __webpack_require__(14)(content);
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
@@ -1367,14 +2390,14 @@
 	}
 
 /***/ },
-/* 10 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(28)();
-	exports.push([module.id, "/*! normalize.css v3.0.2 | MIT License | git.io/normalize */\n\n/**\n * 1. Set default font family to sans-serif.\n * 2. Prevent iOS text size adjust after orientation change, without disabling\n *    user zoom.\n */\n\nhtml {\n  font-family: sans-serif;\n  /* 1 */\n  -ms-text-size-adjust: 100%;\n  /* 2 */\n  -webkit-text-size-adjust: 100%;\n  /* 2 */\n}\n\n/**\n * Remove default margin.\n */\n\nbody {\n  margin: 0;\n}\n\n/* HTML5 display definitions\n   ========================================================================== */\n\n/**\n * Correct `block` display not defined for any HTML5 element in IE 8/9.\n * Correct `block` display not defined for `details` or `summary` in IE 10/11\n * and Firefox.\n * Correct `block` display not defined for `main` in IE 11.\n */\n\narticle,\naside,\ndetails,\nfigcaption,\nfigure,\nfooter,\nheader,\nhgroup,\nmain,\nmenu,\nnav,\nsection,\nsummary {\n  display: block;\n}\n\n/**\n * 1. Correct `inline-block` display not defined in IE 8/9.\n * 2. Normalize vertical alignment of `progress` in Chrome, Firefox, and Opera.\n */\n\naudio,\ncanvas,\nprogress,\nvideo {\n  display: inline-block;\n  /* 1 */\n  vertical-align: baseline;\n  /* 2 */\n}\n\n/**\n * Prevent modern browsers from displaying `audio` without controls.\n * Remove excess height in iOS 5 devices.\n */\n\naudio:not([controls]) {\n  display: none;\n  height: 0;\n}\n\n/**\n * Address `[hidden]` styling not present in IE 8/9/10.\n * Hide the `template` element in IE 8/9/11, Safari, and Firefox < 22.\n */\n\n[hidden],\ntemplate {\n  display: none;\n}\n\n/* Links\n   ========================================================================== */\n\n/**\n * Remove the gray background color from active links in IE 10.\n */\n\na {\n  background-color: transparent;\n}\n\n/**\n * Improve readability when focused and also mouse hovered in all browsers.\n */\n\na:active,\na:hover {\n  outline: 0;\n}\n\n/* Text-level semantics\n   ========================================================================== */\n\n/**\n * Address styling not present in IE 8/9/10/11, Safari, and Chrome.\n */\n\nabbr[title] {\n  border-bottom: 1px dotted;\n}\n\n/**\n * Address style set to `bolder` in Firefox 4+, Safari, and Chrome.\n */\n\nb,\nstrong {\n  font-weight: bold;\n}\n\n/**\n * Address styling not present in Safari and Chrome.\n */\n\ndfn {\n  font-style: italic;\n}\n\n/**\n * Address variable `h1` font-size and margin within `section` and `article`\n * contexts in Firefox 4+, Safari, and Chrome.\n */\n\nh1 {\n  font-size: 2em;\n  margin: 0.67em 0;\n}\n\n/**\n * Address styling not present in IE 8/9.\n */\n\nmark {\n  background: #ff0;\n  color: #000;\n}\n\n/**\n * Address inconsistent and variable font size in all browsers.\n */\n\nsmall {\n  font-size: 80%;\n}\n\n/**\n * Prevent `sub` and `sup` affecting `line-height` in all browsers.\n */\n\nsub,\nsup {\n  font-size: 75%;\n  line-height: 0;\n  position: relative;\n  vertical-align: baseline;\n}\n\nsup {\n  top: -0.5em;\n}\n\nsub {\n  bottom: -0.25em;\n}\n\n/* Embedded content\n   ========================================================================== */\n\n/**\n * Remove border when inside `a` element in IE 8/9/10.\n */\n\nimg {\n  border: 0;\n}\n\n/**\n * Correct overflow not hidden in IE 9/10/11.\n */\n\nsvg:not(:root) {\n  overflow: hidden;\n}\n\n/* Grouping content\n   ========================================================================== */\n\n/**\n * Address margin not present in IE 8/9 and Safari.\n */\n\nfigure {\n  margin: 1em 40px;\n}\n\n/**\n * Address differences between Firefox and other browsers.\n */\n\nhr {\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n  height: 0;\n}\n\n/**\n * Contain overflow in all browsers.\n */\n\npre {\n  overflow: auto;\n}\n\n/**\n * Address odd `em`-unit font size rendering in all browsers.\n */\n\ncode,\nkbd,\npre,\nsamp {\n  font-family: monospace, monospace;\n  font-size: 1em;\n}\n\n/* Forms\n   ========================================================================== */\n\n/**\n * Known limitation: by default, Chrome and Safari on OS X allow very limited\n * styling of `select`, unless a `border` property is set.\n */\n\n/**\n * 1. Correct color not being inherited.\n *    Known issue: affects color of disabled elements.\n * 2. Correct font properties not being inherited.\n * 3. Address margins set differently in Firefox 4+, Safari, and Chrome.\n */\n\nbutton,\ninput,\noptgroup,\nselect,\ntextarea {\n  color: inherit;\n  /* 1 */\n  font: inherit;\n  /* 2 */\n  margin: 0;\n  /* 3 */\n}\n\n/**\n * Address `overflow` set to `hidden` in IE 8/9/10/11.\n */\n\nbutton {\n  overflow: visible;\n}\n\n/**\n * Address inconsistent `text-transform` inheritance for `button` and `select`.\n * All other form control elements do not inherit `text-transform` values.\n * Correct `button` style inheritance in Firefox, IE 8/9/10/11, and Opera.\n * Correct `select` style inheritance in Firefox.\n */\n\nbutton,\nselect {\n  text-transform: none;\n}\n\n/**\n * 1. Avoid the WebKit bug in Android 4.0.* where (2) destroys native `audio`\n *    and `video` controls.\n * 2. Correct inability to style clickable `input` types in iOS.\n * 3. Improve usability and consistency of cursor style between image-type\n *    `input` and others.\n */\n\nbutton,\nhtml input[type=\"button\"],\ninput[type=\"reset\"],\ninput[type=\"submit\"] {\n  -webkit-appearance: button;\n  /* 2 */\n  cursor: pointer;\n  /* 3 */\n}\n\n/**\n * Re-set default cursor for disabled elements.\n */\n\nbutton[disabled],\nhtml input[disabled] {\n  cursor: default;\n}\n\n/**\n * Remove inner padding and border in Firefox 4+.\n */\n\nbutton::-moz-focus-inner,\ninput::-moz-focus-inner {\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Address Firefox 4+ setting `line-height` on `input` using `!important` in\n * the UA stylesheet.\n */\n\ninput {\n  line-height: normal;\n}\n\n/**\n * It's recommended that you don't attempt to style these elements.\n * Firefox's implementation doesn't respect box-sizing, padding, or width.\n *\n * 1. Address box sizing set to `content-box` in IE 8/9/10.\n * 2. Remove excess padding in IE 8/9/10.\n */\n\ninput[type=\"checkbox\"],\ninput[type=\"radio\"] {\n  box-sizing: border-box;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Fix the cursor style for Chrome's increment/decrement buttons. For certain\n * `font-size` values of the `input`, it causes the cursor style of the\n * decrement button to change from `default` to `text`.\n */\n\ninput[type=\"number\"]::-webkit-inner-spin-button,\ninput[type=\"number\"]::-webkit-outer-spin-button {\n  height: auto;\n}\n\n/**\n * 1. Address `appearance` set to `searchfield` in Safari and Chrome.\n * 2. Address `box-sizing` set to `border-box` in Safari and Chrome\n *    (include `-moz` to future-proof).\n */\n\ninput[type=\"search\"] {\n  -webkit-appearance: textfield;\n  /* 1 */\n  -moz-box-sizing: content-box;\n  -webkit-box-sizing: content-box;\n  /* 2 */\n  box-sizing: content-box;\n}\n\n/**\n * Remove inner padding and search cancel button in Safari and Chrome on OS X.\n * Safari (but not Chrome) clips the cancel button when the search input has\n * padding (and `textfield` appearance).\n */\n\ninput[type=\"search\"]::-webkit-search-cancel-button,\ninput[type=\"search\"]::-webkit-search-decoration {\n  -webkit-appearance: none;\n}\n\n/**\n * Define consistent border, margin, and padding.\n */\n\nfieldset {\n  border: 1px solid #c0c0c0;\n  margin: 0 2px;\n  padding: 0.35em 0.625em 0.75em;\n}\n\n/**\n * 1. Correct `color` not being inherited in IE 8/9/10/11.\n * 2. Remove padding so people aren't caught out if they zero out fieldsets.\n */\n\nlegend {\n  border: 0;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Remove default vertical scrollbar in IE 8/9/10/11.\n */\n\ntextarea {\n  overflow: auto;\n}\n\n/**\n * Don't inherit the `font-weight` (applied by a rule above).\n * NOTE: the default cannot safely be changed in Chrome and Safari on OS X.\n */\n\noptgroup {\n  font-weight: bold;\n}\n\n/* Tables\n   ========================================================================== */\n\n/**\n * Remove most spacing between table cells.\n */\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0;\n}\n\ntd,\nth {\n  padding: 0;\n}\n\n/**\n * A thin layer on top of normalize.css that provides a starting point more\n * suitable for web applications. Removes the default spacing and border for\n * appropriate elements.\n */\n\nblockquote,\ndl,\ndd,\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\nfigure,\np,\npre {\n  margin: 0;\n}\n\nbutton {\n  background: transparent;\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Work around a Firefox/IE bug where the transparent `button` background\n * results in a loss of the default `button` focus styles.\n */\n\nbutton:focus {\n  outline: 1px dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n}\n\nfieldset {\n  border: 0;\n  margin: 0;\n  padding: 0;\n}\n\niframe {\n  border: 0;\n}\n\nol,\nul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\n/**\n * Suppress the focus outline on links that cannot be accessed via keyboard.\n * This prevents an unwanted focus outline from appearing around elements that\n * might still respond to pointer events.\n */\n\n[tabindex=\"-1\"]:focus {\n  outline: none !important;\n}\n\n/**\n * Word breaking\n *\n * Break strings when their length exceeds the width of their container.\n */\n\n.u-textBreak {\n  word-wrap: break-word !important;\n}\n\n/**\n * Horizontal text alignment\n */\n\n.u-textCenter {\n  text-align: center !important;\n}\n\n.u-textLeft {\n  text-align: left !important;\n}\n\n.u-textRight {\n  text-align: right !important;\n}\n\n/**\n * Inherit the ancestor's text color.\n */\n\n.u-textInheritColor {\n  color: inherit !important;\n}\n\n/**\n * Enables font kerning in all browsers.\n * http://blog.typekit.com/2014/02/05/kerning-on-the-web/\n *\n * 1. Chrome (not Windows), Firefox, Safari 6+, iOS, Android\n * 2. Chrome (not Windows), Firefox, IE 10+\n * 3. Safari 7 and future browsers\n */\n\n.u-textKern {\n  text-rendering: optimizeLegibility;\n  /* 1 */\n  font-feature-settings: \"kern\" 1;\n  /* 2 */\n  font-kerning: normal;\n  /* 3 */\n}\n\n/**\n * Prevent whitespace wrapping\n */\n\n.u-textNoWrap {\n  white-space: nowrap !important;\n}\n\n/**\n * Text truncation\n *\n * Prevent text from wrapping onto multiple lines, and truncate with an\n * ellipsis.\n *\n * 1. Ensure that the node has a maximum width after which truncation can\n *    occur.\n * 2. Fix for IE 8/9 if `word-wrap: break-word` is in effect on ancestor\n *    nodes.\n */\n\n.u-textTruncate {\n  max-width: 100%;\n  /* 1 */\n  overflow: hidden !important;\n  text-overflow: ellipsis !important;\n  white-space: nowrap !important;\n  word-wrap: normal !important;\n  /* 2 */\n}\n\n/** @define Grid; use strict */\n\n\n\n/**\n * Core grid component\n *\n * DO NOT apply dimension or offset utilities to the `Grid` element. All cell\n * widths and offsets should be applied to child grid cells.\n */\n\n/* Grid container\n   ========================================================================== */\n\n/**\n * All content must be contained within child `Grid-cell` elements.\n *\n * 1. Account for browser defaults of elements that might be the root node of\n *    the component.\n * 2. Remove inter-cell whitespace that appears between `inline-block` child\n *    elements.\n * 3. Ensure consistent default alignment.\n */\n\n.Grid {\n  display: block;\n  /* 1 */\n  font-size: 0;\n  /* 2 */\n  margin: 0;\n  /* 1 */\n  padding: 0;\n  /* 1 */\n  text-align: left;\n  /* 3 */\n}\n\n/**\n * Modifier: center align all grid cells\n */\n\n.Grid--alignCenter {\n  text-align: center;\n}\n\n/**\n * Modifier: right align all grid cells\n */\n\n.Grid--alignRight {\n  text-align: right;\n}\n\n/**\n * Modifier: middle-align grid cells\n */\n\n.Grid--alignMiddle > .Grid-cell {\n  vertical-align: middle;\n}\n\n/**\n * Modifier: bottom-align grid cells\n */\n\n.Grid--alignBottom > .Grid-cell {\n  vertical-align: bottom;\n}\n\n/**\n * Modifier: gutters\n *\n * NOTE: this can trigger a horizontal scrollbar if the component is as wide as\n * the viewport. Use padding on a container, or `overflow-x:hidden` to protect\n * against it.\n */\n\n.Grid--withGutter {\n  margin: 0 -20px;\n}\n\n.Grid--withGutter > .Grid-cell {\n  padding: 0 20px;\n}\n\n/* Grid cell\n   ========================================================================== */\n\n/**\n * No explicit width by default. Rely on combining `Grid-cell` with a dimension\n * utility or a component class that extends 'grid'.\n *\n * 1. Fundamentals of the non-float grid layout.\n * 2. Reset font size change made in `Grid`.\n * 3. Keeps content correctly aligned with the grid direction.\n * 4. Controls vertical positioning of units.\n * 5. Make cells full-width by default.\n */\n\n.Grid-cell {\n  box-sizing: border-box;\n  display: inline-block;\n  /* 1 */\n  font-size: 1rem;\n  /* 2 */\n  margin: 0;\n  padding: 0;\n  text-align: left;\n  /* 3 */\n  vertical-align: top;\n  /* 4 */\n  width: 100%;\n  /* 5 */\n}\n\n/**\n * Modifier: horizontally center one unit\n * Set a specific unit to be horizontally centered. Doesn't affect\n * any other units. Can still contain a child `Grid` object.\n */\n\n.Grid-cell--center {\n  display: block;\n  margin: 0 auto;\n}\n\n/**\n * Sizing utilities\n */\n\n/* Intrinsic widths\n   ========================================================================== */\n\n/**\n * Make an element shrink wrap its content.\n */\n\n.u-sizeFit,\n.u-sizeFitAlt {\n  display: block !important;\n  float: left !important;\n  width: auto !important;\n}\n\n.u-sizeFitAlt {\n  float: right !important;\n}\n\n/**\n * Make an element fill the remaining space.\n * N.B. This will hide overflow.\n */\n\n.u-sizeFill {\n  display: block !important;\n  overflow: hidden !important;\n  width: auto !important;\n}\n\n/**\n * An alternative method to make an element fill the remaining space.\n * N.B. Do not use if child elements might be wider than the remaining space.\n * In Chrome, Safari, and Firefox it results in undesired layout.\n */\n\n.u-sizeFillAlt {\n  display: table-cell !important;\n  max-width: 100% !important;\n  width: 10000px !important;\n}\n\n/**\n * Make an element the width of its parent.\n */\n\n.u-sizeFull {\n  box-sizing: border-box !important;\n  display: block !important;\n  width: 100% !important;\n}\n\n/* Proportional widths\n   ========================================================================== */\n\n/**\n * Specify the proportional width of an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 part\n */\n\n.u-size1of12 {\n  width: 8.333333333333332% !important;\n}\n\n.u-size1of10 {\n  width: 10% !important;\n}\n\n.u-size1of8 {\n  width: 12.5% !important;\n}\n\n.u-size1of6,\n.u-size2of12 {\n  width: 16.666666666666664% !important;\n}\n\n.u-size1of5,\n.u-size2of10 {\n  width: 20% !important;\n}\n\n.u-size1of4,\n.u-size2of8,\n.u-size3of12 {\n  width: 25% !important;\n}\n\n.u-size3of10 {\n  width: 30% !important;\n}\n\n.u-size1of3,\n.u-size2of6,\n.u-size4of12 {\n  width: 33.33333333333333% !important;\n}\n\n.u-size3of8 {\n  width: 37.5% !important;\n}\n\n.u-size2of5,\n.u-size4of10 {\n  width: 40% !important;\n}\n\n.u-size5of12 {\n  width: 41.66666666666667% !important;\n}\n\n.u-size1of2,\n.u-size2of4,\n.u-size3of6,\n.u-size4of8,\n.u-size5of10,\n.u-size6of12 {\n  width: 50% !important;\n}\n\n.u-size7of12 {\n  width: 58.333333333333336% !important;\n}\n\n.u-size3of5,\n.u-size6of10 {\n  width: 60% !important;\n}\n\n.u-size5of8 {\n  width: 62.5% !important;\n}\n\n.u-size2of3,\n.u-size4of6,\n.u-size8of12 {\n  width: 66.66666666666666% !important;\n}\n\n.u-size7of10 {\n  width: 70% !important;\n}\n\n.u-size3of4,\n.u-size6of8,\n.u-size9of12 {\n  width: 75% !important;\n}\n\n.u-size4of5,\n.u-size8of10 {\n  width: 80% !important;\n}\n\n.u-size5of6,\n.u-size10of12 {\n  width: 83.33333333333334% !important;\n}\n\n.u-size7of8 {\n  width: 87.5% !important;\n}\n\n.u-size9of10 {\n  width: 90% !important;\n}\n\n.u-size11of12 {\n  width: 91.66666666666666% !important;\n}\n\n/**\n * Size: breakpoint 1 (small)\n */\n\n/**\n * Size: breakpoint 2 (medium)\n */\n\n/**\n * Size: breakpoint 3 (large)\n */\n\n/**\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-after1of12 {\n  margin-right: 8.333333333333332% !important;\n}\n\n.u-after1of10 {\n  margin-right: 10% !important;\n}\n\n.u-after1of8 {\n  margin-right: 12.5% !important;\n}\n\n.u-after1of6,\n.u-after2of12 {\n  margin-right: 16.666666666666664% !important;\n}\n\n.u-after1of5,\n.u-after2of10 {\n  margin-right: 20% !important;\n}\n\n.u-after1of4,\n.u-after2of8,\n.u-after3of12 {\n  margin-right: 25% !important;\n}\n\n.u-after3of10 {\n  margin-right: 30% !important;\n}\n\n.u-after1of3,\n.u-after2of6,\n.u-after4of12 {\n  margin-right: 33.33333333333333% !important;\n}\n\n.u-after3of8 {\n  margin-right: 37.5% !important;\n}\n\n.u-after2of5,\n.u-after4of10 {\n  margin-right: 40% !important;\n}\n\n.u-after5of12 {\n  margin-right: 41.66666666666667% !important;\n}\n\n.u-after1of2,\n.u-after2of4,\n.u-after3of6,\n.u-after4of8,\n.u-after5of10,\n.u-after6of12 {\n  margin-right: 50% !important;\n}\n\n.u-after7of12 {\n  margin-right: 58.333333333333336% !important;\n}\n\n.u-after3of5,\n.u-after6of10 {\n  margin-right: 60% !important;\n}\n\n.u-after5of8 {\n  margin-right: 62.5% !important;\n}\n\n.u-after2of3,\n.u-after4of6,\n.u-after8of12 {\n  margin-right: 66.66666666666666% !important;\n}\n\n.u-after7of10 {\n  margin-right: 70% !important;\n}\n\n.u-after3of4,\n.u-after6of8,\n.u-after9of12 {\n  margin-right: 75% !important;\n}\n\n.u-after4of5,\n.u-after8of10 {\n  margin-right: 80% !important;\n}\n\n.u-after5of6,\n.u-after10of12 {\n  margin-right: 83.33333333333334% !important;\n}\n\n.u-after7of8 {\n  margin-right: 87.5% !important;\n}\n\n.u-after9of10 {\n  margin-right: 90% !important;\n}\n\n.u-after11of12 {\n  margin-right: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Specify the proportional offset before an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-before1of12 {\n  margin-left: 8.333333333333332% !important;\n}\n\n.u-before1of10 {\n  margin-left: 10% !important;\n}\n\n.u-before1of8 {\n  margin-left: 12.5% !important;\n}\n\n.u-before1of6,\n.u-before2of12 {\n  margin-left: 16.666666666666664% !important;\n}\n\n.u-before1of5,\n.u-before2of10 {\n  margin-left: 20% !important;\n}\n\n.u-before1of4,\n.u-before2of8,\n.u-before3of12 {\n  margin-left: 25% !important;\n}\n\n.u-before3of10 {\n  margin-left: 30% !important;\n}\n\n.u-before1of3,\n.u-before2of6,\n.u-before4of12 {\n  margin-left: 33.33333333333333% !important;\n}\n\n.u-before3of8 {\n  margin-left: 37.5% !important;\n}\n\n.u-before2of5,\n.u-before4of10 {\n  margin-left: 40% !important;\n}\n\n.u-before5of12 {\n  margin-left: 41.66666666666667% !important;\n}\n\n.u-before1of2,\n.u-before2of4,\n.u-before3of6,\n.u-before4of8,\n.u-before5of10,\n.u-before6of12 {\n  margin-left: 50% !important;\n}\n\n.u-before7of12 {\n  margin-left: 58.333333333333336% !important;\n}\n\n.u-before3of5,\n.u-before6of10 {\n  margin-left: 60% !important;\n}\n\n.u-before5of8 {\n  margin-left: 62.5% !important;\n}\n\n.u-before2of3,\n.u-before4of6,\n.u-before8of12 {\n  margin-left: 66.66666666666666% !important;\n}\n\n.u-before7of10 {\n  margin-left: 70% !important;\n}\n\n.u-before3of4,\n.u-before6of8,\n.u-before9of12 {\n  margin-left: 75% !important;\n}\n\n.u-before4of5,\n.u-before8of10 {\n  margin-left: 80% !important;\n}\n\n.u-before5of6,\n.u-before10of12 {\n  margin-left: 83.33333333333334% !important;\n}\n\n.u-before7of8 {\n  margin-left: 87.5% !important;\n}\n\n.u-before9of10 {\n  margin-left: 90% !important;\n}\n\n.u-before11of12 {\n  margin-left: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n\n\n.u-backface {\n  backface-visibility: visible;\n}\n\n.u-textHuge {\n  font-size: 60px;\n}\n\n.u-textUnderscore:before {\n  content: '_';\n}\n\n.u-textLarge {\n  font-size: 40px;\n}\n\n.u-textBold {\n  font-weight: bold;\n}\n\n.u-pad-top-5 {\n  padding-top: 5px;\n}\n\n.u-pad-top-10 {\n  padding-top: 10px;\n}\n\n.u-pad-top-20 {\n  padding-top: 20px;\n}\n\n.u-pad-left-20 {\n  padding-left: 20px;\n}\n\n.u-pad-bottom-10 {\n  padding-bottom: 10px;\n}\n\n.u-pad-bottom-20 {\n  padding-bottom: 20px;\n}\n\n\n\nhtml,\nbody {\n  font-family: 'Open Sans', sans-serif;\n  font-size: 22px;\n  color: rgb(0, 0, 0);\n  font-weight: 100;\n}\n\n.title {\n  font-family: 'Andale Mono';\n  font-weight: 100;\n}\n\n.title:before {\n  content: '_';\n}\n\n.title--intro {\n  font-size: 50px;\n}\n\n.title--section {\n  font-size: 40px;\n}\n\n.title--pink {\n  color: rgb(255, 31, 171);\n}\n\n.note {\n  font-size: 18px;\n}\n\n.note--gray {\n  color: rgb(162, 169, 162);\n}\n\n.Grid-cell--withBorder {\n  border-left: 1px solid rgb(162, 169, 162);\n  border-right: 1px solid rgb(162, 169, 162);\n}", ""]);
+	exports.push([module.id, "/*! normalize.css v3.0.2 | MIT License | git.io/normalize */\n\n/**\n * 1. Set default font family to sans-serif.\n * 2. Prevent iOS text size adjust after orientation change, without disabling\n *    user zoom.\n */\n\nhtml {\n  font-family: sans-serif;\n  /* 1 */\n  -ms-text-size-adjust: 100%;\n  /* 2 */\n  -webkit-text-size-adjust: 100%;\n  /* 2 */\n}\n\n/**\n * Remove default margin.\n */\n\nbody {\n  margin: 0;\n}\n\n/* HTML5 display definitions\n   ========================================================================== */\n\n/**\n * Correct `block` display not defined for any HTML5 element in IE 8/9.\n * Correct `block` display not defined for `details` or `summary` in IE 10/11\n * and Firefox.\n * Correct `block` display not defined for `main` in IE 11.\n */\n\narticle,\naside,\ndetails,\nfigcaption,\nfigure,\nfooter,\nheader,\nhgroup,\nmain,\nmenu,\nnav,\nsection,\nsummary {\n  display: block;\n}\n\n/**\n * 1. Correct `inline-block` display not defined in IE 8/9.\n * 2. Normalize vertical alignment of `progress` in Chrome, Firefox, and Opera.\n */\n\naudio,\ncanvas,\nprogress,\nvideo {\n  display: inline-block;\n  /* 1 */\n  vertical-align: baseline;\n  /* 2 */\n}\n\n/**\n * Prevent modern browsers from displaying `audio` without controls.\n * Remove excess height in iOS 5 devices.\n */\n\naudio:not([controls]) {\n  display: none;\n  height: 0;\n}\n\n/**\n * Address `[hidden]` styling not present in IE 8/9/10.\n * Hide the `template` element in IE 8/9/11, Safari, and Firefox < 22.\n */\n\n[hidden],\ntemplate {\n  display: none;\n}\n\n/* Links\n   ========================================================================== */\n\n/**\n * Remove the gray background color from active links in IE 10.\n */\n\na {\n  background-color: transparent;\n}\n\n/**\n * Improve readability when focused and also mouse hovered in all browsers.\n */\n\na:active,\na:hover {\n  outline: 0;\n}\n\n/* Text-level semantics\n   ========================================================================== */\n\n/**\n * Address styling not present in IE 8/9/10/11, Safari, and Chrome.\n */\n\nabbr[title] {\n  border-bottom: 1px dotted;\n}\n\n/**\n * Address style set to `bolder` in Firefox 4+, Safari, and Chrome.\n */\n\nb,\nstrong {\n  font-weight: bold;\n}\n\n/**\n * Address styling not present in Safari and Chrome.\n */\n\ndfn {\n  font-style: italic;\n}\n\n/**\n * Address variable `h1` font-size and margin within `section` and `article`\n * contexts in Firefox 4+, Safari, and Chrome.\n */\n\nh1 {\n  font-size: 2em;\n  margin: 0.67em 0;\n}\n\n/**\n * Address styling not present in IE 8/9.\n */\n\nmark {\n  background: #ff0;\n  color: #000;\n}\n\n/**\n * Address inconsistent and variable font size in all browsers.\n */\n\nsmall {\n  font-size: 80%;\n}\n\n/**\n * Prevent `sub` and `sup` affecting `line-height` in all browsers.\n */\n\nsub,\nsup {\n  font-size: 75%;\n  line-height: 0;\n  position: relative;\n  vertical-align: baseline;\n}\n\nsup {\n  top: -0.5em;\n}\n\nsub {\n  bottom: -0.25em;\n}\n\n/* Embedded content\n   ========================================================================== */\n\n/**\n * Remove border when inside `a` element in IE 8/9/10.\n */\n\nimg {\n  border: 0;\n}\n\n/**\n * Correct overflow not hidden in IE 9/10/11.\n */\n\nsvg:not(:root) {\n  overflow: hidden;\n}\n\n/* Grouping content\n   ========================================================================== */\n\n/**\n * Address margin not present in IE 8/9 and Safari.\n */\n\nfigure {\n  margin: 1em 40px;\n}\n\n/**\n * Address differences between Firefox and other browsers.\n */\n\nhr {\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n  height: 0;\n}\n\n/**\n * Contain overflow in all browsers.\n */\n\npre {\n  overflow: auto;\n}\n\n/**\n * Address odd `em`-unit font size rendering in all browsers.\n */\n\ncode,\nkbd,\npre,\nsamp {\n  font-family: monospace, monospace;\n  font-size: 1em;\n}\n\n/* Forms\n   ========================================================================== */\n\n/**\n * Known limitation: by default, Chrome and Safari on OS X allow very limited\n * styling of `select`, unless a `border` property is set.\n */\n\n/**\n * 1. Correct color not being inherited.\n *    Known issue: affects color of disabled elements.\n * 2. Correct font properties not being inherited.\n * 3. Address margins set differently in Firefox 4+, Safari, and Chrome.\n */\n\nbutton,\ninput,\noptgroup,\nselect,\ntextarea {\n  color: inherit;\n  /* 1 */\n  font: inherit;\n  /* 2 */\n  margin: 0;\n  /* 3 */\n}\n\n/**\n * Address `overflow` set to `hidden` in IE 8/9/10/11.\n */\n\nbutton {\n  overflow: visible;\n}\n\n/**\n * Address inconsistent `text-transform` inheritance for `button` and `select`.\n * All other form control elements do not inherit `text-transform` values.\n * Correct `button` style inheritance in Firefox, IE 8/9/10/11, and Opera.\n * Correct `select` style inheritance in Firefox.\n */\n\nbutton,\nselect {\n  text-transform: none;\n}\n\n/**\n * 1. Avoid the WebKit bug in Android 4.0.* where (2) destroys native `audio`\n *    and `video` controls.\n * 2. Correct inability to style clickable `input` types in iOS.\n * 3. Improve usability and consistency of cursor style between image-type\n *    `input` and others.\n */\n\nbutton,\nhtml input[type=\"button\"],\ninput[type=\"reset\"],\ninput[type=\"submit\"] {\n  -webkit-appearance: button;\n  /* 2 */\n  cursor: pointer;\n  /* 3 */\n}\n\n/**\n * Re-set default cursor for disabled elements.\n */\n\nbutton[disabled],\nhtml input[disabled] {\n  cursor: default;\n}\n\n/**\n * Remove inner padding and border in Firefox 4+.\n */\n\nbutton::-moz-focus-inner,\ninput::-moz-focus-inner {\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Address Firefox 4+ setting `line-height` on `input` using `!important` in\n * the UA stylesheet.\n */\n\ninput {\n  line-height: normal;\n}\n\n/**\n * It's recommended that you don't attempt to style these elements.\n * Firefox's implementation doesn't respect box-sizing, padding, or width.\n *\n * 1. Address box sizing set to `content-box` in IE 8/9/10.\n * 2. Remove excess padding in IE 8/9/10.\n */\n\ninput[type=\"checkbox\"],\ninput[type=\"radio\"] {\n  box-sizing: border-box;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Fix the cursor style for Chrome's increment/decrement buttons. For certain\n * `font-size` values of the `input`, it causes the cursor style of the\n * decrement button to change from `default` to `text`.\n */\n\ninput[type=\"number\"]::-webkit-inner-spin-button,\ninput[type=\"number\"]::-webkit-outer-spin-button {\n  height: auto;\n}\n\n/**\n * 1. Address `appearance` set to `searchfield` in Safari and Chrome.\n * 2. Address `box-sizing` set to `border-box` in Safari and Chrome\n *    (include `-moz` to future-proof).\n */\n\ninput[type=\"search\"] {\n  -webkit-appearance: textfield;\n  /* 1 */\n  -moz-box-sizing: content-box;\n  -webkit-box-sizing: content-box;\n  /* 2 */\n  box-sizing: content-box;\n}\n\n/**\n * Remove inner padding and search cancel button in Safari and Chrome on OS X.\n * Safari (but not Chrome) clips the cancel button when the search input has\n * padding (and `textfield` appearance).\n */\n\ninput[type=\"search\"]::-webkit-search-cancel-button,\ninput[type=\"search\"]::-webkit-search-decoration {\n  -webkit-appearance: none;\n}\n\n/**\n * Define consistent border, margin, and padding.\n */\n\nfieldset {\n  border: 1px solid #c0c0c0;\n  margin: 0 2px;\n  padding: 0.35em 0.625em 0.75em;\n}\n\n/**\n * 1. Correct `color` not being inherited in IE 8/9/10/11.\n * 2. Remove padding so people aren't caught out if they zero out fieldsets.\n */\n\nlegend {\n  border: 0;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Remove default vertical scrollbar in IE 8/9/10/11.\n */\n\ntextarea {\n  overflow: auto;\n}\n\n/**\n * Don't inherit the `font-weight` (applied by a rule above).\n * NOTE: the default cannot safely be changed in Chrome and Safari on OS X.\n */\n\noptgroup {\n  font-weight: bold;\n}\n\n/* Tables\n   ========================================================================== */\n\n/**\n * Remove most spacing between table cells.\n */\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0;\n}\n\ntd,\nth {\n  padding: 0;\n}\n\n/**\n * A thin layer on top of normalize.css that provides a starting point more\n * suitable for web applications. Removes the default spacing and border for\n * appropriate elements.\n */\n\nblockquote,\ndl,\ndd,\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\nfigure,\np,\npre {\n  margin: 0;\n}\n\nbutton {\n  background: transparent;\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Work around a Firefox/IE bug where the transparent `button` background\n * results in a loss of the default `button` focus styles.\n */\n\nbutton:focus {\n  outline: 1px dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n}\n\nfieldset {\n  border: 0;\n  margin: 0;\n  padding: 0;\n}\n\niframe {\n  border: 0;\n}\n\nol,\nul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\n/**\n * Suppress the focus outline on links that cannot be accessed via keyboard.\n * This prevents an unwanted focus outline from appearing around elements that\n * might still respond to pointer events.\n */\n\n[tabindex=\"-1\"]:focus {\n  outline: none !important;\n}\n\n/**\n * Word breaking\n *\n * Break strings when their length exceeds the width of their container.\n */\n\n.u-textBreak {\n  word-wrap: break-word !important;\n}\n\n/**\n * Horizontal text alignment\n */\n\n.u-textCenter {\n  text-align: center !important;\n}\n\n.u-textLeft {\n  text-align: left !important;\n}\n\n.u-textRight {\n  text-align: right !important;\n}\n\n/**\n * Inherit the ancestor's text color.\n */\n\n.u-textInheritColor {\n  color: inherit !important;\n}\n\n/**\n * Enables font kerning in all browsers.\n * http://blog.typekit.com/2014/02/05/kerning-on-the-web/\n *\n * 1. Chrome (not Windows), Firefox, Safari 6+, iOS, Android\n * 2. Chrome (not Windows), Firefox, IE 10+\n * 3. Safari 7 and future browsers\n */\n\n.u-textKern {\n  text-rendering: optimizeLegibility;\n  /* 1 */\n  font-feature-settings: \"kern\" 1;\n  /* 2 */\n  font-kerning: normal;\n  /* 3 */\n}\n\n/**\n * Prevent whitespace wrapping\n */\n\n.u-textNoWrap {\n  white-space: nowrap !important;\n}\n\n/**\n * Text truncation\n *\n * Prevent text from wrapping onto multiple lines, and truncate with an\n * ellipsis.\n *\n * 1. Ensure that the node has a maximum width after which truncation can\n *    occur.\n * 2. Fix for IE 8/9 if `word-wrap: break-word` is in effect on ancestor\n *    nodes.\n */\n\n.u-textTruncate {\n  max-width: 100%;\n  /* 1 */\n  overflow: hidden !important;\n  text-overflow: ellipsis !important;\n  white-space: nowrap !important;\n  word-wrap: normal !important;\n  /* 2 */\n}\n\n/** @define Grid; use strict */\n\n\n\n/**\n * Core grid component\n *\n * DO NOT apply dimension or offset utilities to the `Grid` element. All cell\n * widths and offsets should be applied to child grid cells.\n */\n\n/* Grid container\n   ========================================================================== */\n\n/**\n * All content must be contained within child `Grid-cell` elements.\n *\n * 1. Account for browser defaults of elements that might be the root node of\n *    the component.\n * 2. Remove inter-cell whitespace that appears between `inline-block` child\n *    elements.\n * 3. Ensure consistent default alignment.\n */\n\n.Grid {\n  display: block;\n  /* 1 */\n  font-size: 0;\n  /* 2 */\n  margin: 0;\n  /* 1 */\n  padding: 0;\n  /* 1 */\n  text-align: left;\n  /* 3 */\n}\n\n/**\n * Modifier: center align all grid cells\n */\n\n.Grid--alignCenter {\n  text-align: center;\n}\n\n/**\n * Modifier: right align all grid cells\n */\n\n.Grid--alignRight {\n  text-align: right;\n}\n\n/**\n * Modifier: middle-align grid cells\n */\n\n.Grid--alignMiddle > .Grid-cell {\n  vertical-align: middle;\n}\n\n/**\n * Modifier: bottom-align grid cells\n */\n\n.Grid--alignBottom > .Grid-cell {\n  vertical-align: bottom;\n}\n\n/**\n * Modifier: gutters\n *\n * NOTE: this can trigger a horizontal scrollbar if the component is as wide as\n * the viewport. Use padding on a container, or `overflow-x:hidden` to protect\n * against it.\n */\n\n.Grid--withGutter {\n  margin: 0 -20px;\n}\n\n.Grid--withGutter > .Grid-cell {\n  padding: 0 20px;\n}\n\n/* Grid cell\n   ========================================================================== */\n\n/**\n * No explicit width by default. Rely on combining `Grid-cell` with a dimension\n * utility or a component class that extends 'grid'.\n *\n * 1. Fundamentals of the non-float grid layout.\n * 2. Reset font size change made in `Grid`.\n * 3. Keeps content correctly aligned with the grid direction.\n * 4. Controls vertical positioning of units.\n * 5. Make cells full-width by default.\n */\n\n.Grid-cell {\n  box-sizing: border-box;\n  display: inline-block;\n  /* 1 */\n  font-size: 1rem;\n  /* 2 */\n  margin: 0;\n  padding: 0;\n  text-align: left;\n  /* 3 */\n  vertical-align: top;\n  /* 4 */\n  width: 100%;\n  /* 5 */\n}\n\n/**\n * Modifier: horizontally center one unit\n * Set a specific unit to be horizontally centered. Doesn't affect\n * any other units. Can still contain a child `Grid` object.\n */\n\n.Grid-cell--center {\n  display: block;\n  margin: 0 auto;\n}\n\n/**\n * Sizing utilities\n */\n\n/* Intrinsic widths\n   ========================================================================== */\n\n/**\n * Make an element shrink wrap its content.\n */\n\n.u-sizeFit,\n.u-sizeFitAlt {\n  display: block !important;\n  float: left !important;\n  width: auto !important;\n}\n\n.u-sizeFitAlt {\n  float: right !important;\n}\n\n/**\n * Make an element fill the remaining space.\n * N.B. This will hide overflow.\n */\n\n.u-sizeFill {\n  display: block !important;\n  overflow: hidden !important;\n  width: auto !important;\n}\n\n/**\n * An alternative method to make an element fill the remaining space.\n * N.B. Do not use if child elements might be wider than the remaining space.\n * In Chrome, Safari, and Firefox it results in undesired layout.\n */\n\n.u-sizeFillAlt {\n  display: table-cell !important;\n  max-width: 100% !important;\n  width: 10000px !important;\n}\n\n/**\n * Make an element the width of its parent.\n */\n\n.u-sizeFull {\n  box-sizing: border-box !important;\n  display: block !important;\n  width: 100% !important;\n}\n\n/* Proportional widths\n   ========================================================================== */\n\n/**\n * Specify the proportional width of an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 part\n */\n\n.u-size1of12 {\n  width: 8.333333333333332% !important;\n}\n\n.u-size1of10 {\n  width: 10% !important;\n}\n\n.u-size1of8 {\n  width: 12.5% !important;\n}\n\n.u-size1of6,\n.u-size2of12 {\n  width: 16.666666666666664% !important;\n}\n\n.u-size1of5,\n.u-size2of10 {\n  width: 20% !important;\n}\n\n.u-size1of4,\n.u-size2of8,\n.u-size3of12 {\n  width: 25% !important;\n}\n\n.u-size3of10 {\n  width: 30% !important;\n}\n\n.u-size1of3,\n.u-size2of6,\n.u-size4of12 {\n  width: 33.33333333333333% !important;\n}\n\n.u-size3of8 {\n  width: 37.5% !important;\n}\n\n.u-size2of5,\n.u-size4of10 {\n  width: 40% !important;\n}\n\n.u-size5of12 {\n  width: 41.66666666666667% !important;\n}\n\n.u-size1of2,\n.u-size2of4,\n.u-size3of6,\n.u-size4of8,\n.u-size5of10,\n.u-size6of12 {\n  width: 50% !important;\n}\n\n.u-size7of12 {\n  width: 58.333333333333336% !important;\n}\n\n.u-size3of5,\n.u-size6of10 {\n  width: 60% !important;\n}\n\n.u-size5of8 {\n  width: 62.5% !important;\n}\n\n.u-size2of3,\n.u-size4of6,\n.u-size8of12 {\n  width: 66.66666666666666% !important;\n}\n\n.u-size7of10 {\n  width: 70% !important;\n}\n\n.u-size3of4,\n.u-size6of8,\n.u-size9of12 {\n  width: 75% !important;\n}\n\n.u-size4of5,\n.u-size8of10 {\n  width: 80% !important;\n}\n\n.u-size5of6,\n.u-size10of12 {\n  width: 83.33333333333334% !important;\n}\n\n.u-size7of8 {\n  width: 87.5% !important;\n}\n\n.u-size9of10 {\n  width: 90% !important;\n}\n\n.u-size11of12 {\n  width: 91.66666666666666% !important;\n}\n\n/**\n * Size: breakpoint 1 (small)\n */\n\n/**\n * Size: breakpoint 2 (medium)\n */\n\n/**\n * Size: breakpoint 3 (large)\n */\n\n/**\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-after1of12 {\n  margin-right: 8.333333333333332% !important;\n}\n\n.u-after1of10 {\n  margin-right: 10% !important;\n}\n\n.u-after1of8 {\n  margin-right: 12.5% !important;\n}\n\n.u-after1of6,\n.u-after2of12 {\n  margin-right: 16.666666666666664% !important;\n}\n\n.u-after1of5,\n.u-after2of10 {\n  margin-right: 20% !important;\n}\n\n.u-after1of4,\n.u-after2of8,\n.u-after3of12 {\n  margin-right: 25% !important;\n}\n\n.u-after3of10 {\n  margin-right: 30% !important;\n}\n\n.u-after1of3,\n.u-after2of6,\n.u-after4of12 {\n  margin-right: 33.33333333333333% !important;\n}\n\n.u-after3of8 {\n  margin-right: 37.5% !important;\n}\n\n.u-after2of5,\n.u-after4of10 {\n  margin-right: 40% !important;\n}\n\n.u-after5of12 {\n  margin-right: 41.66666666666667% !important;\n}\n\n.u-after1of2,\n.u-after2of4,\n.u-after3of6,\n.u-after4of8,\n.u-after5of10,\n.u-after6of12 {\n  margin-right: 50% !important;\n}\n\n.u-after7of12 {\n  margin-right: 58.333333333333336% !important;\n}\n\n.u-after3of5,\n.u-after6of10 {\n  margin-right: 60% !important;\n}\n\n.u-after5of8 {\n  margin-right: 62.5% !important;\n}\n\n.u-after2of3,\n.u-after4of6,\n.u-after8of12 {\n  margin-right: 66.66666666666666% !important;\n}\n\n.u-after7of10 {\n  margin-right: 70% !important;\n}\n\n.u-after3of4,\n.u-after6of8,\n.u-after9of12 {\n  margin-right: 75% !important;\n}\n\n.u-after4of5,\n.u-after8of10 {\n  margin-right: 80% !important;\n}\n\n.u-after5of6,\n.u-after10of12 {\n  margin-right: 83.33333333333334% !important;\n}\n\n.u-after7of8 {\n  margin-right: 87.5% !important;\n}\n\n.u-after9of10 {\n  margin-right: 90% !important;\n}\n\n.u-after11of12 {\n  margin-right: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Specify the proportional offset before an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-before1of12 {\n  margin-left: 8.333333333333332% !important;\n}\n\n.u-before1of10 {\n  margin-left: 10% !important;\n}\n\n.u-before1of8 {\n  margin-left: 12.5% !important;\n}\n\n.u-before1of6,\n.u-before2of12 {\n  margin-left: 16.666666666666664% !important;\n}\n\n.u-before1of5,\n.u-before2of10 {\n  margin-left: 20% !important;\n}\n\n.u-before1of4,\n.u-before2of8,\n.u-before3of12 {\n  margin-left: 25% !important;\n}\n\n.u-before3of10 {\n  margin-left: 30% !important;\n}\n\n.u-before1of3,\n.u-before2of6,\n.u-before4of12 {\n  margin-left: 33.33333333333333% !important;\n}\n\n.u-before3of8 {\n  margin-left: 37.5% !important;\n}\n\n.u-before2of5,\n.u-before4of10 {\n  margin-left: 40% !important;\n}\n\n.u-before5of12 {\n  margin-left: 41.66666666666667% !important;\n}\n\n.u-before1of2,\n.u-before2of4,\n.u-before3of6,\n.u-before4of8,\n.u-before5of10,\n.u-before6of12 {\n  margin-left: 50% !important;\n}\n\n.u-before7of12 {\n  margin-left: 58.333333333333336% !important;\n}\n\n.u-before3of5,\n.u-before6of10 {\n  margin-left: 60% !important;\n}\n\n.u-before5of8 {\n  margin-left: 62.5% !important;\n}\n\n.u-before2of3,\n.u-before4of6,\n.u-before8of12 {\n  margin-left: 66.66666666666666% !important;\n}\n\n.u-before7of10 {\n  margin-left: 70% !important;\n}\n\n.u-before3of4,\n.u-before6of8,\n.u-before9of12 {\n  margin-left: 75% !important;\n}\n\n.u-before4of5,\n.u-before8of10 {\n  margin-left: 80% !important;\n}\n\n.u-before5of6,\n.u-before10of12 {\n  margin-left: 83.33333333333334% !important;\n}\n\n.u-before7of8 {\n  margin-left: 87.5% !important;\n}\n\n.u-before9of10 {\n  margin-left: 90% !important;\n}\n\n.u-before11of12 {\n  margin-left: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/* comment\n-------------------------------------------------- */\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 300;\n  src: url('/assets/fonts/Open_Sans_300.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_300.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_300.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_300.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 400;\n  src: url('/assets/fonts/Open_Sans_400.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_400.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_400.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_400.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 600;\n  src: url('/assets/fonts/Open_Sans_600.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_600.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_600.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_600.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 700;\n  src: url('/assets/fonts/Open_Sans_700.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_700.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_700.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_700.svg#OpenSans') format('svg');\n}\n\n\n\n.u-backface {\n  backface-visibility: visible;\n}\n\n.u-textHuge {\n  font-size: 60px;\n}\n\n.u-textUnderscore:before {\n  content: '_';\n}\n\n.u-textLarge {\n  font-size: 40px;\n}\n\n.u-textBold {\n  font-weight: bold;\n}\n\n.u-pad-top-5 {\n  padding-top: 5px;\n}\n\n.u-pad-top-10 {\n  padding-top: 10px;\n}\n\n.u-pad-top-20 {\n  padding-top: 20px;\n}\n\n.u-pad-left-20 {\n  padding-left: 20px;\n}\n\n.u-pad-bottom-10 {\n  padding-bottom: 10px;\n}\n\n.u-pad-bottom-20 {\n  padding-bottom: 20px;\n}\n\n\n\nhtml,\nbody {\n  font-family: 'Open Sans', sans-serif;\n  font-size: 22px;\n  color: rgb(0, 0, 0);\n  font-weight: 100;\n}\n\n/* title\n-------------------------------------------------- */\n\n.title {\n  font-family: 'Andale Mono';\n  font-weight: 100;\n}\n\n.title:before {\n  content: '_';\n}\n\n.title--intro {\n  font-size: 50px;\n}\n\n.title--section {\n  font-size: 40px;\n}\n\n.title--white {\n  color: rgb(255, 255, 255);\n}\n\n.title--yellow {\n  color: rgb(255, 255, 0);\n}\n\n.title--pink {\n  color: rgb(255, 31, 171);\n}\n\n/* note\n-------------------------------------------------- */\n\n.note {\n  font-size: 18px;\n}\n\n.note--gray {\n  color: rgb(162, 169, 162);\n}\n\n/* ticker\n-------------------------------------------------- */\n\n.ticker--pink {\n  background-color: rgb(255, 31, 171);\n}\n\n.ticker--yellow {\n  background-color: rgb(255, 255, 0);\n}\n\n/* misc\n-------------------------------------------------- */\n\n.text--white {\n  color: rgb(255, 255, 255);\n}\n\n.text--big {\n  font-size: 28px;\n}\n\n.Grid-cell--withBorder {\n  border-left: 1px solid rgba(162, 169, 162, 0.5);\n  border-right: 1px solid rgba(162, 169, 162, 0.5);\n}", ""]);
 
 /***/ },
-/* 11 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -1496,16 +2519,16 @@
 
 
 /***/ },
-/* 12 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 	
 	// load the styles
-	var content = __webpack_require__(13);
+	var content = __webpack_require__(16);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(11)(content);
+	var update = __webpack_require__(14)(content);
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
@@ -1519,14 +2542,14 @@
 	}
 
 /***/ },
-/* 13 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(28)();
 	exports.push([module.id, "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\n *\n * Owner: mark@famo.us\n * @license MPL 2.0\n * @copyright Famous Industries, Inc. 2014\n */\n\n.famous-root {\n  width: 100%;\n  height: 100%;\n  margin: 0px;\n  padding: 0px;\n  overflow: hidden;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n}\n\n.famous-container,\n.famous-group {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  bottom: 0px;\n  right: 0px;\n  overflow: visible;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n  -webkit-backface-visibility: visible;\n  backface-visibility: visible;\n  pointer-events: none;\n}\n\n.famous-group {\n  width: 0px;\n  height: 0px;\n  margin: 0px;\n  padding: 0px;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n}\n\n.famous-surface {\n  position: absolute;\n  -webkit-transform-origin: center center;\n  transform-origin: center center;\n  -webkit-backface-visibility: hidden;\n  backface-visibility: hidden;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n  -webkit-box-sizing: border-box;\n  -moz-box-sizing: border-box;\n  box-sizing: border-box;\n  -webkit-tap-highlight-color: transparent;\n  pointer-events: auto;\n}\n\n.famous-container-group {\n  position: relative;\n  width: 100%;\n  height: 100%;\n}", ""]);
 
 /***/ },
-/* 14 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -1555,9 +2578,9 @@
 	     * @static
 	     * @class Engine
 	     */
-	    var Context = __webpack_require__(30);
-	    var EventHandler = __webpack_require__(31);
-	    var OptionsManager = __webpack_require__(32);
+	    var Context = __webpack_require__(31);
+	    var EventHandler = __webpack_require__(32);
+	    var OptionsManager = __webpack_require__(33);
 	
 	    var Engine = {};
 	
@@ -1912,3128 +2935,7 @@
 
 
 /***/ },
-/* 15 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Transform = __webpack_require__(24);
-	
-	    /* TODO: remove these dependencies when deprecation complete */
-	    var Transitionable = __webpack_require__(19);
-	    var TransitionableTransform = __webpack_require__(29);
-	
-	    /**
-	     *
-	     *  A collection of visual changes to be
-	     *    applied to another renderable component. This collection includes a
-	     *    transform matrix, an opacity constant, a size, an origin specifier.
-	     *    Modifier objects can be added to any RenderNode or object
-	     *    capable of displaying renderables.  The Modifier's children and descendants
-	     *    are transformed by the amounts specified in the Modifier's properties.
-	     *
-	     * @class Modifier
-	     * @constructor
-	     * @param {Object} [options] overrides of default options
-	     * @param {Transform} [options.transform] affine transformation matrix
-	     * @param {Number} [options.opacity]
-	     * @param {Array.Number} [options.origin] origin adjustment
-	     * @param {Array.Number} [options.size] size to apply to descendants
-	     */
-	    function Modifier(options) {
-	        this._transformGetter = null;
-	        this._opacityGetter = null;
-	        this._originGetter = null;
-	        this._alignGetter = null;
-	        this._sizeGetter = null;
-	        this._proportionGetter = null;
-	
-	        /* TODO: remove this when deprecation complete */
-	        this._legacyStates = {};
-	
-	        this._output = {
-	            transform: Transform.identity,
-	            opacity: 1,
-	            origin: null,
-	            align: null,
-	            size: null,
-	            proportions: null,
-	            target: null
-	        };
-	
-	        if (options) {
-	            if (options.transform) this.transformFrom(options.transform);
-	            if (options.opacity !== undefined) this.opacityFrom(options.opacity);
-	            if (options.origin) this.originFrom(options.origin);
-	            if (options.align) this.alignFrom(options.align);
-	            if (options.size) this.sizeFrom(options.size);
-	            if (options.proportions) this.proportionsFrom(options.proportions);
-	        }
-	    }
-	
-	    /**
-	     * Function, object, or static transform matrix which provides the transform.
-	     *   This is evaluated on every tick of the engine.
-	     *
-	     * @method transformFrom
-	     *
-	     * @param {Object} transform transform provider object
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.transformFrom = function transformFrom(transform) {
-	        if (transform instanceof Function) this._transformGetter = transform;
-	        else if (transform instanceof Object && transform.get) this._transformGetter = transform.get.bind(transform);
-	        else {
-	            this._transformGetter = null;
-	            this._output.transform = transform;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Set function, object, or number to provide opacity, in range [0,1].
-	     *
-	     * @method opacityFrom
-	     *
-	     * @param {Object} opacity provider object
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.opacityFrom = function opacityFrom(opacity) {
-	        if (opacity instanceof Function) this._opacityGetter = opacity;
-	        else if (opacity instanceof Object && opacity.get) this._opacityGetter = opacity.get.bind(opacity);
-	        else {
-	            this._opacityGetter = null;
-	            this._output.opacity = opacity;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Set function, object, or numerical array to provide origin, as [x,y],
-	     *   where x and y are in the range [0,1].
-	     *
-	     * @method originFrom
-	     *
-	     * @param {Object} origin provider object
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.originFrom = function originFrom(origin) {
-	        if (origin instanceof Function) this._originGetter = origin;
-	        else if (origin instanceof Object && origin.get) this._originGetter = origin.get.bind(origin);
-	        else {
-	            this._originGetter = null;
-	            this._output.origin = origin;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Set function, object, or numerical array to provide align, as [x,y],
-	     *   where x and y are in the range [0,1].
-	     *
-	     * @method alignFrom
-	     *
-	     * @param {Object} align provider object
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.alignFrom = function alignFrom(align) {
-	        if (align instanceof Function) this._alignGetter = align;
-	        else if (align instanceof Object && align.get) this._alignGetter = align.get.bind(align);
-	        else {
-	            this._alignGetter = null;
-	            this._output.align = align;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Set function, object, or numerical array to provide size, as [width, height].
-	     *
-	     * @method sizeFrom
-	     *
-	     * @param {Object} size provider object
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.sizeFrom = function sizeFrom(size) {
-	        if (size instanceof Function) this._sizeGetter = size;
-	        else if (size instanceof Object && size.get) this._sizeGetter = size.get.bind(size);
-	        else {
-	            this._sizeGetter = null;
-	            this._output.size = size;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Set function, object, or numerical array to provide proportions, as [percent of width, percent of height].
-	     *
-	     * @method proportionsFrom
-	     *
-	     * @param {Object} proportions provider object
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.proportionsFrom = function proportionsFrom(proportions) {
-	        if (proportions instanceof Function) this._proportionGetter = proportions;
-	        else if (proportions instanceof Object && proportions.get) this._proportionGetter = proportions.get.bind(proportions);
-	        else {
-	            this._proportionGetter = null;
-	            this._output.proportions = proportions;
-	        }
-	        return this;
-	    };
-	
-	     /**
-	     * Deprecated: Prefer transformFrom with static Transform, or use a TransitionableTransform.
-	     * @deprecated
-	     * @method setTransform
-	     *
-	     * @param {Transform} transform Transform to transition to
-	     * @param {Transitionable} transition Valid transitionable object
-	     * @param {Function} callback callback to call after transition completes
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.setTransform = function setTransform(transform, transition, callback) {
-	        if (transition || this._legacyStates.transform) {
-	            if (!this._legacyStates.transform) {
-	                this._legacyStates.transform = new TransitionableTransform(this._output.transform);
-	            }
-	            if (!this._transformGetter) this.transformFrom(this._legacyStates.transform);
-	
-	            this._legacyStates.transform.set(transform, transition, callback);
-	            return this;
-	        }
-	        else return this.transformFrom(transform);
-	    };
-	
-	    /**
-	     * Deprecated: Prefer opacityFrom with static opacity array, or use a Transitionable with that opacity.
-	     * @deprecated
-	     * @method setOpacity
-	     *
-	     * @param {Number} opacity Opacity value to transition to.
-	     * @param {Transitionable} transition Valid transitionable object
-	     * @param {Function} callback callback to call after transition completes
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.setOpacity = function setOpacity(opacity, transition, callback) {
-	        if (transition || this._legacyStates.opacity) {
-	            if (!this._legacyStates.opacity) {
-	                this._legacyStates.opacity = new Transitionable(this._output.opacity);
-	            }
-	            if (!this._opacityGetter) this.opacityFrom(this._legacyStates.opacity);
-	
-	            return this._legacyStates.opacity.set(opacity, transition, callback);
-	        }
-	        else return this.opacityFrom(opacity);
-	    };
-	
-	    /**
-	     * Deprecated: Prefer originFrom with static origin array, or use a Transitionable with that origin.
-	     * @deprecated
-	     * @method setOrigin
-	     *
-	     * @param {Array.Number} origin two element array with values between 0 and 1.
-	     * @param {Transitionable} transition Valid transitionable object
-	     * @param {Function} callback callback to call after transition completes
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.setOrigin = function setOrigin(origin, transition, callback) {
-	        /* TODO: remove this if statement when deprecation complete */
-	        if (transition || this._legacyStates.origin) {
-	
-	            if (!this._legacyStates.origin) {
-	                this._legacyStates.origin = new Transitionable(this._output.origin || [0, 0]);
-	            }
-	            if (!this._originGetter) this.originFrom(this._legacyStates.origin);
-	
-	            this._legacyStates.origin.set(origin, transition, callback);
-	            return this;
-	        }
-	        else return this.originFrom(origin);
-	    };
-	
-	    /**
-	     * Deprecated: Prefer alignFrom with static align array, or use a Transitionable with that align.
-	     * @deprecated
-	     * @method setAlign
-	     *
-	     * @param {Array.Number} align two element array with values between 0 and 1.
-	     * @param {Transitionable} transition Valid transitionable object
-	     * @param {Function} callback callback to call after transition completes
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.setAlign = function setAlign(align, transition, callback) {
-	        /* TODO: remove this if statement when deprecation complete */
-	        if (transition || this._legacyStates.align) {
-	
-	            if (!this._legacyStates.align) {
-	                this._legacyStates.align = new Transitionable(this._output.align || [0, 0]);
-	            }
-	            if (!this._alignGetter) this.alignFrom(this._legacyStates.align);
-	
-	            this._legacyStates.align.set(align, transition, callback);
-	            return this;
-	        }
-	        else return this.alignFrom(align);
-	    };
-	
-	    /**
-	     * Deprecated: Prefer sizeFrom with static origin array, or use a Transitionable with that size.
-	     * @deprecated
-	     * @method setSize
-	     * @param {Array.Number} size two element array of [width, height]
-	     * @param {Transitionable} transition Valid transitionable object
-	     * @param {Function} callback callback to call after transition completes
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.setSize = function setSize(size, transition, callback) {
-	        if (size && (transition || this._legacyStates.size)) {
-	            if (!this._legacyStates.size) {
-	                this._legacyStates.size = new Transitionable(this._output.size || [0, 0]);
-	            }
-	            if (!this._sizeGetter) this.sizeFrom(this._legacyStates.size);
-	
-	            this._legacyStates.size.set(size, transition, callback);
-	            return this;
-	        }
-	        else return this.sizeFrom(size);
-	    };
-	
-	    /**
-	     * Deprecated: Prefer proportionsFrom with static origin array, or use a Transitionable with those proportions.
-	     * @deprecated
-	     * @method setProportions
-	     * @param {Array.Number} proportions two element array of [percent of width, percent of height]
-	     * @param {Transitionable} transition Valid transitionable object
-	     * @param {Function} callback callback to call after transition completes
-	     * @return {Modifier} this
-	     */
-	    Modifier.prototype.setProportions = function setProportions(proportions, transition, callback) {
-	        if (proportions && (transition || this._legacyStates.proportions)) {
-	            if (!this._legacyStates.proportions) {
-	                this._legacyStates.proportions = new Transitionable(this._output.proportions || [0, 0]);
-	            }
-	            if (!this._proportionGetter) this.proportionsFrom(this._legacyStates.proportions);
-	
-	            this._legacyStates.proportions.set(proportions, transition, callback);
-	            return this;
-	        }
-	        else return this.proportionsFrom(proportions);
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to stop transform in your provider object.
-	     * @deprecated
-	     * @method halt
-	     */
-	    Modifier.prototype.halt = function halt() {
-	        if (this._legacyStates.transform) this._legacyStates.transform.halt();
-	        if (this._legacyStates.opacity) this._legacyStates.opacity.halt();
-	        if (this._legacyStates.origin) this._legacyStates.origin.halt();
-	        if (this._legacyStates.align) this._legacyStates.align.halt();
-	        if (this._legacyStates.size) this._legacyStates.size.halt();
-	        if (this._legacyStates.proportions) this._legacyStates.proportions.halt();
-	        this._transformGetter = null;
-	        this._opacityGetter = null;
-	        this._originGetter = null;
-	        this._alignGetter = null;
-	        this._sizeGetter = null;
-	        this._proportionGetter = null;
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to use your provided transform or output of your transform provider.
-	     * @deprecated
-	     * @method getTransform
-	     * @return {Object} transform provider object
-	     */
-	    Modifier.prototype.getTransform = function getTransform() {
-	        return this._transformGetter();
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to determine the end state of your transform from your transform provider
-	     * @deprecated
-	     * @method getFinalTransform
-	     * @return {Transform} transform matrix
-	     */
-	    Modifier.prototype.getFinalTransform = function getFinalTransform() {
-	        return this._legacyStates.transform ? this._legacyStates.transform.getFinal() : this._output.transform;
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to use your provided opacity or output of your opacity provider.
-	     * @deprecated
-	     * @method getOpacity
-	     * @return {Object} opacity provider object
-	     */
-	    Modifier.prototype.getOpacity = function getOpacity() {
-	        return this._opacityGetter();
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to use your provided origin or output of your origin provider.
-	     * @deprecated
-	     * @method getOrigin
-	     * @return {Object} origin provider object
-	     */
-	    Modifier.prototype.getOrigin = function getOrigin() {
-	        return this._originGetter();
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to use your provided align or output of your align provider.
-	     * @deprecated
-	     * @method getAlign
-	     * @return {Object} align provider object
-	     */
-	    Modifier.prototype.getAlign = function getAlign() {
-	        return this._alignGetter();
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to use your provided size or output of your size provider.
-	     * @deprecated
-	     * @method getSize
-	     * @return {Object} size provider object
-	     */
-	    Modifier.prototype.getSize = function getSize() {
-	        return this._sizeGetter ? this._sizeGetter() : this._output.size;
-	    };
-	
-	    /**
-	     * Deprecated: Prefer to use your provided proportions or output of your proportions provider.
-	     * @deprecated
-	     * @method getProportions
-	     * @return {Object} proportions provider object
-	     */
-	    Modifier.prototype.getProportions = function getProportions() {
-	        return this._proportionGetter ? this._proportionGetter() : this._output.proportions;
-	    };
-	
-	    // call providers on tick to receive render spec elements to apply
-	    function _update() {
-	        if (this._transformGetter) this._output.transform = this._transformGetter();
-	        if (this._opacityGetter) this._output.opacity = this._opacityGetter();
-	        if (this._originGetter) this._output.origin = this._originGetter();
-	        if (this._alignGetter) this._output.align = this._alignGetter();
-	        if (this._sizeGetter) this._output.size = this._sizeGetter();
-	        if (this._proportionGetter) this._output.proportions = this._proportionGetter();
-	    }
-	
-	    /**
-	     * Return render spec for this Modifier, applying to the provided
-	     *    target component.  This is similar to render() for Surfaces.
-	     *
-	     * @private
-	     * @method modify
-	     *
-	     * @param {Object} target (already rendered) render spec to
-	     *    which to apply the transform.
-	     * @return {Object} render spec for this Modifier, including the
-	     *    provided target
-	     */
-	    Modifier.prototype.modify = function modify(target) {
-	        _update.call(this);
-	        this._output.target = target;
-	        return this._output;
-	    };
-	
-	    module.exports = Modifier;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 16 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: felix@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Modifier = __webpack_require__(15);
-	    var RenderNode = __webpack_require__(33);
-	    var Transform = __webpack_require__(24);
-	    var Transitionable = __webpack_require__(19);
-	    var View = __webpack_require__(25);
-	
-	    /**
-	     * A dynamic view that can show or hide different renerables with transitions.
-	     * @class RenderController
-	     * @constructor
-	     * @param {Options} [options] An object of configurable options.
-	     * @param {Transition} [inTransition=true] The transition in charge of showing a renderable.
-	     * @param {Transition} [outTransition=true]  The transition in charge of removing your previous renderable when
-	     * you show a new one, or hiding your current renderable.
-	     * @param {Boolean} [overlap=true] When showing a new renderable, overlap determines if the
-	      out transition of the old one executes concurrently with the in transition of the new one,
-	       or synchronously beforehand.
-	     */
-	    function RenderController(options) {
-	        View.apply(this, arguments);
-	
-	        this._showing = -1;
-	        this._outgoingRenderables = [];
-	        this._nextRenderable = null;
-	
-	        this._renderables = [];
-	        this._nodes = [];
-	        this._modifiers = [];
-	        this._states = [];
-	
-	        this.inTransformMap = RenderController.DefaultMap.transform;
-	        this.inOpacityMap = RenderController.DefaultMap.opacity;
-	        this.inOriginMap = RenderController.DefaultMap.origin;
-	        this.outTransformMap = RenderController.DefaultMap.transform;
-	        this.outOpacityMap = RenderController.DefaultMap.opacity;
-	        this.outOriginMap = RenderController.DefaultMap.origin;
-	
-	        this._output = [];
-	    }
-	    RenderController.prototype = Object.create(View.prototype);
-	    RenderController.prototype.constructor = RenderController;
-	
-	    RenderController.DEFAULT_OPTIONS = {
-	        inTransition: true,
-	        outTransition: true,
-	        overlap: true
-	    };
-	
-	    RenderController.DefaultMap = {
-	        transform: function() {
-	            return Transform.identity;
-	        },
-	        opacity: function(progress) {
-	            return progress;
-	        },
-	        origin: null
-	    };
-	
-	    function _mappedState(map, state) {
-	        return map(state.get());
-	    }
-	
-	    /**
-	     * As your RenderController shows a new renderable, it executes a transition in. This transition in
-	     *  will affect a default interior state and modify it as you bring renderables in and out. However, if you want to control
-	     *  the transform, opacity, and origin state yourself, you may call certain methods (such as inTransformFrom) to obtain state from an outside source,
-	     *  that may either be a function or a Famous transitionable. inTransformFrom sets the accessor for the state of
-	     *  the transform used in transitioning in renderables.
-	     *
-	     * @method inTransformFrom
-	     * @param {Function|Transitionable} transform  A function that returns a transform from outside closure, or a
-	     * a transitionable that manages a full transform (a sixteen value array).
-	     * @chainable
-	     */
-	    RenderController.prototype.inTransformFrom = function inTransformFrom(transform) {
-	        if (transform instanceof Function) this.inTransformMap = transform;
-	        else if (transform && transform.get) this.inTransformMap = transform.get.bind(transform);
-	        else throw new Error('inTransformFrom takes only function or getter object');
-	        //TODO: tween transition
-	        return this;
-	    };
-	
-	    /**
-	     * inOpacityFrom sets the accessor for the state of the opacity used in transitioning in renderables.
-	     * @method inOpacityFrom
-	     * @param {Function|Transitionable} opacity  A function that returns an opacity from outside closure, or a
-	     * a transitionable that manages opacity (a number between zero and one).
-	     * @chainable
-	     */
-	    RenderController.prototype.inOpacityFrom = function inOpacityFrom(opacity) {
-	        if (opacity instanceof Function) this.inOpacityMap = opacity;
-	        else if (opacity && opacity.get) this.inOpacityMap = opacity.get.bind(opacity);
-	        else throw new Error('inOpacityFrom takes only function or getter object');
-	        //TODO: tween opacity
-	        return this;
-	    };
-	
-	    /**
-	     * inOriginFrom sets the accessor for the state of the origin used in transitioning in renderables.
-	     * @method inOriginFrom
-	     * @param {Function|Transitionable} origin A function that returns an origin from outside closure, or a
-	     * a transitionable that manages origin (a two value array of numbers between zero and one).
-	     * @chainable
-	     */
-	    RenderController.prototype.inOriginFrom = function inOriginFrom(origin) {
-	        if (origin instanceof Function) this.inOriginMap = origin;
-	        else if (origin && origin.get) this.inOriginMap = origin.get.bind(origin);
-	        else throw new Error('inOriginFrom takes only function or getter object');
-	        //TODO: tween origin
-	        return this;
-	    };
-	
-	    /**
-	     * outTransformFrom sets the accessor for the state of the transform used in transitioning out renderables.
-	     * @method outTransformFrom
-	     * @param {Function|Transitionable} transform  A function that returns a transform from outside closure, or a
-	     * a transitionable that manages a full transform (a sixteen value array).
-	     * @chainable
-	     */
-	    RenderController.prototype.outTransformFrom = function outTransformFrom(transform) {
-	        if (transform instanceof Function) this.outTransformMap = transform;
-	        else if (transform && transform.get) this.outTransformMap = transform.get.bind(transform);
-	        else throw new Error('outTransformFrom takes only function or getter object');
-	        //TODO: tween transition
-	        return this;
-	    };
-	
-	    /**
-	     * outOpacityFrom sets the accessor for the state of the opacity used in transitioning out renderables.
-	     * @method outOpacityFrom
-	     * @param {Function|Transitionable} opacity  A function that returns an opacity from outside closure, or a
-	     * a transitionable that manages opacity (a number between zero and one).
-	     * @chainable
-	     */
-	    RenderController.prototype.outOpacityFrom = function outOpacityFrom(opacity) {
-	        if (opacity instanceof Function) this.outOpacityMap = opacity;
-	        else if (opacity && opacity.get) this.outOpacityMap = opacity.get.bind(opacity);
-	        else throw new Error('outOpacityFrom takes only function or getter object');
-	        //TODO: tween opacity
-	        return this;
-	    };
-	
-	    /**
-	     * outOriginFrom sets the accessor for the state of the origin used in transitioning out renderables.
-	     * @method outOriginFrom
-	     * @param {Function|Transitionable} origin A function that returns an origin from outside closure, or a
-	     * a transitionable that manages origin (a two value array of numbers between zero and one).
-	     * @chainable
-	     */
-	    RenderController.prototype.outOriginFrom = function outOriginFrom(origin) {
-	        if (origin instanceof Function) this.outOriginMap = origin;
-	        else if (origin && origin.get) this.outOriginMap = origin.get.bind(origin);
-	        else throw new Error('outOriginFrom takes only function or getter object');
-	        //TODO: tween origin
-	        return this;
-	    };
-	
-	    /**
-	     * Show displays the targeted renderable with a transition and an optional callback to
-	     * execute afterwards.
-	     * @method show
-	     * @param {Object} renderable The renderable you want to show.
-	     * @param {Transition} [transition] Overwrites the default transition in to display the
-	     * passed-in renderable.
-	     * @param {function} [callback] Executes after transitioning in the renderable.
-	     * @chainable
-	     */
-	    RenderController.prototype.show = function show(renderable, transition, callback) {
-	        if (!renderable) {
-	            return this.hide(callback);
-	        }
-	
-	        if (transition instanceof Function) {
-	            callback = transition;
-	            transition = null;
-	        }
-	
-	        if (this._showing >= 0) {
-	            if (this.options.overlap) this.hide();
-	            else {
-	                if (this._nextRenderable) {
-	                    this._nextRenderable = renderable;
-	                }
-	                else {
-	                    this._nextRenderable = renderable;
-	                    this.hide(function() {
-	                        if (this._nextRenderable === renderable) this.show(this._nextRenderable, callback);
-	                        this._nextRenderable = null;
-	                    });
-	                }
-	                return undefined;
-	            }
-	        }
-	
-	        var state = null;
-	
-	        // check to see if we should restore
-	        var renderableIndex = this._renderables.indexOf(renderable);
-	        if (renderableIndex >= 0) {
-	            this._showing = renderableIndex;
-	            state = this._states[renderableIndex];
-	            state.halt();
-	
-	            var outgoingIndex = this._outgoingRenderables.indexOf(renderable);
-	            if (outgoingIndex >= 0) this._outgoingRenderables.splice(outgoingIndex, 1);
-	        }
-	        else {
-	            state = new Transitionable(0);
-	
-	            var modifier = new Modifier({
-	                transform: this.inTransformMap ? _mappedState.bind(this, this.inTransformMap, state) : null,
-	                opacity: this.inOpacityMap ? _mappedState.bind(this, this.inOpacityMap, state) : null,
-	                origin: this.inOriginMap ? _mappedState.bind(this, this.inOriginMap, state) : null
-	            });
-	            var node = new RenderNode();
-	            node.add(modifier).add(renderable);
-	
-	            this._showing = this._nodes.length;
-	            this._nodes.push(node);
-	            this._modifiers.push(modifier);
-	            this._states.push(state);
-	            this._renderables.push(renderable);
-	        }
-	
-	        if (!transition) transition = this.options.inTransition;
-	        state.set(1, transition, callback);
-	    };
-	
-	    /**
-	     * Hide hides the currently displayed renderable with an out transition.
-	     * @method hide
-	     * @param {Transition} [transition] Overwrites the default transition in to hide the
-	     * currently controlled renderable.
-	     * @param {function} [callback] Executes after transitioning out the renderable.
-	     * @chainable
-	     */
-	    RenderController.prototype.hide = function hide(transition, callback) {
-	        if (this._showing < 0) return;
-	        var index = this._showing;
-	        this._showing = -1;
-	
-	        if (transition instanceof Function) {
-	            callback = transition;
-	            transition = undefined;
-	        }
-	
-	        var node = this._nodes[index];
-	        var modifier = this._modifiers[index];
-	        var state = this._states[index];
-	        var renderable = this._renderables[index];
-	
-	        modifier.transformFrom(this.outTransformMap ? _mappedState.bind(this, this.outTransformMap, state) : null);
-	        modifier.opacityFrom(this.outOpacityMap ? _mappedState.bind(this, this.outOpacityMap, state) : null);
-	        modifier.originFrom(this.outOriginMap ? _mappedState.bind(this, this.outOriginMap, state) : null);
-	
-	        if (this._outgoingRenderables.indexOf(renderable) < 0) this._outgoingRenderables.push(renderable);
-	
-	        if (!transition) transition = this.options.outTransition;
-	        state.halt();
-	        state.set(0, transition, function(node, modifier, state, renderable) {
-	            if (this._outgoingRenderables.indexOf(renderable) >= 0) {
-	                var index = this._nodes.indexOf(node);
-	                this._nodes.splice(index, 1);
-	                this._modifiers.splice(index, 1);
-	                this._states.splice(index, 1);
-	                this._renderables.splice(index, 1);
-	                this._outgoingRenderables.splice(this._outgoingRenderables.indexOf(renderable), 1);
-	
-	                if (this._showing >= index) this._showing--;
-	            }
-	            if (callback) callback.call(this);
-	        }.bind(this, node, modifier, state, renderable));
-	    };
-	
-	    /**
-	     * Generate a render spec from the contents of this component.
-	     *
-	     * @private
-	     * @method render
-	     * @return {number} Render spec for this component
-	     */
-	    RenderController.prototype.render = function render() {
-	        var result = this._output;
-	        if (result.length > this._nodes.length) result.splice(this._nodes.length);
-	        for (var i = 0; i < this._nodes.length; i++) {
-	            result[i] = this._nodes[i].render();
-	        }
-	        return result;
-	    };
-	
-	    module.exports = RenderController;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 17 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: felix@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var PhysicsEngine = __webpack_require__(36);
-	    var Particle = __webpack_require__(37);
-	    var Drag = __webpack_require__(38);
-	    var Spring = __webpack_require__(39);
-	
-	    var EventHandler = __webpack_require__(31);
-	    var OptionsManager = __webpack_require__(32);
-	    var ViewSequence = __webpack_require__(34);
-	    var Scroller = __webpack_require__(35);
-	    var Utility = __webpack_require__(40);
-	
-	    var GenericSync = __webpack_require__(41);
-	    var ScrollSync = __webpack_require__(42);
-	    var TouchSync = __webpack_require__(43);
-	    GenericSync.register({scroll : ScrollSync, touch : TouchSync});
-	
-	    /** @const */
-	    var TOLERANCE = 0.5;
-	
-	    /** @enum */
-	    var SpringStates = {
-	        NONE: 0,
-	        EDGE: 1,
-	        PAGE: 2
-	    };
-	
-	    /** @enum */
-	    var EdgeStates = {
-	        TOP:   -1,
-	        NONE:   0,
-	        BOTTOM: 1
-	    };
-	
-	    /**
-	     * Scrollview will lay out a collection of renderables sequentially in the specified direction, and will
-	     * allow you to scroll through them with mousewheel or touch events.
-	     * @class Scrollview
-	     * @constructor
-	     * @param {Options} [options] An object of configurable options.
-	     * @param {Number} [options.direction=Utility.Direction.Y] Using the direction helper found in the famous Utility
-	     * module, this option will lay out the Scrollview instance's renderables either horizontally
-	     * (x) or vertically (y). Utility's direction is essentially either zero (X) or one (Y), so feel free
-	     * to just use integers as well.
-	     * @param {Boolean} [options.rails=true] When true, Scrollview's genericSync will only process input in it's primary access.
-	     * @param {Number} [clipSize=undefined] The size of the area (in pixels) that Scrollview will display content in.
-	     * @param {Number} [margin=undefined] The size of the area (in pixels) that Scrollview will process renderables' associated calculations in.
-	     * @param {Number} [friction=0.001] Input resistance proportional to the velocity of the input.
-	     * Controls the feel of the Scrollview instance at low velocities.
-	     * @param {Number} [drag=0.0001] Input resistance proportional to the square of the velocity of the input.
-	     * Affects Scrollview instance more prominently at high velocities.
-	     * @param {Number} [edgeGrip=0.5] A coefficient for resistance against after-touch momentum.
-	     * @param {Number} [egePeriod=300] Sets the period on the spring that handles the physics associated
-	     * with hitting the end of a scrollview.
-	     * @param {Number} [edgeDamp=1] Sets the damping on the spring that handles the physics associated
-	     * with hitting the end of a scrollview.
-	     * @param {Boolean} [paginated=false] A paginated scrollview will scroll through items discretely
-	     * rather than continously.
-	     * @param {Number} [pagePeriod=500] Sets the period on the spring that handles the physics associated
-	     * with pagination.
-	     * @param {Number} [pageDamp=0.8] Sets the damping on the spring that handles the physics associated
-	     * with pagination.
-	     * @param {Number} [pageStopSpeed=Infinity] The threshold for determining the amount of velocity
-	     * required to trigger pagination. The lower the threshold, the easier it is to scroll continuosly.
-	     * @param {Number} [pageSwitchSpeed=1] The threshold for momentum-based velocity pagination.
-	     * @param {Number} [speedLimit=10] The highest scrolling speed you can reach.
-	     */
-	    function Scrollview(options) {
-	        // patch options with defaults
-	        this.options = Object.create(Scrollview.DEFAULT_OPTIONS);
-	        this._optionsManager = new OptionsManager(this.options);
-	
-	        // create sub-components
-	        this._scroller = new Scroller(this.options);
-	
-	        this.sync = new GenericSync(
-	            ['scroll', 'touch'],
-	            {
-	                direction : this.options.direction,
-	                scale : this.options.syncScale,
-	                rails: this.options.rails,
-	                preventDefault: this.options.preventDefault !== undefined
-	                    ? this.options.preventDefault
-	                    : this.options.direction !== Utility.Direction.Y
-	            }
-	        );
-	
-	        this._physicsEngine = new PhysicsEngine();
-	        this._particle = new Particle();
-	        this._physicsEngine.addBody(this._particle);
-	
-	        this.spring = new Spring({
-	            anchor: [0, 0, 0],
-	            period: this.options.edgePeriod,
-	            dampingRatio: this.options.edgeDamp
-	        });
-	        this.drag = new Drag({
-	            forceFunction: Drag.FORCE_FUNCTIONS.QUADRATIC,
-	            strength: this.options.drag
-	        });
-	        this.friction = new Drag({
-	            forceFunction: Drag.FORCE_FUNCTIONS.LINEAR,
-	            strength: this.options.friction
-	        });
-	
-	        // state
-	        this._node = null;
-	        this._touchCount = 0;
-	        this._springState = SpringStates.NONE;
-	        this._onEdge = EdgeStates.NONE;
-	        this._pageSpringPosition = 0;
-	        this._edgeSpringPosition = 0;
-	        this._touchVelocity = 0;
-	        this._earlyEnd = false;
-	        this._needsPaginationCheck = false;
-	        this._displacement = 0;
-	        this._totalShift = 0;
-	        this._cachedIndex = 0;
-	
-	        // subcomponent logic
-	        this._scroller.positionFrom(this.getPosition.bind(this));
-	
-	        // eventing
-	        this._eventInput = new EventHandler();
-	        this._eventOutput = new EventHandler();
-	
-	        this._eventInput.pipe(this.sync);
-	        this.sync.pipe(this._eventInput);
-	
-	        EventHandler.setInputHandler(this, this._eventInput);
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	
-	        _bindEvents.call(this);
-	
-	        // override default options with passed-in custom options
-	        if (options) this.setOptions(options);
-	    }
-	
-	    Scrollview.DEFAULT_OPTIONS = {
-	        direction: Utility.Direction.Y,
-	        rails: true,
-	        friction: 0.005,
-	        drag: 0.0001,
-	        edgeGrip: 0.2,
-	        edgePeriod: 300,
-	        edgeDamp: 1,
-	        margin: 1000,       // mostly safe
-	        paginated: false,
-	        pagePeriod: 500,
-	        pageDamp: 0.8,
-	        pageStopSpeed: 10,
-	        pageSwitchSpeed: 0.5,
-	        speedLimit: 5,
-	        groupScroll: false,
-	        syncScale: 1
-	    };
-	
-	    function _handleStart(event) {
-	        this._touchCount = event.count;
-	        if (event.count === undefined) this._touchCount = 1;
-	
-	        _detachAgents.call(this);
-	
-	        this.setVelocity(0);
-	        this._touchVelocity = 0;
-	        this._earlyEnd = false;
-	    }
-	
-	    function _handleMove(event) {
-	        var velocity = -event.velocity;
-	        var delta = -event.delta;
-	
-	        if (this._onEdge !== EdgeStates.NONE && event.slip) {
-	            if ((velocity < 0 && this._onEdge === EdgeStates.TOP) || (velocity > 0 && this._onEdge === EdgeStates.BOTTOM)) {
-	                if (!this._earlyEnd) {
-	                    _handleEnd.call(this, event);
-	                    this._earlyEnd = true;
-	                }
-	            }
-	            else if (this._earlyEnd && (Math.abs(velocity) > Math.abs(this.getVelocity()))) {
-	                _handleStart.call(this, event);
-	            }
-	        }
-	        if (this._earlyEnd) return;
-	        this._touchVelocity = velocity;
-	
-	        if (event.slip) {
-	            var speedLimit = this.options.speedLimit;
-	            if (velocity < -speedLimit) velocity = -speedLimit;
-	            else if (velocity > speedLimit) velocity = speedLimit;
-	
-	            this.setVelocity(velocity);
-	
-	            var deltaLimit = speedLimit * 16;
-	            if (delta > deltaLimit) delta = deltaLimit;
-	            else if (delta < -deltaLimit) delta = -deltaLimit;
-	        }
-	
-	        this.setPosition(this.getPosition() + delta);
-	        this._displacement += delta;
-	
-	        if (this._springState === SpringStates.NONE) _normalizeState.call(this);
-	    }
-	
-	    function _handleEnd(event) {
-	        this._touchCount = event.count || 0;
-	        if (!this._touchCount) {
-	            _detachAgents.call(this);
-	            if (this._onEdge !== EdgeStates.NONE) _setSpring.call(this, this._edgeSpringPosition, SpringStates.EDGE);
-	            _attachAgents.call(this);
-	            var velocity = -event.velocity;
-	            var speedLimit = this.options.speedLimit;
-	            if (event.slip) speedLimit *= this.options.edgeGrip;
-	            if (velocity < -speedLimit) velocity = -speedLimit;
-	            else if (velocity > speedLimit) velocity = speedLimit;
-	            this.setVelocity(velocity);
-	            this._touchVelocity = 0;
-	            this._needsPaginationCheck = true;
-	        }
-	    }
-	
-	    function _bindEvents() {
-	        this._eventInput.bindThis(this);
-	        this._eventInput.on('start', _handleStart);
-	        this._eventInput.on('update', _handleMove);
-	        this._eventInput.on('end', _handleEnd);
-	
-	        this._eventInput.on('resize', function() {
-	            this._node._.calculateSize();
-	        }.bind(this));
-	
-	        this._scroller.on('onEdge', function(data) {
-	            this._edgeSpringPosition = data.position;
-	            _handleEdge.call(this, this._scroller.onEdge());
-	            this._eventOutput.emit('onEdge');
-	        }.bind(this));
-	
-	        this._scroller.on('offEdge', function() {
-	            this.sync.setOptions({scale: this.options.syncScale});
-	            this._onEdge = this._scroller.onEdge();
-	            this._eventOutput.emit('offEdge');
-	        }.bind(this));
-	
-	        this._particle.on('update', function(particle) {
-	            if (this._springState === SpringStates.NONE) _normalizeState.call(this);
-	            this._displacement = particle.position.x - this._totalShift;
-	        }.bind(this));
-	
-	        this._particle.on('end', function() {
-	            if (!this.options.paginated || (this.options.paginated && this._springState !== SpringStates.NONE))
-	                this._eventOutput.emit('settle');
-	        }.bind(this));
-	    }
-	
-	    function _attachAgents() {
-	        if (this._springState) this._physicsEngine.attach([this.spring], this._particle);
-	        else this._physicsEngine.attach([this.drag, this.friction], this._particle);
-	    }
-	
-	    function _detachAgents() {
-	        this._springState = SpringStates.NONE;
-	        this._physicsEngine.detachAll();
-	    }
-	
-	    function _nodeSizeForDirection(node) {
-	        var direction = this.options.direction;
-	        var nodeSize = node.getSize();
-	        return (!nodeSize) ? this._scroller.getSize()[direction] : nodeSize[direction];
-	    }
-	
-	    function _handleEdge(edge) {
-	        this.sync.setOptions({scale: this.options.edgeGrip});
-	        this._onEdge = edge;
-	
-	        if (!this._touchCount && this._springState !== SpringStates.EDGE) {
-	            _setSpring.call(this, this._edgeSpringPosition, SpringStates.EDGE);
-	        }
-	
-	        if (this._springState && Math.abs(this.getVelocity()) < 0.001) {
-	            // reset agents, detaching the spring
-	            _detachAgents.call(this);
-	            _attachAgents.call(this);
-	        }
-	    }
-	
-	    function _handlePagination() {
-	        if (this._touchCount) return;
-	        if (this._springState === SpringStates.EDGE) return;
-	
-	        var velocity = this.getVelocity();
-	        if (Math.abs(velocity) >= this.options.pageStopSpeed) return;
-	
-	        var position = this.getPosition();
-	        var velocitySwitch = Math.abs(velocity) > this.options.pageSwitchSpeed;
-	
-	        // parameters to determine when to switch
-	        var nodeSize = _nodeSizeForDirection.call(this, this._node);
-	        var positionNext = position > 0.5 * nodeSize;
-	        var positionPrev = position < 0.5 * nodeSize;
-	
-	        var velocityNext = velocity > 0;
-	        var velocityPrev = velocity < 0;
-	
-	        this._needsPaginationCheck = false;
-	
-	        if ((positionNext && !velocitySwitch) || (velocitySwitch && velocityNext)) {
-	            this.goToNextPage();
-	        }
-	        else if (velocitySwitch && velocityPrev) {
-	            this.goToPreviousPage();
-	        }
-	        else _setSpring.call(this, 0, SpringStates.PAGE);
-	    }
-	
-	    function _setSpring(position, springState) {
-	        var springOptions;
-	        if (springState === SpringStates.EDGE) {
-	            this._edgeSpringPosition = position;
-	            springOptions = {
-	                anchor: [this._edgeSpringPosition, 0, 0],
-	                period: this.options.edgePeriod,
-	                dampingRatio: this.options.edgeDamp
-	            };
-	        }
-	        else if (springState === SpringStates.PAGE) {
-	            this._pageSpringPosition = position;
-	            springOptions = {
-	                anchor: [this._pageSpringPosition, 0, 0],
-	                period: this.options.pagePeriod,
-	                dampingRatio: this.options.pageDamp
-	            };
-	        }
-	
-	        this.spring.setOptions(springOptions);
-	        if (springState && !this._springState) {
-	            _detachAgents.call(this);
-	            this._springState = springState;
-	            _attachAgents.call(this);
-	        }
-	        this._springState = springState;
-	    }
-	
-	    function _normalizeState() {
-	        var offset = 0;
-	
-	        var position = this.getPosition();
-	        position += (position < 0 ? -0.5 : 0.5) >> 0;
-	
-	        var nodeSize = _nodeSizeForDirection.call(this, this._node);
-	        var nextNode = this._node.getNext();
-	
-	        while (offset + position >= nodeSize && nextNode) {
-	            offset -= nodeSize;
-	            this._scroller.sequenceFrom(nextNode);
-	            this._node = nextNode;
-	            nextNode = this._node.getNext();
-	            nodeSize = _nodeSizeForDirection.call(this, this._node);
-	        }
-	
-	        var previousNode = this._node.getPrevious();
-	        var previousNodeSize;
-	
-	        while (offset + position <= 0 && previousNode) {
-	            previousNodeSize = _nodeSizeForDirection.call(this, previousNode);
-	            this._scroller.sequenceFrom(previousNode);
-	            this._node = previousNode;
-	            offset += previousNodeSize;
-	            previousNode = this._node.getPrevious();
-	        }
-	
-	        if (offset) _shiftOrigin.call(this, offset);
-	
-	        if (this._node) {
-	            if (this._node.index !== this._cachedIndex) {
-	                if (this.getPosition() < 0.5 * nodeSize) {
-	                    this._cachedIndex = this._node.index;
-	                    this._eventOutput.emit('pageChange', {direction: -1, index: this._cachedIndex});
-	                }
-	            } else {
-	                if (this.getPosition() > 0.5 * nodeSize) {
-	                    this._cachedIndex = this._node.index + 1;
-	                    this._eventOutput.emit('pageChange', {direction: 1, index: this._cachedIndex});
-	                }
-	            }
-	        }
-	    }
-	
-	    function _shiftOrigin(amount) {
-	        this._edgeSpringPosition += amount;
-	        this._pageSpringPosition += amount;
-	        this.setPosition(this.getPosition() + amount);
-	        this._totalShift += amount;
-	
-	        if (this._springState === SpringStates.EDGE) {
-	            this.spring.setOptions({anchor: [this._edgeSpringPosition, 0, 0]});
-	        }
-	        else if (this._springState === SpringStates.PAGE) {
-	            this.spring.setOptions({anchor: [this._pageSpringPosition, 0, 0]});
-	        }
-	    }
-	
-	    /**
-	     * Returns the index of the first visible renderable
-	     *
-	     * @method getCurrentIndex
-	     * @return {Number} The current index of the ViewSequence
-	     */
-	    Scrollview.prototype.getCurrentIndex = function getCurrentIndex() {
-	        return this._node.index;
-	    };
-	
-	    /**
-	     * goToPreviousPage paginates your Scrollview instance backwards by one item.
-	     *
-	     * @method goToPreviousPage
-	     * @return {ViewSequence} The previous node.
-	     */
-	    Scrollview.prototype.goToPreviousPage = function goToPreviousPage() {
-	        if (!this._node || this._onEdge === EdgeStates.TOP) return null;
-	
-	        // if moving back to the current node
-	        if (this.getPosition() > 1 && this._springState === SpringStates.NONE) {
-	            _setSpring.call(this, 0, SpringStates.PAGE);
-	            return this._node;
-	        }
-	
-	        // if moving to the previous node
-	        var previousNode = this._node.getPrevious();
-	        if (previousNode) {
-	            var previousNodeSize = _nodeSizeForDirection.call(this, previousNode);
-	            this._scroller.sequenceFrom(previousNode);
-	            this._node = previousNode;
-	            _shiftOrigin.call(this, previousNodeSize);
-	            _setSpring.call(this, 0, SpringStates.PAGE);
-	        }
-	        return previousNode;
-	    };
-	
-	    /**
-	     * goToNextPage paginates your Scrollview instance forwards by one item.
-	     *
-	     * @method goToNextPage
-	     * @return {ViewSequence} The next node.
-	     */
-	    Scrollview.prototype.goToNextPage = function goToNextPage() {
-	        if (!this._node || this._onEdge === EdgeStates.BOTTOM) return null;
-	        var nextNode = this._node.getNext();
-	        if (nextNode) {
-	            var currentNodeSize = _nodeSizeForDirection.call(this, this._node);
-	            this._scroller.sequenceFrom(nextNode);
-	            this._node = nextNode;
-	            _shiftOrigin.call(this, -currentNodeSize);
-	            _setSpring.call(this, 0, SpringStates.PAGE);
-	        }
-	        return nextNode;
-	    };
-	
-	    /**
-	     * Paginates the Scrollview to an absolute page index.
-	     *
-	     * @method goToPage
-	     */
-	    Scrollview.prototype.goToPage = function goToPage(index) {
-	        var currentIndex = this.getCurrentIndex();
-	        var i;
-	
-	        if (currentIndex > index) {
-	            for (i = 0; i < currentIndex - index; i++)
-	                this.goToPreviousPage();
-	        }
-	
-	        if (currentIndex < index) {
-	            for (i = 0; i < index - currentIndex; i++)
-	                this.goToNextPage();
-	        }
-	    };
-	
-	    Scrollview.prototype.outputFrom = function outputFrom() {
-	        return this._scroller.outputFrom.apply(this._scroller, arguments);
-	    };
-	
-	    /**
-	     * Returns the position associated with the Scrollview instance's current node
-	     *  (generally the node currently at the top).
-	     *
-	     * @deprecated
-	     * @method getPosition
-	     * @param {number} [node] If specified, returns the position of the node at that index in the
-	     * Scrollview instance's currently managed collection.
-	     * @return {number} The position of either the specified node, or the Scrollview's current Node,
-	     * in pixels translated.
-	     */
-	    Scrollview.prototype.getPosition = function getPosition() {
-	        return this._particle.getPosition1D();
-	    };
-	
-	    /**
-	     * Returns the absolute position associated with the Scrollview instance
-	     *
-	     * @method getAbsolutePosition
-	     * @return {number} The position of the Scrollview's current Node,
-	     * in pixels translated.
-	     */
-	    Scrollview.prototype.getAbsolutePosition = function getAbsolutePosition() {
-	        return this._scroller.getCumulativeSize(this.getCurrentIndex())[this.options.direction] + this.getPosition();
-	    };
-	
-	    /**
-	     * Returns the offset associated with the Scrollview instance's current node
-	     *  (generally the node currently at the top).
-	     *
-	     * @method getOffset
-	     * @param {number} [node] If specified, returns the position of the node at that index in the
-	     * Scrollview instance's currently managed collection.
-	     * @return {number} The position of either the specified node, or the Scrollview's current Node,
-	     * in pixels translated.
-	     */
-	    Scrollview.prototype.getOffset = Scrollview.prototype.getPosition;
-	
-	    /**
-	     * Sets the position of the physics particle that controls Scrollview instance's "position"
-	     *
-	     * @deprecated
-	     * @method setPosition
-	     * @param {number} x The amount of pixels you want your scrollview to progress by.
-	     */
-	    Scrollview.prototype.setPosition = function setPosition(x) {
-	        this._particle.setPosition1D(x);
-	    };
-	
-	    /**
-	     * Sets the offset of the physics particle that controls Scrollview instance's "position"
-	     *
-	     * @method setPosition
-	     * @param {number} x The amount of pixels you want your scrollview to progress by.
-	     */
-	    Scrollview.prototype.setOffset = Scrollview.prototype.setPosition;
-	
-	    /**
-	     * Returns the Scrollview instance's velocity.
-	     *
-	     * @method getVelocity
-	     * @return {Number} The velocity.
-	     */
-	
-	    Scrollview.prototype.getVelocity = function getVelocity() {
-	        return this._touchCount ? this._touchVelocity : this._particle.getVelocity1D();
-	    };
-	
-	    /**
-	     * Sets the Scrollview instance's velocity. Until affected by input or another call of setVelocity
-	     *  the Scrollview instance will scroll at the passed-in velocity.
-	     *
-	     * @method setVelocity
-	     * @param {number} v The magnitude of the velocity.
-	     */
-	    Scrollview.prototype.setVelocity = function setVelocity(v) {
-	        this._particle.setVelocity1D(v);
-	    };
-	
-	    /**
-	     * Patches the Scrollview instance's options with the passed-in ones.
-	     *
-	     * @method setOptions
-	     * @param {Options} options An object of configurable options for the Scrollview instance.
-	     */
-	    Scrollview.prototype.setOptions = function setOptions(options) {
-	        // preprocess custom options
-	        if (options.direction !== undefined) {
-	            if (options.direction === 'x') options.direction = Utility.Direction.X;
-	            else if (options.direction === 'y') options.direction = Utility.Direction.Y;
-	        }
-	
-	        if (options.groupScroll !== this.options.groupScroll) {
-	            if (options.groupScroll)
-	                this.subscribe(this._scroller);
-	            else
-	                this.unsubscribe(this._scroller);
-	        }
-	
-	        // patch custom options
-	        this._optionsManager.setOptions(options);
-	
-	        // propagate options to sub-components
-	
-	        // scroller sub-component
-	        this._scroller.setOptions(options);
-	
-	        // physics sub-components
-	        if (options.drag !== undefined) this.drag.setOptions({strength: this.options.drag});
-	        if (options.friction !== undefined) this.friction.setOptions({strength: this.options.friction});
-	        if (options.edgePeriod !== undefined || options.edgeDamp !== undefined) {
-	            this.spring.setOptions({
-	                period: this.options.edgePeriod,
-	                dampingRatio: this.options.edgeDamp
-	            });
-	        }
-	
-	        // sync sub-component
-	        if (options.rails || options.direction !== undefined || options.syncScale !== undefined || options.preventDefault) {
-	            this.sync.setOptions({
-	                rails: this.options.rails,
-	                direction: (this.options.direction === Utility.Direction.X) ? GenericSync.DIRECTION_X : GenericSync.DIRECTION_Y,
-	                scale: this.options.syncScale,
-	                preventDefault: this.options.preventDefault
-	            });
-	        }
-	    };
-	
-	    /**
-	     * Sets the collection of renderables under the Scrollview instance's control, by
-	     *  setting its current node to the passed in ViewSequence. If you
-	     *  pass in an array, the Scrollview instance will set its node as a ViewSequence instantiated with
-	     *  the passed-in array.
-	     *
-	     * @method sequenceFrom
-	     * @param {Array|ViewSequence} node Either an array of renderables or a Famous viewSequence.
-	     */
-	    Scrollview.prototype.sequenceFrom = function sequenceFrom(node) {
-	        if (node instanceof Array) node = new ViewSequence({array: node, trackSize: true});
-	        this._node = node;
-	        return this._scroller.sequenceFrom(node);
-	    };
-	
-	    /**
-	     * Returns the width and the height of the Scrollview instance.
-	     *
-	     * @method getSize
-	     * @return {Array} A two value array of the Scrollview instance's current width and height (in that order).
-	     */
-	    Scrollview.prototype.getSize = function getSize() {
-	        return this._scroller.getSize.apply(this._scroller, arguments);
-	    };
-	
-	    /**
-	     * Generate a render spec from the contents of this component.
-	     *
-	     * @private
-	     * @method render
-	     * @return {number} Render spec for this component
-	     */
-	    Scrollview.prototype.render = function render() {
-	        if (this.options.paginated && this._needsPaginationCheck) _handlePagination.call(this);
-	
-	        return this._scroller.render();
-	    };
-	
-	    module.exports = Scrollview;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
 /* 18 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Surface = __webpack_require__(23);
-	    var Context = __webpack_require__(30);
-	
-	    /**
-	     * ContainerSurface is an object designed to contain surfaces and
-	     *   set properties to be applied to all of them at once.
-	     *   This extends the Surface class.
-	     *   A container surface will enforce these properties on the
-	     *   surfaces it contains:
-	     *
-	     *   size (clips contained surfaces to its own width and height);
-	     *
-	     *   origin;
-	     *
-	     *   its own opacity and transform, which will be automatically
-	     *   applied to  all Surfaces contained directly and indirectly.
-	     *
-	     * @class ContainerSurface
-	     * @extends Surface
-	     * @constructor
-	     * @param {Array.Number} [options.size] [width, height] in pixels
-	     * @param {Array.string} [options.classes] CSS classes to set on all inner content
-	     * @param {Array} [options.properties] string dictionary of HTML attributes to set on target div
-	     * @param {string} [options.content] inner (HTML) content of surface (should not be used)
-	     */
-	    function ContainerSurface(options) {
-	        Surface.call(this, options);
-	        this._container = document.createElement('div');
-	        this._container.classList.add('famous-group');
-	        this._container.classList.add('famous-container-group');
-	        this._shouldRecalculateSize = false;
-	        this.context = new Context(this._container);
-	        this.setContent(this._container);
-	    }
-	
-	    ContainerSurface.prototype = Object.create(Surface.prototype);
-	    ContainerSurface.prototype.constructor = ContainerSurface;
-	    ContainerSurface.prototype.elementType = 'div';
-	    ContainerSurface.prototype.elementClass = 'famous-surface';
-	
-	    /**
-	     * Add renderables to this object's render tree
-	     *
-	     * @method add
-	     *
-	     * @param {Object} obj renderable object
-	     * @return {RenderNode} RenderNode wrapping this object, if not already a RenderNode
-	     */
-	    ContainerSurface.prototype.add = function add() {
-	        return this.context.add.apply(this.context, arguments);
-	    };
-	
-	    /**
-	     * Return spec for this surface.  Note: Can result in a size recalculation.
-	     *
-	     * @private
-	     * @method render
-	     *
-	     * @return {Object} render spec for this surface (spec id)
-	     */
-	    ContainerSurface.prototype.render = function render() {
-	        if (this._sizeDirty) this._shouldRecalculateSize = true;
-	        return Surface.prototype.render.apply(this, arguments);
-	    };
-	
-	    /**
-	     * Place the document element this component manages into the document.
-	     *
-	     * @private
-	     * @method deploy
-	     * @param {Node} target document parent of this container
-	     */
-	    ContainerSurface.prototype.deploy = function deploy() {
-	        this._shouldRecalculateSize = true;
-	        return Surface.prototype.deploy.apply(this, arguments);
-	    };
-	
-	    /**
-	     * Apply changes from this component to the corresponding document element.
-	     * This includes changes to classes, styles, size, content, opacity, origin,
-	     * and matrix transforms.
-	     *
-	     * @private
-	     * @method commit
-	     * @param {Context} context commit context
-	     * @param {Transform} transform unused TODO
-	     * @param {Number} opacity  unused TODO
-	     * @param {Array.Number} origin unused TODO
-	     * @param {Array.Number} size unused TODO
-	     * @return {undefined} TODO returns an undefined value
-	     */
-	    ContainerSurface.prototype.commit = function commit(context, transform, opacity, origin, size) {
-	        var previousSize = this._size ? [this._size[0], this._size[1]] : null;
-	        var result = Surface.prototype.commit.apply(this, arguments);
-	        if (this._shouldRecalculateSize || (previousSize && (this._size[0] !== previousSize[0] || this._size[1] !== previousSize[1]))) {
-	            this.context.setSize();
-	            this._shouldRecalculateSize = false;
-	        }
-	        this.context.update();
-	        return result;
-	    };
-	
-	    module.exports = ContainerSurface;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var MultipleTransition = __webpack_require__(44);
-	    var TweenTransition = __webpack_require__(45);
-	
-	    /**
-	     * A state maintainer for a smooth transition between
-	     *    numerically-specified states. Example numeric states include floats or
-	     *    Transform objects.
-	     *
-	     * An initial state is set with the constructor or set(startState). A
-	     *    corresponding end state and transition are set with set(endState,
-	     *    transition). Subsequent calls to set(endState, transition) begin at
-	     *    the last state. Calls to get(timestamp) provide the interpolated state
-	     *    along the way.
-	     *
-	     * Note that there is no event loop here - calls to get() are the only way
-	     *    to find state projected to the current (or provided) time and are
-	     *    the only way to trigger callbacks. Usually this kind of object would
-	     *    be part of the render() path of a visible component.
-	     *
-	     * @class Transitionable
-	     * @constructor
-	     * @param {number|Array.Number|Object.<number|string, number>} start
-	     *    beginning state
-	     */
-	    function Transitionable(start) {
-	        this.currentAction = null;
-	        this.actionQueue = [];
-	        this.callbackQueue = [];
-	
-	        this.state = 0;
-	        this.velocity = undefined;
-	        this._callback = undefined;
-	        this._engineInstance = null;
-	        this._currentMethod = null;
-	
-	        this.set(start);
-	    }
-	
-	    var transitionMethods = {};
-	
-	    Transitionable.register = function register(methods) {
-	        var success = true;
-	        for (var method in methods) {
-	            if (!Transitionable.registerMethod(method, methods[method]))
-	                success = false;
-	        }
-	        return success;
-	    };
-	
-	    Transitionable.registerMethod = function registerMethod(name, engineClass) {
-	        if (!(name in transitionMethods)) {
-	            transitionMethods[name] = engineClass;
-	            return true;
-	        }
-	        else return false;
-	    };
-	
-	    Transitionable.unregisterMethod = function unregisterMethod(name) {
-	        if (name in transitionMethods) {
-	            delete transitionMethods[name];
-	            return true;
-	        }
-	        else return false;
-	    };
-	
-	    function _loadNext() {
-	        if (this._callback) {
-	            var callback = this._callback;
-	            this._callback = undefined;
-	            callback();
-	        }
-	        if (this.actionQueue.length <= 0) {
-	            this.set(this.get()); // no update required
-	            return;
-	        }
-	        this.currentAction = this.actionQueue.shift();
-	        this._callback = this.callbackQueue.shift();
-	
-	        var method = null;
-	        var endValue = this.currentAction[0];
-	        var transition = this.currentAction[1];
-	        if (transition instanceof Object && transition.method) {
-	            method = transition.method;
-	            if (typeof method === 'string') method = transitionMethods[method];
-	        }
-	        else {
-	            method = TweenTransition;
-	        }
-	
-	        if (this._currentMethod !== method) {
-	            if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
-	                this._engineInstance = new method();
-	            }
-	            else {
-	                this._engineInstance = new MultipleTransition(method);
-	            }
-	            this._currentMethod = method;
-	        }
-	
-	        this._engineInstance.reset(this.state, this.velocity);
-	        if (this.velocity !== undefined) transition.velocity = this.velocity;
-	        this._engineInstance.set(endValue, transition, _loadNext.bind(this));
-	    }
-	
-	    /**
-	     * Add transition to end state to the queue of pending transitions. Special
-	     *    Use: calling without a transition resets the object to that state with
-	     *    no pending actions
-	     *
-	     * @method set
-	     *
-	     * @param {number|FamousMatrix|Array.Number|Object.<number, number>} endState
-	     *    end state to which we interpolate
-	     * @param {transition=} transition object of type {duration: number, curve:
-	     *    f[0,1] -> [0,1] or name}. If transition is omitted, change will be
-	     *    instantaneous.
-	     * @param {function()=} callback Zero-argument function to call on observed
-	     *    completion (t=1)
-	     */
-	    Transitionable.prototype.set = function set(endState, transition, callback) {
-	        if (!transition) {
-	            this.reset(endState);
-	            if (callback) callback();
-	            return this;
-	        }
-	
-	        var action = [endState, transition];
-	        this.actionQueue.push(action);
-	        this.callbackQueue.push(callback);
-	        if (!this.currentAction) _loadNext.call(this);
-	        return this;
-	    };
-	
-	    /**
-	     * Cancel all transitions and reset to a stable state
-	     *
-	     * @method reset
-	     *
-	     * @param {number|Array.Number|Object.<number, number>} startState
-	     *    stable state to set to
-	     */
-	    Transitionable.prototype.reset = function reset(startState, startVelocity) {
-	        this._currentMethod = null;
-	        this._engineInstance = null;
-	        this._callback = undefined;
-	        this.state = startState;
-	        this.velocity = startVelocity;
-	        this.currentAction = null;
-	        this.actionQueue = [];
-	        this.callbackQueue = [];
-	    };
-	
-	    /**
-	     * Add delay action to the pending action queue queue.
-	     *
-	     * @method delay
-	     *
-	     * @param {number} duration delay time (ms)
-	     * @param {function} callback Zero-argument function to call on observed
-	     *    completion (t=1)
-	     */
-	    Transitionable.prototype.delay = function delay(duration, callback) {
-	        this.set(this.get(), {duration: duration,
-	            curve: function() {
-	                return 0;
-	            }},
-	            callback
-	        );
-	    };
-	
-	    /**
-	     * Get interpolated state of current action at provided time. If the last
-	     *    action has completed, invoke its callback.
-	     *
-	     * @method get
-	     *
-	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
-	     *    time. If omitted, use current time. (Unix epoch time)
-	     * @return {number|Object.<number|string, number>} beginning state
-	     *    interpolated to this point in time.
-	     */
-	    Transitionable.prototype.get = function get(timestamp) {
-	        if (this._engineInstance) {
-	            if (this._engineInstance.getVelocity)
-	                this.velocity = this._engineInstance.getVelocity();
-	            this.state = this._engineInstance.get(timestamp);
-	        }
-	        return this.state;
-	    };
-	
-	    /**
-	     * Is there at least one action pending completion?
-	     *
-	     * @method isActive
-	     *
-	     * @return {boolean}
-	     */
-	    Transitionable.prototype.isActive = function isActive() {
-	        return !!this.currentAction;
-	    };
-	
-	    /**
-	     * Halt transition at current state and erase all pending actions.
-	     *
-	     * @method halt
-	     */
-	    Transitionable.prototype.halt = function halt() {
-	        return this.set(this.get());
-	    };
-	
-	    module.exports = Transitionable;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 20 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	/*global console*/
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var PE = __webpack_require__(36);
-	    var Particle = __webpack_require__(37);
-	    var Spring = __webpack_require__(39);
-	    var Vector = __webpack_require__(46);
-	
-	    /**
-	     * SpringTransition is a method of transitioning between two values (numbers,
-	     * or arrays of numbers) with a bounce. The transition will overshoot the target
-	     * state depending on the parameters of the transition.
-	     *
-	     * @class SpringTransition
-	     * @constructor
-	     *
-	     * @param {Number|Array} [state=0] Initial state
-	     */
-	    function SpringTransition(state) {
-	        state = state || 0;
-	        this.endState  = new Vector(state);
-	        this.initState = new Vector();
-	
-	        this._dimensions       = undefined;
-	        this._restTolerance    = 1e-10;
-	        this._absRestTolerance = this._restTolerance;
-	        this._callback         = undefined;
-	
-	        this.PE       = new PE();
-	        this.spring   = new Spring({anchor : this.endState});
-	        this.particle = new Particle();
-	
-	        this.PE.addBody(this.particle);
-	        this.PE.attach(this.spring, this.particle);
-	    }
-	
-	    SpringTransition.SUPPORTS_MULTIPLE = 3;
-	
-	    /**
-	     * @property SpringTransition.DEFAULT_OPTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    SpringTransition.DEFAULT_OPTIONS = {
-	
-	        /**
-	         * The amount of time in milliseconds taken for one complete oscillation
-	         * when there is no damping
-	         *    Range : [0, Infinity]
-	         *
-	         * @attribute period
-	         * @type Number
-	         * @default 300
-	         */
-	        period : 300,
-	
-	        /**
-	         * The damping of the snap.
-	         *    Range : [0, 1]
-	         *    0 = no damping, and the spring will oscillate forever
-	         *    1 = critically damped (the spring will never oscillate)
-	         *
-	         * @attribute dampingRatio
-	         * @type Number
-	         * @default 0.5
-	         */
-	        dampingRatio : 0.5,
-	
-	        /**
-	         * The initial velocity of the transition.
-	         *
-	         * @attribute velocity
-	         * @type Number|Array
-	         * @default 0
-	         */
-	        velocity : 0
-	    };
-	
-	    function _getEnergy() {
-	        return this.particle.getEnergy() + this.spring.getEnergy([this.particle]);
-	    }
-	
-	    function _setParticlePosition(p) {
-	        this.particle.setPosition(p);
-	    }
-	
-	    function _setParticleVelocity(v) {
-	        this.particle.setVelocity(v);
-	    }
-	
-	    function _getParticlePosition() {
-	        return (this._dimensions === 0)
-	            ? this.particle.getPosition1D()
-	            : this.particle.getPosition();
-	    }
-	
-	    function _getParticleVelocity() {
-	        return (this._dimensions === 0)
-	            ? this.particle.getVelocity1D()
-	            : this.particle.getVelocity();
-	    }
-	
-	    function _setCallback(callback) {
-	        this._callback = callback;
-	    }
-	
-	    function _wake() {
-	        this.PE.wake();
-	    }
-	
-	    function _sleep() {
-	        this.PE.sleep();
-	    }
-	
-	    function _update() {
-	        if (this.PE.isSleeping()) {
-	            if (this._callback) {
-	                var cb = this._callback;
-	                this._callback = undefined;
-	                cb();
-	            }
-	            return;
-	        }
-	
-	        if (_getEnergy.call(this) < this._absRestTolerance) {
-	            _setParticlePosition.call(this, this.endState);
-	            _setParticleVelocity.call(this, [0,0,0]);
-	            _sleep.call(this);
-	        }
-	    }
-	
-	    function _setupDefinition(definition) {
-	        // TODO fix no-console error
-	        /* eslint no-console: 0 */
-	        var defaults = SpringTransition.DEFAULT_OPTIONS;
-	        if (definition.period === undefined)       definition.period       = defaults.period;
-	        if (definition.dampingRatio === undefined) definition.dampingRatio = defaults.dampingRatio;
-	        if (definition.velocity === undefined)     definition.velocity     = defaults.velocity;
-	
-	        if (definition.period < 150) {
-	            definition.period = 150;
-	            console.warn('The period of a SpringTransition is capped at 150 ms. Use a SnapTransition for faster transitions');
-	        }
-	
-	        //setup spring
-	        this.spring.setOptions({
-	            period       : definition.period,
-	            dampingRatio : definition.dampingRatio
-	        });
-	
-	        //setup particle
-	        _setParticleVelocity.call(this, definition.velocity);
-	    }
-	
-	    function _setAbsoluteRestTolerance() {
-	        var distance = this.endState.sub(this.initState).normSquared();
-	        this._absRestTolerance = (distance === 0)
-	            ? this._restTolerance
-	            : this._restTolerance * distance;
-	    }
-	
-	    function _setTarget(target) {
-	        this.endState.set(target);
-	        _setAbsoluteRestTolerance.call(this);
-	    }
-	
-	    /**
-	     * Resets the position and velocity
-	     *
-	     * @method reset
-	     *
-	     * @param {Number|Array.Number} pos positional state
-	     * @param {Number|Array} vel velocity
-	     */
-	    SpringTransition.prototype.reset = function reset(pos, vel) {
-	        this._dimensions = (pos instanceof Array)
-	            ? pos.length
-	            : 0;
-	
-	        this.initState.set(pos);
-	        _setParticlePosition.call(this, pos);
-	        _setTarget.call(this, pos);
-	        if (vel) _setParticleVelocity.call(this, vel);
-	        _setCallback.call(this, undefined);
-	    };
-	
-	    /**
-	     * Getter for velocity
-	     *
-	     * @method getVelocity
-	     *
-	     * @return {Number|Array} velocity
-	     */
-	    SpringTransition.prototype.getVelocity = function getVelocity() {
-	        return _getParticleVelocity.call(this);
-	    };
-	
-	    /**
-	     * Setter for velocity
-	     *
-	     * @method setVelocity
-	     *
-	     * @return {Number|Array} velocity
-	     */
-	    SpringTransition.prototype.setVelocity = function setVelocity(v) {
-	        this.call(this, _setParticleVelocity(v));
-	    };
-	
-	    /**
-	     * Detects whether a transition is in progress
-	     *
-	     * @method isActive
-	     *
-	     * @return {Boolean}
-	     */
-	    SpringTransition.prototype.isActive = function isActive() {
-	        return !this.PE.isSleeping();
-	    };
-	
-	    /**
-	     * Halt the transition
-	     *
-	     * @method halt
-	     */
-	    SpringTransition.prototype.halt = function halt() {
-	        this.set(this.get());
-	    };
-	
-	    /**
-	     * Get the current position of the transition
-	     *
-	     * @method get
-	     *
-	     * @return {Number|Array} state
-	     */
-	    SpringTransition.prototype.get = function get() {
-	        _update.call(this);
-	        return _getParticlePosition.call(this);
-	    };
-	
-	    /**
-	     * Set the end position and transition, with optional callback on completion.
-	     *
-	     * @method set
-	     *
-	     * @param  {Number|Array} endState Final state
-	     * @param {Object}  definition  Transition definition
-	     * @param  {Function} callback Callback
-	     */
-	    SpringTransition.prototype.set = function set(endState, definition, callback) {
-	        if (!definition) {
-	            this.reset(endState);
-	            if (callback) callback();
-	            return;
-	        }
-	
-	        this._dimensions = (endState instanceof Array)
-	            ? endState.length
-	            : 0;
-	
-	        _wake.call(this);
-	        _setupDefinition.call(this, definition);
-	        _setTarget.call(this, endState);
-	        _setCallback.call(this, callback);
-	    };
-	
-	    module.exports = SpringTransition;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 21 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var PE = __webpack_require__(36);
-	    var Particle = __webpack_require__(37);
-	    var Spring = __webpack_require__(39);
-	    var Wall = __webpack_require__(47);
-	    var Vector = __webpack_require__(46);
-	
-	    /**
-	     * WallTransition is a method of transitioning between two values (numbers,
-	     *   or arrays of numbers) with a bounce. Unlike a SpringTransition
-	     *   The transition will not overshoot the target, but bounce back against it.
-	     *   The behavior of the bounce is specified by the transition options.
-	     *
-	     * @class WallTransition
-	     * @constructor
-	     *
-	     * @param {Number|Array} [state=0] Initial state
-	     */
-	    function WallTransition(state) {
-	        state = state || 0;
-	
-	        this.endState  = new Vector(state);
-	        this.initState = new Vector();
-	
-	        this.spring = new Spring({anchor : this.endState});
-	        this.wall   = new Wall();
-	
-	        this._restTolerance = 1e-10;
-	        this._dimensions = 1;
-	        this._absRestTolerance = this._restTolerance;
-	        this._callback = undefined;
-	
-	        this.PE = new PE();
-	        this.particle = new Particle();
-	
-	        this.PE.addBody(this.particle);
-	        this.PE.attach([this.wall, this.spring], this.particle);
-	    }
-	
-	    WallTransition.SUPPORTS_MULTIPLE = 3;
-	
-	    /**
-	     * @property WallTransition.DEFAULT_OPTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    WallTransition.DEFAULT_OPTIONS = {
-	
-	        /**
-	         * The amount of time in milliseconds taken for one complete oscillation
-	         * when there is no damping
-	         *    Range : [0, Infinity]
-	         *
-	         * @attribute period
-	         * @type Number
-	         * @default 300
-	         */
-	        period : 300,
-	
-	        /**
-	         * The damping of the snap.
-	         *    Range : [0, 1]
-	         *    0 = no damping, and the spring will oscillate forever
-	         *    1 = critically damped (the spring will never oscillate)
-	         *
-	         * @attribute dampingRatio
-	         * @type Number
-	         * @default 0.5
-	         */
-	        dampingRatio : 0.5,
-	
-	        /**
-	         * The initial velocity of the transition.
-	         *
-	         * @attribute velocity
-	         * @type Number|Array
-	         * @default 0
-	         */
-	        velocity : 0,
-	
-	        /**
-	         * The percentage of momentum transferred to the wall
-	         *
-	         * @attribute restitution
-	         * @type Number
-	         * @default 0.5
-	         */
-	        restitution : 0.5
-	    };
-	
-	    function _getEnergy() {
-	        return this.particle.getEnergy() + this.spring.getEnergy([this.particle]);
-	    }
-	
-	    function _setAbsoluteRestTolerance() {
-	        var distance = this.endState.sub(this.initState).normSquared();
-	        this._absRestTolerance = (distance === 0)
-	            ? this._restTolerance
-	            : this._restTolerance * distance;
-	    }
-	
-	    function _wake() {
-	        this.PE.wake();
-	    }
-	
-	    function _sleep() {
-	        this.PE.sleep();
-	    }
-	
-	    function _setTarget(target) {
-	        this.endState.set(target);
-	
-	        var dist = this.endState.sub(this.initState).norm();
-	
-	        this.wall.setOptions({
-	            distance : this.endState.norm(),
-	            normal : (dist === 0)
-	                ? this.particle.velocity.normalize(-1)
-	                : this.endState.sub(this.initState).normalize(-1)
-	        });
-	
-	        _setAbsoluteRestTolerance.call(this);
-	    }
-	
-	    function _setParticlePosition(p) {
-	        this.particle.position.set(p);
-	    }
-	
-	    function _setParticleVelocity(v) {
-	        this.particle.velocity.set(v);
-	    }
-	
-	    function _getParticlePosition() {
-	        return (this._dimensions === 0)
-	            ? this.particle.getPosition1D()
-	            : this.particle.getPosition();
-	    }
-	
-	    function _getParticleVelocity() {
-	        return (this._dimensions === 0)
-	            ? this.particle.getVelocity1D()
-	            : this.particle.getVelocity();
-	    }
-	
-	    function _setCallback(callback) {
-	        this._callback = callback;
-	    }
-	
-	    function _update() {
-	        if (this.PE.isSleeping()) {
-	            if (this._callback) {
-	                var cb = this._callback;
-	                this._callback = undefined;
-	                cb();
-	            }
-	            return;
-	        }
-	        var energy = _getEnergy.call(this);
-	        if (energy < this._absRestTolerance) {
-	            _sleep.call(this);
-	            _setParticlePosition.call(this, this.endState);
-	            _setParticleVelocity.call(this, [0,0,0]);
-	        }
-	    }
-	
-	    function _setupDefinition(def) {
-	        var defaults = WallTransition.DEFAULT_OPTIONS;
-	        if (def.period === undefined) def.period = defaults.period;
-	        if (def.dampingRatio === undefined) def.dampingRatio = defaults.dampingRatio;
-	        if (def.velocity === undefined) def.velocity = defaults.velocity;
-	        if (def.restitution === undefined) def.restitution = defaults.restitution;
-	
-	        //setup spring
-	        this.spring.setOptions({
-	            period : def.period,
-	            dampingRatio : def.dampingRatio
-	        });
-	
-	        //setup wall
-	        this.wall.setOptions({
-	            restitution : def.restitution
-	        });
-	
-	        //setup particle
-	        _setParticleVelocity.call(this, def.velocity);
-	    }
-	
-	    /**
-	     * Resets the state and velocity
-	     *
-	     * @method reset
-	     *
-	     * @param {Number|Array}  state     State
-	     * @param  {Number|Array} [velocity] Velocity
-	     */
-	    WallTransition.prototype.reset = function reset(state, velocity) {
-	        this._dimensions = (state instanceof Array)
-	            ? state.length
-	            : 0;
-	
-	        this.initState.set(state);
-	        _setParticlePosition.call(this, state);
-	        if (velocity) _setParticleVelocity.call(this, velocity);
-	        _setTarget.call(this, state);
-	        _setCallback.call(this, undefined);
-	    };
-	
-	    /**
-	     * Getter for velocity
-	     *
-	     * @method getVelocity
-	     *
-	     * @return velocity {Number|Array}
-	     */
-	    WallTransition.prototype.getVelocity = function getVelocity() {
-	        return _getParticleVelocity.call(this);
-	    };
-	
-	    /**
-	     * Setter for velocity
-	     *
-	     * @method setVelocity
-	     *
-	     * @return velocity {Number|Array}
-	     */
-	    WallTransition.prototype.setVelocity = function setVelocity(velocity) {
-	        this.call(this, _setParticleVelocity(velocity));
-	    };
-	
-	    /**
-	     * Detects whether a transition is in progress
-	     *
-	     * @method isActive
-	     *
-	     * @return {Boolean}
-	     */
-	    WallTransition.prototype.isActive = function isActive() {
-	        return !this.PE.isSleeping();
-	    };
-	
-	    /**
-	     * Halt the transition
-	     *
-	     * @method halt
-	     */
-	    WallTransition.prototype.halt = function halt() {
-	        this.set(this.get());
-	    };
-	
-	    /**
-	     * Getter
-	     *
-	     * @method get
-	     *
-	     * @return state {Number|Array}
-	     */
-	    WallTransition.prototype.get = function get() {
-	        _update.call(this);
-	        return _getParticlePosition.call(this);
-	    };
-	
-	    /**
-	     * Set the end position and transition, with optional callback on completion.
-	     *
-	     * @method set
-	     *
-	     * @param state {Number|Array}      Final state
-	     * @param [definition] {Object}     Transition definition
-	     * @param [callback] {Function}     Callback
-	     */
-	    WallTransition.prototype.set = function set(state, definition, callback) {
-	        if (!definition) {
-	            this.reset(state);
-	            if (callback) callback();
-	            return;
-	        }
-	
-	        this._dimensions = (state instanceof Array)
-	            ? state.length
-	            : 0;
-	
-	        _wake.call(this);
-	        _setupDefinition.call(this, definition);
-	        _setTarget.call(this, state);
-	        _setCallback.call(this, callback);
-	    };
-	
-	    module.exports = WallTransition;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 22 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var PE = __webpack_require__(36);
-	    var Particle = __webpack_require__(37);
-	    var Spring = __webpack_require__(48);
-	    var Vector = __webpack_require__(46);
-	
-	    /**
-	     * SnapTransition is a method of transitioning between two values (numbers,
-	     * or arrays of numbers). It is similar to SpringTransition except
-	     * the transition can be much faster and always has a damping effect.
-	     *
-	     * @class SnapTransition
-	     * @constructor
-	     *
-	     * @param [state=0] {Number|Array} Initial state
-	     */
-	    function SnapTransition(state) {
-	        state = state || 0;
-	
-	        this.endState  = new Vector(state);
-	        this.initState = new Vector();
-	
-	        this._dimensions       = 1;
-	        this._restTolerance    = 1e-10;
-	        this._absRestTolerance = this._restTolerance;
-	        this._callback         = undefined;
-	
-	        this.PE       = new PE();
-	        this.particle = new Particle();
-	        this.spring   = new Spring({anchor : this.endState});
-	
-	        this.PE.addBody(this.particle);
-	        this.PE.attach(this.spring, this.particle);
-	    }
-	
-	    SnapTransition.SUPPORTS_MULTIPLE = 3;
-	
-	    /**
-	     * @property SnapTransition.DEFAULT_OPTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    SnapTransition.DEFAULT_OPTIONS = {
-	
-	        /**
-	         * The amount of time in milliseconds taken for one complete oscillation
-	         * when there is no damping
-	         *    Range : [0, Infinity]
-	         *
-	         * @attribute period
-	         * @type Number
-	         * @default 100
-	         */
-	        period : 100,
-	
-	        /**
-	         * The damping of the snap.
-	         *    Range : [0, 1]
-	         *
-	         * @attribute dampingRatio
-	         * @type Number
-	         * @default 0.2
-	         */
-	        dampingRatio : 0.2,
-	
-	        /**
-	         * The initial velocity of the transition.
-	         *
-	         * @attribute velocity
-	         * @type Number|Array
-	         * @default 0
-	         */
-	        velocity : 0
-	    };
-	
-	    function _getEnergy() {
-	        return this.particle.getEnergy() + this.spring.getEnergy([this.particle]);
-	    }
-	
-	    function _setAbsoluteRestTolerance() {
-	        var distance = this.endState.sub(this.initState).normSquared();
-	        this._absRestTolerance = (distance === 0)
-	            ? this._restTolerance
-	            : this._restTolerance * distance;
-	    }
-	
-	    function _setTarget(target) {
-	        this.endState.set(target);
-	        _setAbsoluteRestTolerance.call(this);
-	    }
-	
-	    function _wake() {
-	        this.PE.wake();
-	    }
-	
-	    function _sleep() {
-	        this.PE.sleep();
-	    }
-	
-	    function _setParticlePosition(p) {
-	        this.particle.position.set(p);
-	    }
-	
-	    function _setParticleVelocity(v) {
-	        this.particle.velocity.set(v);
-	    }
-	
-	    function _getParticlePosition() {
-	        return (this._dimensions === 0)
-	            ? this.particle.getPosition1D()
-	            : this.particle.getPosition();
-	    }
-	
-	    function _getParticleVelocity() {
-	        return (this._dimensions === 0)
-	            ? this.particle.getVelocity1D()
-	            : this.particle.getVelocity();
-	    }
-	
-	    function _setCallback(callback) {
-	        this._callback = callback;
-	    }
-	
-	    function _setupDefinition(definition) {
-	        var defaults = SnapTransition.DEFAULT_OPTIONS;
-	        if (definition.period === undefined)       definition.period       = defaults.period;
-	        if (definition.dampingRatio === undefined) definition.dampingRatio = defaults.dampingRatio;
-	        if (definition.velocity === undefined)     definition.velocity     = defaults.velocity;
-	
-	        //setup spring
-	        this.spring.setOptions({
-	            period       : definition.period,
-	            dampingRatio : definition.dampingRatio
-	        });
-	
-	        //setup particle
-	        _setParticleVelocity.call(this, definition.velocity);
-	    }
-	
-	    function _update() {
-	        if (this.PE.isSleeping()) {
-	            if (this._callback) {
-	                var cb = this._callback;
-	                this._callback = undefined;
-	                cb();
-	            }
-	            return;
-	        }
-	
-	        if (_getEnergy.call(this) < this._absRestTolerance) {
-	            _setParticlePosition.call(this, this.endState);
-	            _setParticleVelocity.call(this, [0,0,0]);
-	            _sleep.call(this);
-	        }
-	    }
-	
-	    /**
-	     * Resets the state and velocity
-	     *
-	     * @method reset
-	     *
-	     * @param state {Number|Array}      State
-	     * @param [velocity] {Number|Array} Velocity
-	     */
-	    SnapTransition.prototype.reset = function reset(state, velocity) {
-	        this._dimensions = (state instanceof Array)
-	            ? state.length
-	            : 0;
-	
-	        this.initState.set(state);
-	        _setParticlePosition.call(this, state);
-	        _setTarget.call(this, state);
-	        if (velocity) _setParticleVelocity.call(this, velocity);
-	        _setCallback.call(this, undefined);
-	    };
-	
-	    /**
-	     * Getter for velocity
-	     *
-	     * @method getVelocity
-	     *
-	     * @return velocity {Number|Array}
-	     */
-	    SnapTransition.prototype.getVelocity = function getVelocity() {
-	        return _getParticleVelocity.call(this);
-	    };
-	
-	    /**
-	     * Setter for velocity
-	     *
-	     * @method setVelocity
-	     *
-	     * @return velocity {Number|Array}
-	     */
-	    SnapTransition.prototype.setVelocity = function setVelocity(velocity) {
-	        this.call(this, _setParticleVelocity(velocity));
-	    };
-	
-	    /**
-	     * Detects whether a transition is in progress
-	     *
-	     * @method isActive
-	     *
-	     * @return {Boolean}
-	     */
-	    SnapTransition.prototype.isActive = function isActive() {
-	        return !this.PE.isSleeping();
-	    };
-	
-	    /**
-	     * Halt the transition
-	     *
-	     * @method halt
-	     */
-	    SnapTransition.prototype.halt = function halt() {
-	        this.set(this.get());
-	    };
-	
-	    /**
-	     * Get the current position of the transition
-	s     *
-	     * @method get
-	     *
-	     * @return state {Number|Array}
-	     */
-	    SnapTransition.prototype.get = function get() {
-	        _update.call(this);
-	        return _getParticlePosition.call(this);
-	    };
-	
-	    /**
-	     * Set the end position and transition, with optional callback on completion.
-	     *
-	     * @method set
-	     *
-	     * @param state {Number|Array}      Final state
-	     * @param [definition] {Object}     Transition definition
-	     * @param [callback] {Function}     Callback
-	     */
-	    SnapTransition.prototype.set = function set(state, definition, callback) {
-	        if (!definition) {
-	            this.reset(state);
-	            if (callback) callback();
-	            return;
-	        }
-	
-	        this._dimensions = (state instanceof Array)
-	            ? state.length
-	            : 0;
-	
-	        _wake.call(this);
-	        _setupDefinition.call(this, definition);
-	        _setTarget.call(this, state);
-	        _setCallback.call(this, callback);
-	    };
-	
-	    module.exports = SnapTransition;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 23 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var ElementOutput = __webpack_require__(49);
-	
-	    /**
-	     * A base class for viewable content and event
-	     *   targets inside a Famo.us application, containing a renderable document
-	     *   fragment. Like an HTML div, it can accept internal markup,
-	     *   properties, classes, and handle events.
-	     *
-	     * @class Surface
-	     * @constructor
-	     *
-	     * @param {Object} [options] default option overrides
-	     * @param {Array.Number} [options.size] [width, height] in pixels
-	     * @param {Array.string} [options.classes] CSS classes to set on target div
-	     * @param {Array} [options.properties] string dictionary of HTML attributes to set on target div
-	     * @param {string} [options.content] inner (HTML) content of surface
-	     */
-	    function Surface(options) {
-	        ElementOutput.call(this);
-	
-	        this.options = {};
-	
-	        this.properties = {};
-	        this.attributes = {};
-	        this.content = '';
-	        this.classList = [];
-	        this.size = null;
-	
-	        this._classesDirty = true;
-	        this._stylesDirty = true;
-	        this._attributesDirty = true;
-	        this._sizeDirty = true;
-	        this._contentDirty = true;
-	        this._trueSizeCheck = true;
-	
-	        this._dirtyClasses = [];
-	
-	        if (options) this.setOptions(options);
-	
-	        this._currentTarget = null;
-	    }
-	    Surface.prototype = Object.create(ElementOutput.prototype);
-	    Surface.prototype.constructor = Surface;
-	    Surface.prototype.elementType = 'div';
-	    Surface.prototype.elementClass = 'famous-surface';
-	
-	    /**
-	     * Set HTML attributes on this Surface. Note that this will cause
-	     *    dirtying and thus re-rendering, even if values do not change.
-	     *
-	     * @method setAttributes
-	    * @param {Object} attributes property dictionary of "key" => "value"
-	     */
-	    Surface.prototype.setAttributes = function setAttributes(attributes) {
-	        for (var n in attributes) {
-	            if (n === 'style') throw new Error('Cannot set styles via "setAttributes" as it will break Famo.us.  Use "setProperties" instead.');
-	            this.attributes[n] = attributes[n];
-	        }
-	        this._attributesDirty = true;
-	    };
-	
-	    /**
-	     * Get HTML attributes on this Surface.
-	     *
-	     * @method getAttributes
-	     *
-	     * @return {Object} Dictionary of this Surface's attributes.
-	     */
-	    Surface.prototype.getAttributes = function getAttributes() {
-	        return this.attributes;
-	    };
-	
-	    /**
-	     * Set CSS-style properties on this Surface. Note that this will cause
-	     *    dirtying and thus re-rendering, even if values do not change.
-	     *
-	     * @method setProperties
-	     * @chainable
-	     * @param {Object} properties property dictionary of "key" => "value"
-	     */
-	    Surface.prototype.setProperties = function setProperties(properties) {
-	        for (var n in properties) {
-	            this.properties[n] = properties[n];
-	        }
-	        this._stylesDirty = true;
-	        return this;
-	    };
-	
-	    /**
-	     * Get CSS-style properties on this Surface.
-	     *
-	     * @method getProperties
-	     *
-	     * @return {Object} Dictionary of this Surface's properties.
-	     */
-	    Surface.prototype.getProperties = function getProperties() {
-	        return this.properties;
-	    };
-	
-	    /**
-	     * Add CSS-style class to the list of classes on this Surface. Note
-	     *   this will map directly to the HTML property of the actual
-	     *   corresponding rendered <div>.
-	     *
-	     * @method addClass
-	     * @chainable
-	     * @param {string} className name of class to add
-	     */
-	    Surface.prototype.addClass = function addClass(className) {
-	        if (this.classList.indexOf(className) < 0) {
-	            this.classList.push(className);
-	            this._classesDirty = true;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Remove CSS-style class from the list of classes on this Surface.
-	     *   Note this will map directly to the HTML property of the actual
-	     *   corresponding rendered <div>.
-	     *
-	     * @method removeClass
-	     * @chainable
-	     * @param {string} className name of class to remove
-	     */
-	    Surface.prototype.removeClass = function removeClass(className) {
-	        var i = this.classList.indexOf(className);
-	        if (i >= 0) {
-	            this._dirtyClasses.push(this.classList.splice(i, 1)[0]);
-	            this._classesDirty = true;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Toggle CSS-style class from the list of classes on this Surface.
-	     *   Note this will map directly to the HTML property of the actual
-	     *   corresponding rendered <div>.
-	     *
-	     * @method toggleClass
-	     * @param {string} className name of class to toggle
-	     */
-	    Surface.prototype.toggleClass = function toggleClass(className) {
-	        var i = this.classList.indexOf(className);
-	        if (i >= 0) {
-	            this.removeClass(className);
-	        } else {
-	            this.addClass(className);
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Reset class list to provided dictionary.
-	     * @method setClasses
-	     * @chainable
-	     * @param {Array.string} classList
-	     */
-	    Surface.prototype.setClasses = function setClasses(classList) {
-	        var i = 0;
-	        var removal = [];
-	        for (i = 0; i < this.classList.length; i++) {
-	            if (classList.indexOf(this.classList[i]) < 0) removal.push(this.classList[i]);
-	        }
-	        for (i = 0; i < removal.length; i++) this.removeClass(removal[i]);
-	        // duplicates are already checked by addClass()
-	        for (i = 0; i < classList.length; i++) this.addClass(classList[i]);
-	        return this;
-	    };
-	
-	    /**
-	     * Get array of CSS-style classes attached to this div.
-	     *
-	     * @method getClasslist
-	     * @return {Array.string} array of class names
-	     */
-	    Surface.prototype.getClassList = function getClassList() {
-	        return this.classList;
-	    };
-	
-	    /**
-	     * Set or overwrite inner (HTML) content of this surface. Note that this
-	     *    causes a re-rendering if the content has changed.
-	     *
-	     * @method setContent
-	     * @chainable
-	     * @param {string|Document Fragment} content HTML content
-	     */
-	    Surface.prototype.setContent = function setContent(content) {
-	        if (this.content !== content) {
-	            this.content = content;
-	            this._contentDirty = true;
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Return inner (HTML) content of this surface.
-	     *
-	     * @method getContent
-	     *
-	     * @return {string} inner (HTML) content
-	     */
-	    Surface.prototype.getContent = function getContent() {
-	        return this.content;
-	    };
-	
-	    /**
-	     * Set options for this surface
-	     *
-	     * @method setOptions
-	     * @chainable
-	     * @param {Object} [options] overrides for default options.  See constructor.
-	     */
-	    Surface.prototype.setOptions = function setOptions(options) {
-	        if (options.size) this.setSize(options.size);
-	        if (options.classes) this.setClasses(options.classes);
-	        if (options.properties) this.setProperties(options.properties);
-	        if (options.attributes) this.setAttributes(options.attributes);
-	        if (options.content) this.setContent(options.content);
-	        return this;
-	    };
-	
-	    //  Apply to document all changes from removeClass() since last setup().
-	    function _cleanupClasses(target) {
-	        for (var i = 0; i < this._dirtyClasses.length; i++) target.classList.remove(this._dirtyClasses[i]);
-	        this._dirtyClasses = [];
-	    }
-	
-	    // Apply values of all Famous-managed styles to the document element.
-	    //  These will be deployed to the document on call to #setup().
-	    function _applyStyles(target) {
-	        for (var n in this.properties) {
-	            target.style[n] = this.properties[n];
-	        }
-	    }
-	
-	    // Clear all Famous-managed styles from the document element.
-	    // These will be deployed to the document on call to #setup().
-	    function _cleanupStyles(target) {
-	        for (var n in this.properties) {
-	            target.style[n] = '';
-	        }
-	    }
-	
-	    // Apply values of all Famous-managed attributes to the document element.
-	    //  These will be deployed to the document on call to #setup().
-	    function _applyAttributes(target) {
-	        for (var n in this.attributes) {
-	            target.setAttribute(n, this.attributes[n]);
-	        }
-	    }
-	
-	    // Clear all Famous-managed attributes from the document element.
-	    // These will be deployed to the document on call to #setup().
-	    function _cleanupAttributes(target) {
-	        for (var n in this.attributes) {
-	            target.removeAttribute(n);
-	        }
-	    }
-	
-	    function _xyNotEquals(a, b) {
-	        return (a && b) ? (a[0] !== b[0] || a[1] !== b[1]) : a !== b;
-	    }
-	
-	    /**
-	     * One-time setup for an element to be ready for commits to document.
-	     *
-	     * @private
-	     * @method setup
-	     *
-	     * @param {ElementAllocator} allocator document element pool for this context
-	     */
-	    Surface.prototype.setup = function setup(allocator) {
-	        var target = allocator.allocate(this.elementType);
-	        if (this.elementClass) {
-	            if (this.elementClass instanceof Array) {
-	                for (var i = 0; i < this.elementClass.length; i++) {
-	                    target.classList.add(this.elementClass[i]);
-	                }
-	            }
-	            else {
-	                target.classList.add(this.elementClass);
-	            }
-	        }
-	        target.style.display = '';
-	        this.attach(target);
-	        this._opacity = null;
-	        this._currentTarget = target;
-	        this._stylesDirty = true;
-	        this._classesDirty = true;
-	        this._attributesDirty = true;
-	        this._sizeDirty = true;
-	        this._contentDirty = true;
-	        this._originDirty = true;
-	        this._transformDirty = true;
-	    };
-	
-	    /**
-	     * Apply changes from this component to the corresponding document element.
-	     * This includes changes to classes, styles, size, content, opacity, origin,
-	     * and matrix transforms.
-	     *
-	     * @private
-	     * @method commit
-	     * @param {Context} context commit context
-	     */
-	    Surface.prototype.commit = function commit(context) {
-	        if (!this._currentTarget) this.setup(context.allocator);
-	        var target = this._currentTarget;
-	        var size = context.size;
-	
-	        if (this._classesDirty) {
-	            _cleanupClasses.call(this, target);
-	            var classList = this.getClassList();
-	            for (var i = 0; i < classList.length; i++) target.classList.add(classList[i]);
-	            this._classesDirty = false;
-	            this._trueSizeCheck = true;
-	        }
-	
-	        if (this._stylesDirty) {
-	            _applyStyles.call(this, target);
-	            this._stylesDirty = false;
-	            this._trueSizeCheck = true;
-	        }
-	
-	        if (this._attributesDirty) {
-	            _applyAttributes.call(this, target);
-	            this._attributesDirty = false;
-	            this._trueSizeCheck = true;
-	        }
-	
-	        if (this.size) {
-	            var origSize = context.size;
-	            size = [this.size[0], this.size[1]];
-	            if (size[0] === undefined) size[0] = origSize[0];
-	            if (size[1] === undefined) size[1] = origSize[1];
-	            if (size[0] === true || size[1] === true) {
-	                if (size[0] === true && (this._trueSizeCheck || this._size[0] === 0)) {
-	                    var width = target.offsetWidth;
-	                    if (this._size && this._size[0] !== width) {
-	                        this._size[0] = width;
-	                        this._sizeDirty = true;
-	                    }
-	                    size[0] = width;
-	                } else {
-	                    if (this._size) size[0] = this._size[0];
-	                }
-	                if (size[1] === true && (this._trueSizeCheck || this._size[1] === 0)) {
-	                    var height = target.offsetHeight;
-	                    if (this._size && this._size[1] !== height) {
-	                        this._size[1] = height;
-	                        this._sizeDirty = true;
-	                    }
-	                    size[1] = height;
-	                } else {
-	                    if (this._size) size[1] = this._size[1];
-	                }
-	                this._trueSizeCheck = false;
-	            }
-	        }
-	
-	        if (_xyNotEquals(this._size, size)) {
-	            if (!this._size) this._size = [0, 0];
-	            this._size[0] = size[0];
-	            this._size[1] = size[1];
-	
-	            this._sizeDirty = true;
-	        }
-	
-	        if (this._sizeDirty) {
-	            if (this._size) {
-	                target.style.width = (this.size && this.size[0] === true) ? '' : this._size[0] + 'px';
-	                target.style.height = (this.size && this.size[1] === true) ?  '' : this._size[1] + 'px';
-	            }
-	
-	            this._eventOutput.emit('resize');
-	        }
-	
-	        if (this._contentDirty) {
-	            this.deploy(target);
-	            this._eventOutput.emit('deploy');
-	            this._contentDirty = false;
-	            this._trueSizeCheck = true;
-	        }
-	
-	        ElementOutput.prototype.commit.call(this, context);
-	    };
-	
-	    /**
-	     *  Remove all Famous-relevant attributes from a document element.
-	     *    This is called by SurfaceManager's detach().
-	     *    This is in some sense the reverse of .deploy().
-	     *
-	     * @private
-	     * @method cleanup
-	     * @param {ElementAllocator} allocator
-	     */
-	    Surface.prototype.cleanup = function cleanup(allocator) {
-	        var i = 0;
-	        var target = this._currentTarget;
-	        this._eventOutput.emit('recall');
-	        this.recall(target);
-	        target.style.display = 'none';
-	        target.style.opacity = '';
-	        target.style.width = '';
-	        target.style.height = '';
-	        _cleanupStyles.call(this, target);
-	        _cleanupAttributes.call(this, target);
-	        var classList = this.getClassList();
-	        _cleanupClasses.call(this, target);
-	        for (i = 0; i < classList.length; i++) target.classList.remove(classList[i]);
-	        if (this.elementClass) {
-	            if (this.elementClass instanceof Array) {
-	                for (i = 0; i < this.elementClass.length; i++) {
-	                    target.classList.remove(this.elementClass[i]);
-	                }
-	            }
-	            else {
-	                target.classList.remove(this.elementClass);
-	            }
-	        }
-	        this.detach(target);
-	        this._currentTarget = null;
-	        allocator.deallocate(target);
-	    };
-	
-	    /**
-	     * Place the document element that this component manages into the document.
-	     *
-	     * @private
-	     * @method deploy
-	     * @param {Node} target document parent of this container
-	     */
-	    Surface.prototype.deploy = function deploy(target) {
-	        var content = this.getContent();
-	        if (content instanceof Node) {
-	            while (target.hasChildNodes()) target.removeChild(target.firstChild);
-	            target.appendChild(content);
-	        }
-	        else target.innerHTML = content;
-	    };
-	
-	    /**
-	     * Remove any contained document content associated with this surface
-	     *   from the actual document.
-	     *
-	     * @private
-	     * @method recall
-	     */
-	    Surface.prototype.recall = function recall(target) {
-	        var df = document.createDocumentFragment();
-	        while (target.hasChildNodes()) df.appendChild(target.firstChild);
-	        this.setContent(df);
-	    };
-	
-	    /**
-	     *  Get the x and y dimensions of the surface.
-	     *
-	     * @method getSize
-	     * @return {Array.Number} [x,y] size of surface
-	     */
-	    Surface.prototype.getSize = function getSize() {
-	        return this._size ? this._size : this.size;
-	    };
-	
-	    /**
-	     * Set x and y dimensions of the surface.
-	     *
-	     * @method setSize
-	     * @chainable
-	     * @param {Array.Number} size as [width, height]
-	     */
-	    Surface.prototype.setSize = function setSize(size) {
-	        this.size = size ? [size[0], size[1]] : null;
-	        this._sizeDirty = true;
-	        return this;
-	    };
-	
-	    module.exports = Surface;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -5721,6 +3623,1396 @@
 
 
 /***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Transform = __webpack_require__(18);
+	
+	    /* TODO: remove these dependencies when deprecation complete */
+	    var Transitionable = __webpack_require__(29);
+	    var TransitionableTransform = __webpack_require__(30);
+	
+	    /**
+	     *
+	     *  A collection of visual changes to be
+	     *    applied to another renderable component. This collection includes a
+	     *    transform matrix, an opacity constant, a size, an origin specifier.
+	     *    Modifier objects can be added to any RenderNode or object
+	     *    capable of displaying renderables.  The Modifier's children and descendants
+	     *    are transformed by the amounts specified in the Modifier's properties.
+	     *
+	     * @class Modifier
+	     * @constructor
+	     * @param {Object} [options] overrides of default options
+	     * @param {Transform} [options.transform] affine transformation matrix
+	     * @param {Number} [options.opacity]
+	     * @param {Array.Number} [options.origin] origin adjustment
+	     * @param {Array.Number} [options.size] size to apply to descendants
+	     */
+	    function Modifier(options) {
+	        this._transformGetter = null;
+	        this._opacityGetter = null;
+	        this._originGetter = null;
+	        this._alignGetter = null;
+	        this._sizeGetter = null;
+	        this._proportionGetter = null;
+	
+	        /* TODO: remove this when deprecation complete */
+	        this._legacyStates = {};
+	
+	        this._output = {
+	            transform: Transform.identity,
+	            opacity: 1,
+	            origin: null,
+	            align: null,
+	            size: null,
+	            proportions: null,
+	            target: null
+	        };
+	
+	        if (options) {
+	            if (options.transform) this.transformFrom(options.transform);
+	            if (options.opacity !== undefined) this.opacityFrom(options.opacity);
+	            if (options.origin) this.originFrom(options.origin);
+	            if (options.align) this.alignFrom(options.align);
+	            if (options.size) this.sizeFrom(options.size);
+	            if (options.proportions) this.proportionsFrom(options.proportions);
+	        }
+	    }
+	
+	    /**
+	     * Function, object, or static transform matrix which provides the transform.
+	     *   This is evaluated on every tick of the engine.
+	     *
+	     * @method transformFrom
+	     *
+	     * @param {Object} transform transform provider object
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.transformFrom = function transformFrom(transform) {
+	        if (transform instanceof Function) this._transformGetter = transform;
+	        else if (transform instanceof Object && transform.get) this._transformGetter = transform.get.bind(transform);
+	        else {
+	            this._transformGetter = null;
+	            this._output.transform = transform;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Set function, object, or number to provide opacity, in range [0,1].
+	     *
+	     * @method opacityFrom
+	     *
+	     * @param {Object} opacity provider object
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.opacityFrom = function opacityFrom(opacity) {
+	        if (opacity instanceof Function) this._opacityGetter = opacity;
+	        else if (opacity instanceof Object && opacity.get) this._opacityGetter = opacity.get.bind(opacity);
+	        else {
+	            this._opacityGetter = null;
+	            this._output.opacity = opacity;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Set function, object, or numerical array to provide origin, as [x,y],
+	     *   where x and y are in the range [0,1].
+	     *
+	     * @method originFrom
+	     *
+	     * @param {Object} origin provider object
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.originFrom = function originFrom(origin) {
+	        if (origin instanceof Function) this._originGetter = origin;
+	        else if (origin instanceof Object && origin.get) this._originGetter = origin.get.bind(origin);
+	        else {
+	            this._originGetter = null;
+	            this._output.origin = origin;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Set function, object, or numerical array to provide align, as [x,y],
+	     *   where x and y are in the range [0,1].
+	     *
+	     * @method alignFrom
+	     *
+	     * @param {Object} align provider object
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.alignFrom = function alignFrom(align) {
+	        if (align instanceof Function) this._alignGetter = align;
+	        else if (align instanceof Object && align.get) this._alignGetter = align.get.bind(align);
+	        else {
+	            this._alignGetter = null;
+	            this._output.align = align;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Set function, object, or numerical array to provide size, as [width, height].
+	     *
+	     * @method sizeFrom
+	     *
+	     * @param {Object} size provider object
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.sizeFrom = function sizeFrom(size) {
+	        if (size instanceof Function) this._sizeGetter = size;
+	        else if (size instanceof Object && size.get) this._sizeGetter = size.get.bind(size);
+	        else {
+	            this._sizeGetter = null;
+	            this._output.size = size;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Set function, object, or numerical array to provide proportions, as [percent of width, percent of height].
+	     *
+	     * @method proportionsFrom
+	     *
+	     * @param {Object} proportions provider object
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.proportionsFrom = function proportionsFrom(proportions) {
+	        if (proportions instanceof Function) this._proportionGetter = proportions;
+	        else if (proportions instanceof Object && proportions.get) this._proportionGetter = proportions.get.bind(proportions);
+	        else {
+	            this._proportionGetter = null;
+	            this._output.proportions = proportions;
+	        }
+	        return this;
+	    };
+	
+	     /**
+	     * Deprecated: Prefer transformFrom with static Transform, or use a TransitionableTransform.
+	     * @deprecated
+	     * @method setTransform
+	     *
+	     * @param {Transform} transform Transform to transition to
+	     * @param {Transitionable} transition Valid transitionable object
+	     * @param {Function} callback callback to call after transition completes
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.setTransform = function setTransform(transform, transition, callback) {
+	        if (transition || this._legacyStates.transform) {
+	            if (!this._legacyStates.transform) {
+	                this._legacyStates.transform = new TransitionableTransform(this._output.transform);
+	            }
+	            if (!this._transformGetter) this.transformFrom(this._legacyStates.transform);
+	
+	            this._legacyStates.transform.set(transform, transition, callback);
+	            return this;
+	        }
+	        else return this.transformFrom(transform);
+	    };
+	
+	    /**
+	     * Deprecated: Prefer opacityFrom with static opacity array, or use a Transitionable with that opacity.
+	     * @deprecated
+	     * @method setOpacity
+	     *
+	     * @param {Number} opacity Opacity value to transition to.
+	     * @param {Transitionable} transition Valid transitionable object
+	     * @param {Function} callback callback to call after transition completes
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.setOpacity = function setOpacity(opacity, transition, callback) {
+	        if (transition || this._legacyStates.opacity) {
+	            if (!this._legacyStates.opacity) {
+	                this._legacyStates.opacity = new Transitionable(this._output.opacity);
+	            }
+	            if (!this._opacityGetter) this.opacityFrom(this._legacyStates.opacity);
+	
+	            return this._legacyStates.opacity.set(opacity, transition, callback);
+	        }
+	        else return this.opacityFrom(opacity);
+	    };
+	
+	    /**
+	     * Deprecated: Prefer originFrom with static origin array, or use a Transitionable with that origin.
+	     * @deprecated
+	     * @method setOrigin
+	     *
+	     * @param {Array.Number} origin two element array with values between 0 and 1.
+	     * @param {Transitionable} transition Valid transitionable object
+	     * @param {Function} callback callback to call after transition completes
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.setOrigin = function setOrigin(origin, transition, callback) {
+	        /* TODO: remove this if statement when deprecation complete */
+	        if (transition || this._legacyStates.origin) {
+	
+	            if (!this._legacyStates.origin) {
+	                this._legacyStates.origin = new Transitionable(this._output.origin || [0, 0]);
+	            }
+	            if (!this._originGetter) this.originFrom(this._legacyStates.origin);
+	
+	            this._legacyStates.origin.set(origin, transition, callback);
+	            return this;
+	        }
+	        else return this.originFrom(origin);
+	    };
+	
+	    /**
+	     * Deprecated: Prefer alignFrom with static align array, or use a Transitionable with that align.
+	     * @deprecated
+	     * @method setAlign
+	     *
+	     * @param {Array.Number} align two element array with values between 0 and 1.
+	     * @param {Transitionable} transition Valid transitionable object
+	     * @param {Function} callback callback to call after transition completes
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.setAlign = function setAlign(align, transition, callback) {
+	        /* TODO: remove this if statement when deprecation complete */
+	        if (transition || this._legacyStates.align) {
+	
+	            if (!this._legacyStates.align) {
+	                this._legacyStates.align = new Transitionable(this._output.align || [0, 0]);
+	            }
+	            if (!this._alignGetter) this.alignFrom(this._legacyStates.align);
+	
+	            this._legacyStates.align.set(align, transition, callback);
+	            return this;
+	        }
+	        else return this.alignFrom(align);
+	    };
+	
+	    /**
+	     * Deprecated: Prefer sizeFrom with static origin array, or use a Transitionable with that size.
+	     * @deprecated
+	     * @method setSize
+	     * @param {Array.Number} size two element array of [width, height]
+	     * @param {Transitionable} transition Valid transitionable object
+	     * @param {Function} callback callback to call after transition completes
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.setSize = function setSize(size, transition, callback) {
+	        if (size && (transition || this._legacyStates.size)) {
+	            if (!this._legacyStates.size) {
+	                this._legacyStates.size = new Transitionable(this._output.size || [0, 0]);
+	            }
+	            if (!this._sizeGetter) this.sizeFrom(this._legacyStates.size);
+	
+	            this._legacyStates.size.set(size, transition, callback);
+	            return this;
+	        }
+	        else return this.sizeFrom(size);
+	    };
+	
+	    /**
+	     * Deprecated: Prefer proportionsFrom with static origin array, or use a Transitionable with those proportions.
+	     * @deprecated
+	     * @method setProportions
+	     * @param {Array.Number} proportions two element array of [percent of width, percent of height]
+	     * @param {Transitionable} transition Valid transitionable object
+	     * @param {Function} callback callback to call after transition completes
+	     * @return {Modifier} this
+	     */
+	    Modifier.prototype.setProportions = function setProportions(proportions, transition, callback) {
+	        if (proportions && (transition || this._legacyStates.proportions)) {
+	            if (!this._legacyStates.proportions) {
+	                this._legacyStates.proportions = new Transitionable(this._output.proportions || [0, 0]);
+	            }
+	            if (!this._proportionGetter) this.proportionsFrom(this._legacyStates.proportions);
+	
+	            this._legacyStates.proportions.set(proportions, transition, callback);
+	            return this;
+	        }
+	        else return this.proportionsFrom(proportions);
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to stop transform in your provider object.
+	     * @deprecated
+	     * @method halt
+	     */
+	    Modifier.prototype.halt = function halt() {
+	        if (this._legacyStates.transform) this._legacyStates.transform.halt();
+	        if (this._legacyStates.opacity) this._legacyStates.opacity.halt();
+	        if (this._legacyStates.origin) this._legacyStates.origin.halt();
+	        if (this._legacyStates.align) this._legacyStates.align.halt();
+	        if (this._legacyStates.size) this._legacyStates.size.halt();
+	        if (this._legacyStates.proportions) this._legacyStates.proportions.halt();
+	        this._transformGetter = null;
+	        this._opacityGetter = null;
+	        this._originGetter = null;
+	        this._alignGetter = null;
+	        this._sizeGetter = null;
+	        this._proportionGetter = null;
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to use your provided transform or output of your transform provider.
+	     * @deprecated
+	     * @method getTransform
+	     * @return {Object} transform provider object
+	     */
+	    Modifier.prototype.getTransform = function getTransform() {
+	        return this._transformGetter();
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to determine the end state of your transform from your transform provider
+	     * @deprecated
+	     * @method getFinalTransform
+	     * @return {Transform} transform matrix
+	     */
+	    Modifier.prototype.getFinalTransform = function getFinalTransform() {
+	        return this._legacyStates.transform ? this._legacyStates.transform.getFinal() : this._output.transform;
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to use your provided opacity or output of your opacity provider.
+	     * @deprecated
+	     * @method getOpacity
+	     * @return {Object} opacity provider object
+	     */
+	    Modifier.prototype.getOpacity = function getOpacity() {
+	        return this._opacityGetter();
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to use your provided origin or output of your origin provider.
+	     * @deprecated
+	     * @method getOrigin
+	     * @return {Object} origin provider object
+	     */
+	    Modifier.prototype.getOrigin = function getOrigin() {
+	        return this._originGetter();
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to use your provided align or output of your align provider.
+	     * @deprecated
+	     * @method getAlign
+	     * @return {Object} align provider object
+	     */
+	    Modifier.prototype.getAlign = function getAlign() {
+	        return this._alignGetter();
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to use your provided size or output of your size provider.
+	     * @deprecated
+	     * @method getSize
+	     * @return {Object} size provider object
+	     */
+	    Modifier.prototype.getSize = function getSize() {
+	        return this._sizeGetter ? this._sizeGetter() : this._output.size;
+	    };
+	
+	    /**
+	     * Deprecated: Prefer to use your provided proportions or output of your proportions provider.
+	     * @deprecated
+	     * @method getProportions
+	     * @return {Object} proportions provider object
+	     */
+	    Modifier.prototype.getProportions = function getProportions() {
+	        return this._proportionGetter ? this._proportionGetter() : this._output.proportions;
+	    };
+	
+	    // call providers on tick to receive render spec elements to apply
+	    function _update() {
+	        if (this._transformGetter) this._output.transform = this._transformGetter();
+	        if (this._opacityGetter) this._output.opacity = this._opacityGetter();
+	        if (this._originGetter) this._output.origin = this._originGetter();
+	        if (this._alignGetter) this._output.align = this._alignGetter();
+	        if (this._sizeGetter) this._output.size = this._sizeGetter();
+	        if (this._proportionGetter) this._output.proportions = this._proportionGetter();
+	    }
+	
+	    /**
+	     * Return render spec for this Modifier, applying to the provided
+	     *    target component.  This is similar to render() for Surfaces.
+	     *
+	     * @private
+	     * @method modify
+	     *
+	     * @param {Object} target (already rendered) render spec to
+	     *    which to apply the transform.
+	     * @return {Object} render spec for this Modifier, including the
+	     *    provided target
+	     */
+	    Modifier.prototype.modify = function modify(target) {
+	        _update.call(this);
+	        this._output.target = target;
+	        return this._output;
+	    };
+	
+	    module.exports = Modifier;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    /**
+	     * Collection to map keyboard codes in plain english
+	     *
+	     * @class KeyCodes
+	     * @static
+	     */
+	    var KeyCodes = {
+	        0 : 48,
+	        1 : 49,
+	        2 : 50,
+	        3 : 51,
+	        4 : 52,
+	        5 : 53,
+	        6 : 54,
+	        7 : 55,
+	        8 : 56,
+	        9 : 57,
+	        a : 97,
+	        b : 98,
+	        c : 99,
+	        d : 100,
+	        e : 101,
+	        f : 102,
+	        g : 103,
+	        h : 104,
+	        i : 105,
+	        j : 106,
+	        k : 107,
+	        l : 108,
+	        m : 109,
+	        n : 110,
+	        o : 111,
+	        p : 112,
+	        q : 113,
+	        r : 114,
+	        s : 115,
+	        t : 116,
+	        u : 117,
+	        v : 118,
+	        w : 119,
+	        x : 120,
+	        y : 121,
+	        z : 122,
+	        A : 65,
+	        B : 66,
+	        C : 67,
+	        D : 68,
+	        E : 69,
+	        F : 70,
+	        G : 71,
+	        H : 72,
+	        I : 73,
+	        J : 74,
+	        K : 75,
+	        L : 76,
+	        M : 77,
+	        N : 78,
+	        O : 79,
+	        P : 80,
+	        Q : 81,
+	        R : 82,
+	        S : 83,
+	        T : 84,
+	        U : 85,
+	        V : 86,
+	        W : 87,
+	        X : 88,
+	        Y : 89,
+	        Z : 90,
+	        ENTER : 13,
+	        LEFT_ARROW: 37,
+	        RIGHT_ARROW: 39,
+	        UP_ARROW: 38,
+	        DOWN_ARROW: 40,
+	        SPACE: 32,
+	        SHIFT: 16,
+	        TAB: 9
+	    };
+	
+	    module.exports = KeyCodes;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 21 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: felix@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var ContainerSurface = __webpack_require__(22);
+	    var EventHandler = __webpack_require__(32);
+	    var Scrollview = __webpack_require__(34);
+	    var Utility = __webpack_require__(35);
+	    var OptionsManager = __webpack_require__(33);
+	
+	    /**
+	     * A Container surface with a scrollview automatically added. The convenience of ScrollContainer lies in
+	     * being able to clip out portions of the associated scrollview that lie outside the bounding surface,
+	     * and in being able to move the scrollview more easily by applying modifiers to the parent container
+	     * surface.
+	     * @class ScrollContainer
+	     * @constructor
+	     * @param {Options} [options] An object of configurable options.
+	     * @param {Options} [options.container=undefined] Options for the ScrollContainer instance's surface.
+	     * @param {Options} [options.scrollview={direction:Utility.Direction.X}]  Options for the ScrollContainer instance's scrollview.
+	     */
+	    function ScrollContainer(options) {
+	        this.options = Object.create(ScrollContainer.DEFAULT_OPTIONS);
+	        this._optionsManager = new OptionsManager(this.options);
+	
+	        if (options) this.setOptions(options);
+	
+	        this.container = new ContainerSurface(this.options.container);
+	        this.scrollview = new Scrollview(this.options.scrollview);
+	
+	        this.container.add(this.scrollview);
+	
+	        this._eventInput = new EventHandler();
+	        EventHandler.setInputHandler(this, this._eventInput);
+	
+	        this._eventInput.pipe(this.scrollview);
+	
+	        this._eventOutput = new EventHandler();
+	        EventHandler.setOutputHandler(this, this._eventOutput);
+	
+	        this.container.pipe(this._eventOutput);
+	        this.scrollview.pipe(this._eventOutput);
+	    }
+	
+	    ScrollContainer.DEFAULT_OPTIONS = {
+	        container: {
+	            properties: {overflow : 'hidden'}
+	        },
+	        scrollview: {}
+	    };
+	
+	    /**
+	     * Patches the ScrollContainer instance's options with the passed-in ones.
+	     *
+	     * @method setOptions
+	     * @param {Options} options An object of configurable options for the ScrollContainer instance.
+	     */
+	    ScrollContainer.prototype.setOptions = function setOptions(options) {
+	        return this._optionsManager.setOptions(options);
+	    };
+	
+	    /**
+	     * Sets the collection of renderables under the ScrollContainer instance scrollview's control.
+	     *
+	     * @method sequenceFrom
+	     * @param {Array|ViewSequence} sequence Either an array of renderables or a Famous ViewSequence.
+	     */
+	    ScrollContainer.prototype.sequenceFrom = function sequenceFrom() {
+	        return this.scrollview.sequenceFrom.apply(this.scrollview, arguments);
+	    };
+	
+	    /**
+	     * Returns the width and the height of the ScrollContainer instance.
+	     *
+	     * @method getSize
+	     * @return {Array} A two value array of the ScrollContainer instance's current width and height (in that order).
+	     */
+	    ScrollContainer.prototype.getSize = function getSize() {
+	        return this.container.getSize.apply(this.container, arguments);
+	    };
+	
+	    /**
+	     * Generate a render spec from the contents of this component.
+	     *
+	     * @private
+	     * @method render
+	     * @return {number} Render spec for this component
+	     */
+	    ScrollContainer.prototype.render = function render() {
+	        return this.container.render();
+	    };
+	
+	    module.exports = ScrollContainer;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 22 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Surface = __webpack_require__(23);
+	    var Context = __webpack_require__(31);
+	
+	    /**
+	     * ContainerSurface is an object designed to contain surfaces and
+	     *   set properties to be applied to all of them at once.
+	     *   This extends the Surface class.
+	     *   A container surface will enforce these properties on the
+	     *   surfaces it contains:
+	     *
+	     *   size (clips contained surfaces to its own width and height);
+	     *
+	     *   origin;
+	     *
+	     *   its own opacity and transform, which will be automatically
+	     *   applied to  all Surfaces contained directly and indirectly.
+	     *
+	     * @class ContainerSurface
+	     * @extends Surface
+	     * @constructor
+	     * @param {Array.Number} [options.size] [width, height] in pixels
+	     * @param {Array.string} [options.classes] CSS classes to set on all inner content
+	     * @param {Array} [options.properties] string dictionary of HTML attributes to set on target div
+	     * @param {string} [options.content] inner (HTML) content of surface (should not be used)
+	     */
+	    function ContainerSurface(options) {
+	        Surface.call(this, options);
+	        this._container = document.createElement('div');
+	        this._container.classList.add('famous-group');
+	        this._container.classList.add('famous-container-group');
+	        this._shouldRecalculateSize = false;
+	        this.context = new Context(this._container);
+	        this.setContent(this._container);
+	    }
+	
+	    ContainerSurface.prototype = Object.create(Surface.prototype);
+	    ContainerSurface.prototype.constructor = ContainerSurface;
+	    ContainerSurface.prototype.elementType = 'div';
+	    ContainerSurface.prototype.elementClass = 'famous-surface';
+	
+	    /**
+	     * Add renderables to this object's render tree
+	     *
+	     * @method add
+	     *
+	     * @param {Object} obj renderable object
+	     * @return {RenderNode} RenderNode wrapping this object, if not already a RenderNode
+	     */
+	    ContainerSurface.prototype.add = function add() {
+	        return this.context.add.apply(this.context, arguments);
+	    };
+	
+	    /**
+	     * Return spec for this surface.  Note: Can result in a size recalculation.
+	     *
+	     * @private
+	     * @method render
+	     *
+	     * @return {Object} render spec for this surface (spec id)
+	     */
+	    ContainerSurface.prototype.render = function render() {
+	        if (this._sizeDirty) this._shouldRecalculateSize = true;
+	        return Surface.prototype.render.apply(this, arguments);
+	    };
+	
+	    /**
+	     * Place the document element this component manages into the document.
+	     *
+	     * @private
+	     * @method deploy
+	     * @param {Node} target document parent of this container
+	     */
+	    ContainerSurface.prototype.deploy = function deploy() {
+	        this._shouldRecalculateSize = true;
+	        return Surface.prototype.deploy.apply(this, arguments);
+	    };
+	
+	    /**
+	     * Apply changes from this component to the corresponding document element.
+	     * This includes changes to classes, styles, size, content, opacity, origin,
+	     * and matrix transforms.
+	     *
+	     * @private
+	     * @method commit
+	     * @param {Context} context commit context
+	     * @param {Transform} transform unused TODO
+	     * @param {Number} opacity  unused TODO
+	     * @param {Array.Number} origin unused TODO
+	     * @param {Array.Number} size unused TODO
+	     * @return {undefined} TODO returns an undefined value
+	     */
+	    ContainerSurface.prototype.commit = function commit(context, transform, opacity, origin, size) {
+	        var previousSize = this._size ? [this._size[0], this._size[1]] : null;
+	        var result = Surface.prototype.commit.apply(this, arguments);
+	        if (this._shouldRecalculateSize || (previousSize && (this._size[0] !== previousSize[0] || this._size[1] !== previousSize[1]))) {
+	            this.context.setSize();
+	            this._shouldRecalculateSize = false;
+	        }
+	        this.context.update();
+	        return result;
+	    };
+	
+	    module.exports = ContainerSurface;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var ElementOutput = __webpack_require__(36);
+	
+	    /**
+	     * A base class for viewable content and event
+	     *   targets inside a Famo.us application, containing a renderable document
+	     *   fragment. Like an HTML div, it can accept internal markup,
+	     *   properties, classes, and handle events.
+	     *
+	     * @class Surface
+	     * @constructor
+	     *
+	     * @param {Object} [options] default option overrides
+	     * @param {Array.Number} [options.size] [width, height] in pixels
+	     * @param {Array.string} [options.classes] CSS classes to set on target div
+	     * @param {Array} [options.properties] string dictionary of HTML attributes to set on target div
+	     * @param {string} [options.content] inner (HTML) content of surface
+	     */
+	    function Surface(options) {
+	        ElementOutput.call(this);
+	
+	        this.options = {};
+	
+	        this.properties = {};
+	        this.attributes = {};
+	        this.content = '';
+	        this.classList = [];
+	        this.size = null;
+	
+	        this._classesDirty = true;
+	        this._stylesDirty = true;
+	        this._attributesDirty = true;
+	        this._sizeDirty = true;
+	        this._contentDirty = true;
+	        this._trueSizeCheck = true;
+	
+	        this._dirtyClasses = [];
+	
+	        if (options) this.setOptions(options);
+	
+	        this._currentTarget = null;
+	    }
+	    Surface.prototype = Object.create(ElementOutput.prototype);
+	    Surface.prototype.constructor = Surface;
+	    Surface.prototype.elementType = 'div';
+	    Surface.prototype.elementClass = 'famous-surface';
+	
+	    /**
+	     * Set HTML attributes on this Surface. Note that this will cause
+	     *    dirtying and thus re-rendering, even if values do not change.
+	     *
+	     * @method setAttributes
+	    * @param {Object} attributes property dictionary of "key" => "value"
+	     */
+	    Surface.prototype.setAttributes = function setAttributes(attributes) {
+	        for (var n in attributes) {
+	            if (n === 'style') throw new Error('Cannot set styles via "setAttributes" as it will break Famo.us.  Use "setProperties" instead.');
+	            this.attributes[n] = attributes[n];
+	        }
+	        this._attributesDirty = true;
+	    };
+	
+	    /**
+	     * Get HTML attributes on this Surface.
+	     *
+	     * @method getAttributes
+	     *
+	     * @return {Object} Dictionary of this Surface's attributes.
+	     */
+	    Surface.prototype.getAttributes = function getAttributes() {
+	        return this.attributes;
+	    };
+	
+	    /**
+	     * Set CSS-style properties on this Surface. Note that this will cause
+	     *    dirtying and thus re-rendering, even if values do not change.
+	     *
+	     * @method setProperties
+	     * @chainable
+	     * @param {Object} properties property dictionary of "key" => "value"
+	     */
+	    Surface.prototype.setProperties = function setProperties(properties) {
+	        for (var n in properties) {
+	            this.properties[n] = properties[n];
+	        }
+	        this._stylesDirty = true;
+	        return this;
+	    };
+	
+	    /**
+	     * Get CSS-style properties on this Surface.
+	     *
+	     * @method getProperties
+	     *
+	     * @return {Object} Dictionary of this Surface's properties.
+	     */
+	    Surface.prototype.getProperties = function getProperties() {
+	        return this.properties;
+	    };
+	
+	    /**
+	     * Add CSS-style class to the list of classes on this Surface. Note
+	     *   this will map directly to the HTML property of the actual
+	     *   corresponding rendered <div>.
+	     *
+	     * @method addClass
+	     * @chainable
+	     * @param {string} className name of class to add
+	     */
+	    Surface.prototype.addClass = function addClass(className) {
+	        if (this.classList.indexOf(className) < 0) {
+	            this.classList.push(className);
+	            this._classesDirty = true;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Remove CSS-style class from the list of classes on this Surface.
+	     *   Note this will map directly to the HTML property of the actual
+	     *   corresponding rendered <div>.
+	     *
+	     * @method removeClass
+	     * @chainable
+	     * @param {string} className name of class to remove
+	     */
+	    Surface.prototype.removeClass = function removeClass(className) {
+	        var i = this.classList.indexOf(className);
+	        if (i >= 0) {
+	            this._dirtyClasses.push(this.classList.splice(i, 1)[0]);
+	            this._classesDirty = true;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Toggle CSS-style class from the list of classes on this Surface.
+	     *   Note this will map directly to the HTML property of the actual
+	     *   corresponding rendered <div>.
+	     *
+	     * @method toggleClass
+	     * @param {string} className name of class to toggle
+	     */
+	    Surface.prototype.toggleClass = function toggleClass(className) {
+	        var i = this.classList.indexOf(className);
+	        if (i >= 0) {
+	            this.removeClass(className);
+	        } else {
+	            this.addClass(className);
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Reset class list to provided dictionary.
+	     * @method setClasses
+	     * @chainable
+	     * @param {Array.string} classList
+	     */
+	    Surface.prototype.setClasses = function setClasses(classList) {
+	        var i = 0;
+	        var removal = [];
+	        for (i = 0; i < this.classList.length; i++) {
+	            if (classList.indexOf(this.classList[i]) < 0) removal.push(this.classList[i]);
+	        }
+	        for (i = 0; i < removal.length; i++) this.removeClass(removal[i]);
+	        // duplicates are already checked by addClass()
+	        for (i = 0; i < classList.length; i++) this.addClass(classList[i]);
+	        return this;
+	    };
+	
+	    /**
+	     * Get array of CSS-style classes attached to this div.
+	     *
+	     * @method getClasslist
+	     * @return {Array.string} array of class names
+	     */
+	    Surface.prototype.getClassList = function getClassList() {
+	        return this.classList;
+	    };
+	
+	    /**
+	     * Set or overwrite inner (HTML) content of this surface. Note that this
+	     *    causes a re-rendering if the content has changed.
+	     *
+	     * @method setContent
+	     * @chainable
+	     * @param {string|Document Fragment} content HTML content
+	     */
+	    Surface.prototype.setContent = function setContent(content) {
+	        if (this.content !== content) {
+	            this.content = content;
+	            this._contentDirty = true;
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Return inner (HTML) content of this surface.
+	     *
+	     * @method getContent
+	     *
+	     * @return {string} inner (HTML) content
+	     */
+	    Surface.prototype.getContent = function getContent() {
+	        return this.content;
+	    };
+	
+	    /**
+	     * Set options for this surface
+	     *
+	     * @method setOptions
+	     * @chainable
+	     * @param {Object} [options] overrides for default options.  See constructor.
+	     */
+	    Surface.prototype.setOptions = function setOptions(options) {
+	        if (options.size) this.setSize(options.size);
+	        if (options.classes) this.setClasses(options.classes);
+	        if (options.properties) this.setProperties(options.properties);
+	        if (options.attributes) this.setAttributes(options.attributes);
+	        if (options.content) this.setContent(options.content);
+	        return this;
+	    };
+	
+	    //  Apply to document all changes from removeClass() since last setup().
+	    function _cleanupClasses(target) {
+	        for (var i = 0; i < this._dirtyClasses.length; i++) target.classList.remove(this._dirtyClasses[i]);
+	        this._dirtyClasses = [];
+	    }
+	
+	    // Apply values of all Famous-managed styles to the document element.
+	    //  These will be deployed to the document on call to #setup().
+	    function _applyStyles(target) {
+	        for (var n in this.properties) {
+	            target.style[n] = this.properties[n];
+	        }
+	    }
+	
+	    // Clear all Famous-managed styles from the document element.
+	    // These will be deployed to the document on call to #setup().
+	    function _cleanupStyles(target) {
+	        for (var n in this.properties) {
+	            target.style[n] = '';
+	        }
+	    }
+	
+	    // Apply values of all Famous-managed attributes to the document element.
+	    //  These will be deployed to the document on call to #setup().
+	    function _applyAttributes(target) {
+	        for (var n in this.attributes) {
+	            target.setAttribute(n, this.attributes[n]);
+	        }
+	    }
+	
+	    // Clear all Famous-managed attributes from the document element.
+	    // These will be deployed to the document on call to #setup().
+	    function _cleanupAttributes(target) {
+	        for (var n in this.attributes) {
+	            target.removeAttribute(n);
+	        }
+	    }
+	
+	    function _xyNotEquals(a, b) {
+	        return (a && b) ? (a[0] !== b[0] || a[1] !== b[1]) : a !== b;
+	    }
+	
+	    /**
+	     * One-time setup for an element to be ready for commits to document.
+	     *
+	     * @private
+	     * @method setup
+	     *
+	     * @param {ElementAllocator} allocator document element pool for this context
+	     */
+	    Surface.prototype.setup = function setup(allocator) {
+	        var target = allocator.allocate(this.elementType);
+	        if (this.elementClass) {
+	            if (this.elementClass instanceof Array) {
+	                for (var i = 0; i < this.elementClass.length; i++) {
+	                    target.classList.add(this.elementClass[i]);
+	                }
+	            }
+	            else {
+	                target.classList.add(this.elementClass);
+	            }
+	        }
+	        target.style.display = '';
+	        this.attach(target);
+	        this._opacity = null;
+	        this._currentTarget = target;
+	        this._stylesDirty = true;
+	        this._classesDirty = true;
+	        this._attributesDirty = true;
+	        this._sizeDirty = true;
+	        this._contentDirty = true;
+	        this._originDirty = true;
+	        this._transformDirty = true;
+	    };
+	
+	    /**
+	     * Apply changes from this component to the corresponding document element.
+	     * This includes changes to classes, styles, size, content, opacity, origin,
+	     * and matrix transforms.
+	     *
+	     * @private
+	     * @method commit
+	     * @param {Context} context commit context
+	     */
+	    Surface.prototype.commit = function commit(context) {
+	        if (!this._currentTarget) this.setup(context.allocator);
+	        var target = this._currentTarget;
+	        var size = context.size;
+	
+	        if (this._classesDirty) {
+	            _cleanupClasses.call(this, target);
+	            var classList = this.getClassList();
+	            for (var i = 0; i < classList.length; i++) target.classList.add(classList[i]);
+	            this._classesDirty = false;
+	            this._trueSizeCheck = true;
+	        }
+	
+	        if (this._stylesDirty) {
+	            _applyStyles.call(this, target);
+	            this._stylesDirty = false;
+	            this._trueSizeCheck = true;
+	        }
+	
+	        if (this._attributesDirty) {
+	            _applyAttributes.call(this, target);
+	            this._attributesDirty = false;
+	            this._trueSizeCheck = true;
+	        }
+	
+	        if (this.size) {
+	            var origSize = context.size;
+	            size = [this.size[0], this.size[1]];
+	            if (size[0] === undefined) size[0] = origSize[0];
+	            if (size[1] === undefined) size[1] = origSize[1];
+	            if (size[0] === true || size[1] === true) {
+	                if (size[0] === true && (this._trueSizeCheck || this._size[0] === 0)) {
+	                    var width = target.offsetWidth;
+	                    if (this._size && this._size[0] !== width) {
+	                        this._size[0] = width;
+	                        this._sizeDirty = true;
+	                    }
+	                    size[0] = width;
+	                } else {
+	                    if (this._size) size[0] = this._size[0];
+	                }
+	                if (size[1] === true && (this._trueSizeCheck || this._size[1] === 0)) {
+	                    var height = target.offsetHeight;
+	                    if (this._size && this._size[1] !== height) {
+	                        this._size[1] = height;
+	                        this._sizeDirty = true;
+	                    }
+	                    size[1] = height;
+	                } else {
+	                    if (this._size) size[1] = this._size[1];
+	                }
+	                this._trueSizeCheck = false;
+	            }
+	        }
+	
+	        if (_xyNotEquals(this._size, size)) {
+	            if (!this._size) this._size = [0, 0];
+	            this._size[0] = size[0];
+	            this._size[1] = size[1];
+	
+	            this._sizeDirty = true;
+	        }
+	
+	        if (this._sizeDirty) {
+	            if (this._size) {
+	                target.style.width = (this.size && this.size[0] === true) ? '' : this._size[0] + 'px';
+	                target.style.height = (this.size && this.size[1] === true) ?  '' : this._size[1] + 'px';
+	            }
+	
+	            this._eventOutput.emit('resize');
+	        }
+	
+	        if (this._contentDirty) {
+	            this.deploy(target);
+	            this._eventOutput.emit('deploy');
+	            this._contentDirty = false;
+	            this._trueSizeCheck = true;
+	        }
+	
+	        ElementOutput.prototype.commit.call(this, context);
+	    };
+	
+	    /**
+	     *  Remove all Famous-relevant attributes from a document element.
+	     *    This is called by SurfaceManager's detach().
+	     *    This is in some sense the reverse of .deploy().
+	     *
+	     * @private
+	     * @method cleanup
+	     * @param {ElementAllocator} allocator
+	     */
+	    Surface.prototype.cleanup = function cleanup(allocator) {
+	        var i = 0;
+	        var target = this._currentTarget;
+	        this._eventOutput.emit('recall');
+	        this.recall(target);
+	        target.style.display = 'none';
+	        target.style.opacity = '';
+	        target.style.width = '';
+	        target.style.height = '';
+	        _cleanupStyles.call(this, target);
+	        _cleanupAttributes.call(this, target);
+	        var classList = this.getClassList();
+	        _cleanupClasses.call(this, target);
+	        for (i = 0; i < classList.length; i++) target.classList.remove(classList[i]);
+	        if (this.elementClass) {
+	            if (this.elementClass instanceof Array) {
+	                for (i = 0; i < this.elementClass.length; i++) {
+	                    target.classList.remove(this.elementClass[i]);
+	                }
+	            }
+	            else {
+	                target.classList.remove(this.elementClass);
+	            }
+	        }
+	        this.detach(target);
+	        this._currentTarget = null;
+	        allocator.deallocate(target);
+	    };
+	
+	    /**
+	     * Place the document element that this component manages into the document.
+	     *
+	     * @private
+	     * @method deploy
+	     * @param {Node} target document parent of this container
+	     */
+	    Surface.prototype.deploy = function deploy(target) {
+	        var content = this.getContent();
+	        if (content instanceof Node) {
+	            while (target.hasChildNodes()) target.removeChild(target.firstChild);
+	            target.appendChild(content);
+	        }
+	        else target.innerHTML = content;
+	    };
+	
+	    /**
+	     * Remove any contained document content associated with this surface
+	     *   from the actual document.
+	     *
+	     * @private
+	     * @method recall
+	     */
+	    Surface.prototype.recall = function recall(target) {
+	        var df = document.createDocumentFragment();
+	        while (target.hasChildNodes()) df.appendChild(target.firstChild);
+	        this.setContent(df);
+	    };
+	
+	    /**
+	     *  Get the x and y dimensions of the surface.
+	     *
+	     * @method getSize
+	     * @return {Array.Number} [x,y] size of surface
+	     */
+	    Surface.prototype.getSize = function getSize() {
+	        return this._size ? this._size : this.size;
+	    };
+	
+	    /**
+	     * Set x and y dimensions of the surface.
+	     *
+	     * @method setSize
+	     * @chainable
+	     * @param {Array.Number} size as [width, height]
+	     */
+	    Surface.prototype.setSize = function setSize(size) {
+	        this.size = size ? [size[0], size[1]] : null;
+	        this._sizeDirty = true;
+	        return this;
+	    };
+	
+	    module.exports = Surface;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 24 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Surface = __webpack_require__(23);
+	
+	    /**
+	     * A surface containing image content.
+	     *   This extends the Surface class.
+	     *
+	     * @class ImageSurface
+	     *
+	     * @extends Surface
+	     * @constructor
+	     * @param {Object} [options] overrides of default options
+	     */
+	    function ImageSurface(options) {
+	        this._imageUrl = undefined;
+	        Surface.apply(this, arguments);
+	    }
+	
+	    var urlCache = [];
+	    var countCache = [];
+	    var nodeCache = [];
+	    var cacheEnabled = true;
+	
+	    ImageSurface.enableCache = function enableCache() {
+	        cacheEnabled = true;
+	    };
+	
+	    ImageSurface.disableCache = function disableCache() {
+	        cacheEnabled = false;
+	    };
+	
+	    ImageSurface.clearCache = function clearCache() {
+	        urlCache = [];
+	        countCache = [];
+	        nodeCache = [];
+	    };
+	
+	    ImageSurface.getCache = function getCache() {
+	        return {
+	            urlCache: urlCache,
+	            countCache: countCache,
+	            nodeCache: countCache
+	        };
+	    };
+	
+	    ImageSurface.prototype = Object.create(Surface.prototype);
+	    ImageSurface.prototype.constructor = ImageSurface;
+	    ImageSurface.prototype.elementType = 'img';
+	    ImageSurface.prototype.elementClass = 'famous-surface';
+	
+	    /**
+	     * Set content URL.  This will cause a re-rendering.
+	     * @method setContent
+	     * @param {string} imageUrl
+	     */
+	    ImageSurface.prototype.setContent = function setContent(imageUrl) {
+	        var urlIndex = urlCache.indexOf(this._imageUrl);
+	        if (urlIndex !== -1) {
+	            if (countCache[urlIndex] === 1) {
+	                urlCache.splice(urlIndex, 1);
+	                countCache.splice(urlIndex, 1);
+	                nodeCache.splice(urlIndex, 1);
+	            } else {
+	                countCache[urlIndex]--;
+	            }
+	        }
+	
+	        urlIndex = urlCache.indexOf(imageUrl);
+	        if (urlIndex === -1) {
+	            urlCache.push(imageUrl);
+	            countCache.push(1);
+	        }
+	        else {
+	            countCache[urlIndex]++;
+	        }
+	
+	        this._imageUrl = imageUrl;
+	        this._contentDirty = true;
+	    };
+	
+	    /**
+	     * Place the document element that this component manages into the document.
+	     *
+	     * @private
+	     * @method deploy
+	     * @param {Node} target document parent of this container
+	     */
+	    ImageSurface.prototype.deploy = function deploy(target) {
+	        var urlIndex = urlCache.indexOf(this._imageUrl);
+	        if (nodeCache[urlIndex] === undefined && cacheEnabled) {
+	            var img = new Image();
+	            img.src = this._imageUrl || '';
+	            nodeCache[urlIndex] = img;
+	        }
+	
+	        target.src = this._imageUrl || '';
+	    };
+	
+	    /**
+	     * Remove this component and contained content from the document
+	     *
+	     * @private
+	     * @method recall
+	     *
+	     * @param {Node} target node to which the component was deployed
+	     */
+	    ImageSurface.prototype.recall = function recall(target) {
+	        target.src = '';
+	    };
+	
+	    module.exports = ImageSurface;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
 /* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -5734,10 +5026,10 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(31);
-	    var OptionsManager = __webpack_require__(32);
-	    var RenderNode = __webpack_require__(33);
-	    var Utility = __webpack_require__(40);
+	    var EventHandler = __webpack_require__(32);
+	    var OptionsManager = __webpack_require__(33);
+	    var RenderNode = __webpack_require__(37);
+	    var Utility = __webpack_require__(35);
 	
 	    /**
 	     * Useful for quickly creating elements within applications
@@ -5850,10 +5142,10 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Modifier = __webpack_require__(15);
-	    var Transform = __webpack_require__(24);
-	    var Transitionable = __webpack_require__(19);
-	    var TransitionableTransform = __webpack_require__(29);
+	    var Modifier = __webpack_require__(19);
+	    var Transform = __webpack_require__(18);
+	    var Transitionable = __webpack_require__(29);
+	    var TransitionableTransform = __webpack_require__(30);
 	
 	    /**
 	     *  A collection of visual changes to be
@@ -6493,9 +5785,237 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Transitionable = __webpack_require__(19);
-	    var Transform = __webpack_require__(24);
-	    var Utility = __webpack_require__(40);
+	    var MultipleTransition = __webpack_require__(38);
+	    var TweenTransition = __webpack_require__(39);
+	
+	    /**
+	     * A state maintainer for a smooth transition between
+	     *    numerically-specified states. Example numeric states include floats or
+	     *    Transform objects.
+	     *
+	     * An initial state is set with the constructor or set(startState). A
+	     *    corresponding end state and transition are set with set(endState,
+	     *    transition). Subsequent calls to set(endState, transition) begin at
+	     *    the last state. Calls to get(timestamp) provide the interpolated state
+	     *    along the way.
+	     *
+	     * Note that there is no event loop here - calls to get() are the only way
+	     *    to find state projected to the current (or provided) time and are
+	     *    the only way to trigger callbacks. Usually this kind of object would
+	     *    be part of the render() path of a visible component.
+	     *
+	     * @class Transitionable
+	     * @constructor
+	     * @param {number|Array.Number|Object.<number|string, number>} start
+	     *    beginning state
+	     */
+	    function Transitionable(start) {
+	        this.currentAction = null;
+	        this.actionQueue = [];
+	        this.callbackQueue = [];
+	
+	        this.state = 0;
+	        this.velocity = undefined;
+	        this._callback = undefined;
+	        this._engineInstance = null;
+	        this._currentMethod = null;
+	
+	        this.set(start);
+	    }
+	
+	    var transitionMethods = {};
+	
+	    Transitionable.register = function register(methods) {
+	        var success = true;
+	        for (var method in methods) {
+	            if (!Transitionable.registerMethod(method, methods[method]))
+	                success = false;
+	        }
+	        return success;
+	    };
+	
+	    Transitionable.registerMethod = function registerMethod(name, engineClass) {
+	        if (!(name in transitionMethods)) {
+	            transitionMethods[name] = engineClass;
+	            return true;
+	        }
+	        else return false;
+	    };
+	
+	    Transitionable.unregisterMethod = function unregisterMethod(name) {
+	        if (name in transitionMethods) {
+	            delete transitionMethods[name];
+	            return true;
+	        }
+	        else return false;
+	    };
+	
+	    function _loadNext() {
+	        if (this._callback) {
+	            var callback = this._callback;
+	            this._callback = undefined;
+	            callback();
+	        }
+	        if (this.actionQueue.length <= 0) {
+	            this.set(this.get()); // no update required
+	            return;
+	        }
+	        this.currentAction = this.actionQueue.shift();
+	        this._callback = this.callbackQueue.shift();
+	
+	        var method = null;
+	        var endValue = this.currentAction[0];
+	        var transition = this.currentAction[1];
+	        if (transition instanceof Object && transition.method) {
+	            method = transition.method;
+	            if (typeof method === 'string') method = transitionMethods[method];
+	        }
+	        else {
+	            method = TweenTransition;
+	        }
+	
+	        if (this._currentMethod !== method) {
+	            if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
+	                this._engineInstance = new method();
+	            }
+	            else {
+	                this._engineInstance = new MultipleTransition(method);
+	            }
+	            this._currentMethod = method;
+	        }
+	
+	        this._engineInstance.reset(this.state, this.velocity);
+	        if (this.velocity !== undefined) transition.velocity = this.velocity;
+	        this._engineInstance.set(endValue, transition, _loadNext.bind(this));
+	    }
+	
+	    /**
+	     * Add transition to end state to the queue of pending transitions. Special
+	     *    Use: calling without a transition resets the object to that state with
+	     *    no pending actions
+	     *
+	     * @method set
+	     *
+	     * @param {number|FamousMatrix|Array.Number|Object.<number, number>} endState
+	     *    end state to which we interpolate
+	     * @param {transition=} transition object of type {duration: number, curve:
+	     *    f[0,1] -> [0,1] or name}. If transition is omitted, change will be
+	     *    instantaneous.
+	     * @param {function()=} callback Zero-argument function to call on observed
+	     *    completion (t=1)
+	     */
+	    Transitionable.prototype.set = function set(endState, transition, callback) {
+	        if (!transition) {
+	            this.reset(endState);
+	            if (callback) callback();
+	            return this;
+	        }
+	
+	        var action = [endState, transition];
+	        this.actionQueue.push(action);
+	        this.callbackQueue.push(callback);
+	        if (!this.currentAction) _loadNext.call(this);
+	        return this;
+	    };
+	
+	    /**
+	     * Cancel all transitions and reset to a stable state
+	     *
+	     * @method reset
+	     *
+	     * @param {number|Array.Number|Object.<number, number>} startState
+	     *    stable state to set to
+	     */
+	    Transitionable.prototype.reset = function reset(startState, startVelocity) {
+	        this._currentMethod = null;
+	        this._engineInstance = null;
+	        this._callback = undefined;
+	        this.state = startState;
+	        this.velocity = startVelocity;
+	        this.currentAction = null;
+	        this.actionQueue = [];
+	        this.callbackQueue = [];
+	    };
+	
+	    /**
+	     * Add delay action to the pending action queue queue.
+	     *
+	     * @method delay
+	     *
+	     * @param {number} duration delay time (ms)
+	     * @param {function} callback Zero-argument function to call on observed
+	     *    completion (t=1)
+	     */
+	    Transitionable.prototype.delay = function delay(duration, callback) {
+	        this.set(this.get(), {duration: duration,
+	            curve: function() {
+	                return 0;
+	            }},
+	            callback
+	        );
+	    };
+	
+	    /**
+	     * Get interpolated state of current action at provided time. If the last
+	     *    action has completed, invoke its callback.
+	     *
+	     * @method get
+	     *
+	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
+	     *    time. If omitted, use current time. (Unix epoch time)
+	     * @return {number|Object.<number|string, number>} beginning state
+	     *    interpolated to this point in time.
+	     */
+	    Transitionable.prototype.get = function get(timestamp) {
+	        if (this._engineInstance) {
+	            if (this._engineInstance.getVelocity)
+	                this.velocity = this._engineInstance.getVelocity();
+	            this.state = this._engineInstance.get(timestamp);
+	        }
+	        return this.state;
+	    };
+	
+	    /**
+	     * Is there at least one action pending completion?
+	     *
+	     * @method isActive
+	     *
+	     * @return {boolean}
+	     */
+	    Transitionable.prototype.isActive = function isActive() {
+	        return !!this.currentAction;
+	    };
+	
+	    /**
+	     * Halt transition at current state and erase all pending actions.
+	     *
+	     * @method halt
+	     */
+	    Transitionable.prototype.halt = function halt() {
+	        return this.set(this.get());
+	    };
+	
+	    module.exports = Transitionable;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: david@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Transitionable = __webpack_require__(29);
+	    var Transform = __webpack_require__(18);
+	    var Utility = __webpack_require__(35);
 	
 	    /**
 	     * A class for transitioning the state of a Transform by transitioning
@@ -6716,7 +6236,7 @@
 
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -6729,11 +6249,11 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var RenderNode = __webpack_require__(33);
-	    var EventHandler = __webpack_require__(31);
-	    var ElementAllocator = __webpack_require__(50);
-	    var Transform = __webpack_require__(24);
-	    var Transitionable = __webpack_require__(19);
+	    var RenderNode = __webpack_require__(37);
+	    var EventHandler = __webpack_require__(32);
+	    var ElementAllocator = __webpack_require__(40);
+	    var Transform = __webpack_require__(18);
+	    var Transitionable = __webpack_require__(29);
 	
 	    var _zeroZero = [0, 0];
 	    var usePrefix = !('perspective' in document.documentElement.style);
@@ -6955,7 +6475,7 @@
 
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -6968,7 +6488,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventEmitter = __webpack_require__(51);
+	    var EventEmitter = __webpack_require__(41);
 	
 	    /**
 	     * EventHandler forwards received events to a set of provided callback functions.
@@ -7167,7 +6687,7 @@
 
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7180,7 +6700,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(31);
+	    var EventHandler = __webpack_require__(32);
 	
 	    /**
 	     *  A collection of methods for setting options which can be extended
@@ -7374,7 +6894,671 @@
 
 
 /***/ },
-/* 33 */
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: felix@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var PhysicsEngine = __webpack_require__(46);
+	    var Particle = __webpack_require__(47);
+	    var Drag = __webpack_require__(48);
+	    var Spring = __webpack_require__(49);
+	
+	    var EventHandler = __webpack_require__(32);
+	    var OptionsManager = __webpack_require__(33);
+	    var ViewSequence = __webpack_require__(42);
+	    var Scroller = __webpack_require__(43);
+	    var Utility = __webpack_require__(35);
+	
+	    var GenericSync = __webpack_require__(50);
+	    var ScrollSync = __webpack_require__(51);
+	    var TouchSync = __webpack_require__(52);
+	    GenericSync.register({scroll : ScrollSync, touch : TouchSync});
+	
+	    /** @const */
+	    var TOLERANCE = 0.5;
+	
+	    /** @enum */
+	    var SpringStates = {
+	        NONE: 0,
+	        EDGE: 1,
+	        PAGE: 2
+	    };
+	
+	    /** @enum */
+	    var EdgeStates = {
+	        TOP:   -1,
+	        NONE:   0,
+	        BOTTOM: 1
+	    };
+	
+	    /**
+	     * Scrollview will lay out a collection of renderables sequentially in the specified direction, and will
+	     * allow you to scroll through them with mousewheel or touch events.
+	     * @class Scrollview
+	     * @constructor
+	     * @param {Options} [options] An object of configurable options.
+	     * @param {Number} [options.direction=Utility.Direction.Y] Using the direction helper found in the famous Utility
+	     * module, this option will lay out the Scrollview instance's renderables either horizontally
+	     * (x) or vertically (y). Utility's direction is essentially either zero (X) or one (Y), so feel free
+	     * to just use integers as well.
+	     * @param {Boolean} [options.rails=true] When true, Scrollview's genericSync will only process input in it's primary access.
+	     * @param {Number} [clipSize=undefined] The size of the area (in pixels) that Scrollview will display content in.
+	     * @param {Number} [margin=undefined] The size of the area (in pixels) that Scrollview will process renderables' associated calculations in.
+	     * @param {Number} [friction=0.001] Input resistance proportional to the velocity of the input.
+	     * Controls the feel of the Scrollview instance at low velocities.
+	     * @param {Number} [drag=0.0001] Input resistance proportional to the square of the velocity of the input.
+	     * Affects Scrollview instance more prominently at high velocities.
+	     * @param {Number} [edgeGrip=0.5] A coefficient for resistance against after-touch momentum.
+	     * @param {Number} [egePeriod=300] Sets the period on the spring that handles the physics associated
+	     * with hitting the end of a scrollview.
+	     * @param {Number} [edgeDamp=1] Sets the damping on the spring that handles the physics associated
+	     * with hitting the end of a scrollview.
+	     * @param {Boolean} [paginated=false] A paginated scrollview will scroll through items discretely
+	     * rather than continously.
+	     * @param {Number} [pagePeriod=500] Sets the period on the spring that handles the physics associated
+	     * with pagination.
+	     * @param {Number} [pageDamp=0.8] Sets the damping on the spring that handles the physics associated
+	     * with pagination.
+	     * @param {Number} [pageStopSpeed=Infinity] The threshold for determining the amount of velocity
+	     * required to trigger pagination. The lower the threshold, the easier it is to scroll continuosly.
+	     * @param {Number} [pageSwitchSpeed=1] The threshold for momentum-based velocity pagination.
+	     * @param {Number} [speedLimit=10] The highest scrolling speed you can reach.
+	     */
+	    function Scrollview(options) {
+	        // patch options with defaults
+	        this.options = Object.create(Scrollview.DEFAULT_OPTIONS);
+	        this._optionsManager = new OptionsManager(this.options);
+	
+	        // create sub-components
+	        this._scroller = new Scroller(this.options);
+	
+	        this.sync = new GenericSync(
+	            ['scroll', 'touch'],
+	            {
+	                direction : this.options.direction,
+	                scale : this.options.syncScale,
+	                rails: this.options.rails,
+	                preventDefault: this.options.preventDefault !== undefined
+	                    ? this.options.preventDefault
+	                    : this.options.direction !== Utility.Direction.Y
+	            }
+	        );
+	
+	        this._physicsEngine = new PhysicsEngine();
+	        this._particle = new Particle();
+	        this._physicsEngine.addBody(this._particle);
+	
+	        this.spring = new Spring({
+	            anchor: [0, 0, 0],
+	            period: this.options.edgePeriod,
+	            dampingRatio: this.options.edgeDamp
+	        });
+	        this.drag = new Drag({
+	            forceFunction: Drag.FORCE_FUNCTIONS.QUADRATIC,
+	            strength: this.options.drag
+	        });
+	        this.friction = new Drag({
+	            forceFunction: Drag.FORCE_FUNCTIONS.LINEAR,
+	            strength: this.options.friction
+	        });
+	
+	        // state
+	        this._node = null;
+	        this._touchCount = 0;
+	        this._springState = SpringStates.NONE;
+	        this._onEdge = EdgeStates.NONE;
+	        this._pageSpringPosition = 0;
+	        this._edgeSpringPosition = 0;
+	        this._touchVelocity = 0;
+	        this._earlyEnd = false;
+	        this._needsPaginationCheck = false;
+	        this._displacement = 0;
+	        this._totalShift = 0;
+	        this._cachedIndex = 0;
+	
+	        // subcomponent logic
+	        this._scroller.positionFrom(this.getPosition.bind(this));
+	
+	        // eventing
+	        this._eventInput = new EventHandler();
+	        this._eventOutput = new EventHandler();
+	
+	        this._eventInput.pipe(this.sync);
+	        this.sync.pipe(this._eventInput);
+	
+	        EventHandler.setInputHandler(this, this._eventInput);
+	        EventHandler.setOutputHandler(this, this._eventOutput);
+	
+	        _bindEvents.call(this);
+	
+	        // override default options with passed-in custom options
+	        if (options) this.setOptions(options);
+	    }
+	
+	    Scrollview.DEFAULT_OPTIONS = {
+	        direction: Utility.Direction.Y,
+	        rails: true,
+	        friction: 0.005,
+	        drag: 0.0001,
+	        edgeGrip: 0.2,
+	        edgePeriod: 300,
+	        edgeDamp: 1,
+	        margin: 1000,       // mostly safe
+	        paginated: false,
+	        pagePeriod: 500,
+	        pageDamp: 0.8,
+	        pageStopSpeed: 10,
+	        pageSwitchSpeed: 0.5,
+	        speedLimit: 5,
+	        groupScroll: false,
+	        syncScale: 1
+	    };
+	
+	    function _handleStart(event) {
+	        this._touchCount = event.count;
+	        if (event.count === undefined) this._touchCount = 1;
+	
+	        _detachAgents.call(this);
+	
+	        this.setVelocity(0);
+	        this._touchVelocity = 0;
+	        this._earlyEnd = false;
+	    }
+	
+	    function _handleMove(event) {
+	        var velocity = -event.velocity;
+	        var delta = -event.delta;
+	
+	        if (this._onEdge !== EdgeStates.NONE && event.slip) {
+	            if ((velocity < 0 && this._onEdge === EdgeStates.TOP) || (velocity > 0 && this._onEdge === EdgeStates.BOTTOM)) {
+	                if (!this._earlyEnd) {
+	                    _handleEnd.call(this, event);
+	                    this._earlyEnd = true;
+	                }
+	            }
+	            else if (this._earlyEnd && (Math.abs(velocity) > Math.abs(this.getVelocity()))) {
+	                _handleStart.call(this, event);
+	            }
+	        }
+	        if (this._earlyEnd) return;
+	        this._touchVelocity = velocity;
+	
+	        if (event.slip) {
+	            var speedLimit = this.options.speedLimit;
+	            if (velocity < -speedLimit) velocity = -speedLimit;
+	            else if (velocity > speedLimit) velocity = speedLimit;
+	
+	            this.setVelocity(velocity);
+	
+	            var deltaLimit = speedLimit * 16;
+	            if (delta > deltaLimit) delta = deltaLimit;
+	            else if (delta < -deltaLimit) delta = -deltaLimit;
+	        }
+	
+	        this.setPosition(this.getPosition() + delta);
+	        this._displacement += delta;
+	
+	        if (this._springState === SpringStates.NONE) _normalizeState.call(this);
+	    }
+	
+	    function _handleEnd(event) {
+	        this._touchCount = event.count || 0;
+	        if (!this._touchCount) {
+	            _detachAgents.call(this);
+	            if (this._onEdge !== EdgeStates.NONE) _setSpring.call(this, this._edgeSpringPosition, SpringStates.EDGE);
+	            _attachAgents.call(this);
+	            var velocity = -event.velocity;
+	            var speedLimit = this.options.speedLimit;
+	            if (event.slip) speedLimit *= this.options.edgeGrip;
+	            if (velocity < -speedLimit) velocity = -speedLimit;
+	            else if (velocity > speedLimit) velocity = speedLimit;
+	            this.setVelocity(velocity);
+	            this._touchVelocity = 0;
+	            this._needsPaginationCheck = true;
+	        }
+	    }
+	
+	    function _bindEvents() {
+	        this._eventInput.bindThis(this);
+	        this._eventInput.on('start', _handleStart);
+	        this._eventInput.on('update', _handleMove);
+	        this._eventInput.on('end', _handleEnd);
+	
+	        this._eventInput.on('resize', function() {
+	            this._node._.calculateSize();
+	        }.bind(this));
+	
+	        this._scroller.on('onEdge', function(data) {
+	            this._edgeSpringPosition = data.position;
+	            _handleEdge.call(this, this._scroller.onEdge());
+	            this._eventOutput.emit('onEdge');
+	        }.bind(this));
+	
+	        this._scroller.on('offEdge', function() {
+	            this.sync.setOptions({scale: this.options.syncScale});
+	            this._onEdge = this._scroller.onEdge();
+	            this._eventOutput.emit('offEdge');
+	        }.bind(this));
+	
+	        this._particle.on('update', function(particle) {
+	            if (this._springState === SpringStates.NONE) _normalizeState.call(this);
+	            this._displacement = particle.position.x - this._totalShift;
+	        }.bind(this));
+	
+	        this._particle.on('end', function() {
+	            if (!this.options.paginated || (this.options.paginated && this._springState !== SpringStates.NONE))
+	                this._eventOutput.emit('settle');
+	        }.bind(this));
+	    }
+	
+	    function _attachAgents() {
+	        if (this._springState) this._physicsEngine.attach([this.spring], this._particle);
+	        else this._physicsEngine.attach([this.drag, this.friction], this._particle);
+	    }
+	
+	    function _detachAgents() {
+	        this._springState = SpringStates.NONE;
+	        this._physicsEngine.detachAll();
+	    }
+	
+	    function _nodeSizeForDirection(node) {
+	        var direction = this.options.direction;
+	        var nodeSize = node.getSize();
+	        return (!nodeSize) ? this._scroller.getSize()[direction] : nodeSize[direction];
+	    }
+	
+	    function _handleEdge(edge) {
+	        this.sync.setOptions({scale: this.options.edgeGrip});
+	        this._onEdge = edge;
+	
+	        if (!this._touchCount && this._springState !== SpringStates.EDGE) {
+	            _setSpring.call(this, this._edgeSpringPosition, SpringStates.EDGE);
+	        }
+	
+	        if (this._springState && Math.abs(this.getVelocity()) < 0.001) {
+	            // reset agents, detaching the spring
+	            _detachAgents.call(this);
+	            _attachAgents.call(this);
+	        }
+	    }
+	
+	    function _handlePagination() {
+	        if (this._touchCount) return;
+	        if (this._springState === SpringStates.EDGE) return;
+	
+	        var velocity = this.getVelocity();
+	        if (Math.abs(velocity) >= this.options.pageStopSpeed) return;
+	
+	        var position = this.getPosition();
+	        var velocitySwitch = Math.abs(velocity) > this.options.pageSwitchSpeed;
+	
+	        // parameters to determine when to switch
+	        var nodeSize = _nodeSizeForDirection.call(this, this._node);
+	        var positionNext = position > 0.5 * nodeSize;
+	        var positionPrev = position < 0.5 * nodeSize;
+	
+	        var velocityNext = velocity > 0;
+	        var velocityPrev = velocity < 0;
+	
+	        this._needsPaginationCheck = false;
+	
+	        if ((positionNext && !velocitySwitch) || (velocitySwitch && velocityNext)) {
+	            this.goToNextPage();
+	        }
+	        else if (velocitySwitch && velocityPrev) {
+	            this.goToPreviousPage();
+	        }
+	        else _setSpring.call(this, 0, SpringStates.PAGE);
+	    }
+	
+	    function _setSpring(position, springState) {
+	        var springOptions;
+	        if (springState === SpringStates.EDGE) {
+	            this._edgeSpringPosition = position;
+	            springOptions = {
+	                anchor: [this._edgeSpringPosition, 0, 0],
+	                period: this.options.edgePeriod,
+	                dampingRatio: this.options.edgeDamp
+	            };
+	        }
+	        else if (springState === SpringStates.PAGE) {
+	            this._pageSpringPosition = position;
+	            springOptions = {
+	                anchor: [this._pageSpringPosition, 0, 0],
+	                period: this.options.pagePeriod,
+	                dampingRatio: this.options.pageDamp
+	            };
+	        }
+	
+	        this.spring.setOptions(springOptions);
+	        if (springState && !this._springState) {
+	            _detachAgents.call(this);
+	            this._springState = springState;
+	            _attachAgents.call(this);
+	        }
+	        this._springState = springState;
+	    }
+	
+	    function _normalizeState() {
+	        var offset = 0;
+	
+	        var position = this.getPosition();
+	        position += (position < 0 ? -0.5 : 0.5) >> 0;
+	
+	        var nodeSize = _nodeSizeForDirection.call(this, this._node);
+	        var nextNode = this._node.getNext();
+	
+	        while (offset + position >= nodeSize && nextNode) {
+	            offset -= nodeSize;
+	            this._scroller.sequenceFrom(nextNode);
+	            this._node = nextNode;
+	            nextNode = this._node.getNext();
+	            nodeSize = _nodeSizeForDirection.call(this, this._node);
+	        }
+	
+	        var previousNode = this._node.getPrevious();
+	        var previousNodeSize;
+	
+	        while (offset + position <= 0 && previousNode) {
+	            previousNodeSize = _nodeSizeForDirection.call(this, previousNode);
+	            this._scroller.sequenceFrom(previousNode);
+	            this._node = previousNode;
+	            offset += previousNodeSize;
+	            previousNode = this._node.getPrevious();
+	        }
+	
+	        if (offset) _shiftOrigin.call(this, offset);
+	
+	        if (this._node) {
+	            if (this._node.index !== this._cachedIndex) {
+	                if (this.getPosition() < 0.5 * nodeSize) {
+	                    this._cachedIndex = this._node.index;
+	                    this._eventOutput.emit('pageChange', {direction: -1, index: this._cachedIndex});
+	                }
+	            } else {
+	                if (this.getPosition() > 0.5 * nodeSize) {
+	                    this._cachedIndex = this._node.index + 1;
+	                    this._eventOutput.emit('pageChange', {direction: 1, index: this._cachedIndex});
+	                }
+	            }
+	        }
+	    }
+	
+	    function _shiftOrigin(amount) {
+	        this._edgeSpringPosition += amount;
+	        this._pageSpringPosition += amount;
+	        this.setPosition(this.getPosition() + amount);
+	        this._totalShift += amount;
+	
+	        if (this._springState === SpringStates.EDGE) {
+	            this.spring.setOptions({anchor: [this._edgeSpringPosition, 0, 0]});
+	        }
+	        else if (this._springState === SpringStates.PAGE) {
+	            this.spring.setOptions({anchor: [this._pageSpringPosition, 0, 0]});
+	        }
+	    }
+	
+	    /**
+	     * Returns the index of the first visible renderable
+	     *
+	     * @method getCurrentIndex
+	     * @return {Number} The current index of the ViewSequence
+	     */
+	    Scrollview.prototype.getCurrentIndex = function getCurrentIndex() {
+	        return this._node.index;
+	    };
+	
+	    /**
+	     * goToPreviousPage paginates your Scrollview instance backwards by one item.
+	     *
+	     * @method goToPreviousPage
+	     * @return {ViewSequence} The previous node.
+	     */
+	    Scrollview.prototype.goToPreviousPage = function goToPreviousPage() {
+	        if (!this._node || this._onEdge === EdgeStates.TOP) return null;
+	
+	        // if moving back to the current node
+	        if (this.getPosition() > 1 && this._springState === SpringStates.NONE) {
+	            _setSpring.call(this, 0, SpringStates.PAGE);
+	            return this._node;
+	        }
+	
+	        // if moving to the previous node
+	        var previousNode = this._node.getPrevious();
+	        if (previousNode) {
+	            var previousNodeSize = _nodeSizeForDirection.call(this, previousNode);
+	            this._scroller.sequenceFrom(previousNode);
+	            this._node = previousNode;
+	            _shiftOrigin.call(this, previousNodeSize);
+	            _setSpring.call(this, 0, SpringStates.PAGE);
+	        }
+	        return previousNode;
+	    };
+	
+	    /**
+	     * goToNextPage paginates your Scrollview instance forwards by one item.
+	     *
+	     * @method goToNextPage
+	     * @return {ViewSequence} The next node.
+	     */
+	    Scrollview.prototype.goToNextPage = function goToNextPage() {
+	        if (!this._node || this._onEdge === EdgeStates.BOTTOM) return null;
+	        var nextNode = this._node.getNext();
+	        if (nextNode) {
+	            var currentNodeSize = _nodeSizeForDirection.call(this, this._node);
+	            this._scroller.sequenceFrom(nextNode);
+	            this._node = nextNode;
+	            _shiftOrigin.call(this, -currentNodeSize);
+	            _setSpring.call(this, 0, SpringStates.PAGE);
+	        }
+	        return nextNode;
+	    };
+	
+	    /**
+	     * Paginates the Scrollview to an absolute page index.
+	     *
+	     * @method goToPage
+	     */
+	    Scrollview.prototype.goToPage = function goToPage(index) {
+	        var currentIndex = this.getCurrentIndex();
+	        var i;
+	
+	        if (currentIndex > index) {
+	            for (i = 0; i < currentIndex - index; i++)
+	                this.goToPreviousPage();
+	        }
+	
+	        if (currentIndex < index) {
+	            for (i = 0; i < index - currentIndex; i++)
+	                this.goToNextPage();
+	        }
+	    };
+	
+	    Scrollview.prototype.outputFrom = function outputFrom() {
+	        return this._scroller.outputFrom.apply(this._scroller, arguments);
+	    };
+	
+	    /**
+	     * Returns the position associated with the Scrollview instance's current node
+	     *  (generally the node currently at the top).
+	     *
+	     * @deprecated
+	     * @method getPosition
+	     * @param {number} [node] If specified, returns the position of the node at that index in the
+	     * Scrollview instance's currently managed collection.
+	     * @return {number} The position of either the specified node, or the Scrollview's current Node,
+	     * in pixels translated.
+	     */
+	    Scrollview.prototype.getPosition = function getPosition() {
+	        return this._particle.getPosition1D();
+	    };
+	
+	    /**
+	     * Returns the absolute position associated with the Scrollview instance
+	     *
+	     * @method getAbsolutePosition
+	     * @return {number} The position of the Scrollview's current Node,
+	     * in pixels translated.
+	     */
+	    Scrollview.prototype.getAbsolutePosition = function getAbsolutePosition() {
+	        return this._scroller.getCumulativeSize(this.getCurrentIndex())[this.options.direction] + this.getPosition();
+	    };
+	
+	    /**
+	     * Returns the offset associated with the Scrollview instance's current node
+	     *  (generally the node currently at the top).
+	     *
+	     * @method getOffset
+	     * @param {number} [node] If specified, returns the position of the node at that index in the
+	     * Scrollview instance's currently managed collection.
+	     * @return {number} The position of either the specified node, or the Scrollview's current Node,
+	     * in pixels translated.
+	     */
+	    Scrollview.prototype.getOffset = Scrollview.prototype.getPosition;
+	
+	    /**
+	     * Sets the position of the physics particle that controls Scrollview instance's "position"
+	     *
+	     * @deprecated
+	     * @method setPosition
+	     * @param {number} x The amount of pixels you want your scrollview to progress by.
+	     */
+	    Scrollview.prototype.setPosition = function setPosition(x) {
+	        this._particle.setPosition1D(x);
+	    };
+	
+	    /**
+	     * Sets the offset of the physics particle that controls Scrollview instance's "position"
+	     *
+	     * @method setPosition
+	     * @param {number} x The amount of pixels you want your scrollview to progress by.
+	     */
+	    Scrollview.prototype.setOffset = Scrollview.prototype.setPosition;
+	
+	    /**
+	     * Returns the Scrollview instance's velocity.
+	     *
+	     * @method getVelocity
+	     * @return {Number} The velocity.
+	     */
+	
+	    Scrollview.prototype.getVelocity = function getVelocity() {
+	        return this._touchCount ? this._touchVelocity : this._particle.getVelocity1D();
+	    };
+	
+	    /**
+	     * Sets the Scrollview instance's velocity. Until affected by input or another call of setVelocity
+	     *  the Scrollview instance will scroll at the passed-in velocity.
+	     *
+	     * @method setVelocity
+	     * @param {number} v The magnitude of the velocity.
+	     */
+	    Scrollview.prototype.setVelocity = function setVelocity(v) {
+	        this._particle.setVelocity1D(v);
+	    };
+	
+	    /**
+	     * Patches the Scrollview instance's options with the passed-in ones.
+	     *
+	     * @method setOptions
+	     * @param {Options} options An object of configurable options for the Scrollview instance.
+	     */
+	    Scrollview.prototype.setOptions = function setOptions(options) {
+	        // preprocess custom options
+	        if (options.direction !== undefined) {
+	            if (options.direction === 'x') options.direction = Utility.Direction.X;
+	            else if (options.direction === 'y') options.direction = Utility.Direction.Y;
+	        }
+	
+	        if (options.groupScroll !== this.options.groupScroll) {
+	            if (options.groupScroll)
+	                this.subscribe(this._scroller);
+	            else
+	                this.unsubscribe(this._scroller);
+	        }
+	
+	        // patch custom options
+	        this._optionsManager.setOptions(options);
+	
+	        // propagate options to sub-components
+	
+	        // scroller sub-component
+	        this._scroller.setOptions(options);
+	
+	        // physics sub-components
+	        if (options.drag !== undefined) this.drag.setOptions({strength: this.options.drag});
+	        if (options.friction !== undefined) this.friction.setOptions({strength: this.options.friction});
+	        if (options.edgePeriod !== undefined || options.edgeDamp !== undefined) {
+	            this.spring.setOptions({
+	                period: this.options.edgePeriod,
+	                dampingRatio: this.options.edgeDamp
+	            });
+	        }
+	
+	        // sync sub-component
+	        if (options.rails || options.direction !== undefined || options.syncScale !== undefined || options.preventDefault) {
+	            this.sync.setOptions({
+	                rails: this.options.rails,
+	                direction: (this.options.direction === Utility.Direction.X) ? GenericSync.DIRECTION_X : GenericSync.DIRECTION_Y,
+	                scale: this.options.syncScale,
+	                preventDefault: this.options.preventDefault
+	            });
+	        }
+	    };
+	
+	    /**
+	     * Sets the collection of renderables under the Scrollview instance's control, by
+	     *  setting its current node to the passed in ViewSequence. If you
+	     *  pass in an array, the Scrollview instance will set its node as a ViewSequence instantiated with
+	     *  the passed-in array.
+	     *
+	     * @method sequenceFrom
+	     * @param {Array|ViewSequence} node Either an array of renderables or a Famous viewSequence.
+	     */
+	    Scrollview.prototype.sequenceFrom = function sequenceFrom(node) {
+	        if (node instanceof Array) node = new ViewSequence({array: node, trackSize: true});
+	        this._node = node;
+	        return this._scroller.sequenceFrom(node);
+	    };
+	
+	    /**
+	     * Returns the width and the height of the Scrollview instance.
+	     *
+	     * @method getSize
+	     * @return {Array} A two value array of the Scrollview instance's current width and height (in that order).
+	     */
+	    Scrollview.prototype.getSize = function getSize() {
+	        return this._scroller.getSize.apply(this._scroller, arguments);
+	    };
+	
+	    /**
+	     * Generate a render spec from the contents of this component.
+	     *
+	     * @private
+	     * @method render
+	     * @return {number} Render spec for this component
+	     */
+	    Scrollview.prototype.render = function render() {
+	        if (this.options.paginated && this._needsPaginationCheck) _handlePagination.call(this);
+	
+	        return this._scroller.render();
+	    };
+	
+	    module.exports = Scrollview;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7387,8 +7571,469 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(52);
-	    var SpecParser = __webpack_require__(53);
+	    /**
+	     * This namespace holds standalone functionality.
+	     *  Currently includes name mapping for transition curves,
+	     *  name mapping for origin pairs, and the after() function.
+	     *
+	     * @class Utility
+	     * @static
+	     */
+	    var Utility = {};
+	
+	    /**
+	     * Table of direction array positions
+	     *
+	     * @property {object} Direction
+	     * @final
+	     */
+	    Utility.Direction = {
+	        X: 0,
+	        Y: 1,
+	        Z: 2
+	    };
+	
+	    /**
+	     * Return wrapper around callback function. Once the wrapper is called N
+	     *   times, invoke the callback function. Arguments and scope preserved.
+	     *
+	     * @method after
+	     *
+	     * @param {number} count number of calls before callback function invoked
+	     * @param {Function} callback wrapped callback function
+	     *
+	     * @return {function} wrapped callback with coundown feature
+	     */
+	    Utility.after = function after(count, callback) {
+	        var counter = count;
+	        return function() {
+	            counter--;
+	            if (counter === 0) callback.apply(this, arguments);
+	        };
+	    };
+	
+	    /**
+	     * Load a URL and return its contents in a callback
+	     *
+	     * @method loadURL
+	     *
+	     * @param {string} url URL of object
+	     * @param {function} callback callback to dispatch with content
+	     */
+	    Utility.loadURL = function loadURL(url, callback) {
+	        var xhr = new XMLHttpRequest();
+	        xhr.onreadystatechange = function onreadystatechange() {
+	            if (this.readyState === 4) {
+	                if (callback) callback(this.responseText);
+	            }
+	        };
+	        xhr.open('GET', url);
+	        xhr.send();
+	    };
+	
+	    /**
+	     * Create a document fragment from a string of HTML
+	     *
+	     * @method createDocumentFragmentFromHTML
+	     *
+	     * @param {string} html HTML to convert to DocumentFragment
+	     *
+	     * @return {DocumentFragment} DocumentFragment representing input HTML
+	     */
+	    Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
+	        var element = document.createElement('div');
+	        element.innerHTML = html;
+	        var result = document.createDocumentFragment();
+	        while (element.hasChildNodes()) result.appendChild(element.firstChild);
+	        return result;
+	    };
+	
+	    /*
+	     *  Deep clone an object.
+	     *  @param b {Object} Object to clone
+	     *  @return a {Object} Cloned object.
+	     */
+	    Utility.clone = function clone(b) {
+	        var a;
+	        if (typeof b === 'object') {
+	            a = (b instanceof Array) ? [] : {};
+	            for (var key in b) {
+	                if (typeof b[key] === 'object' && b[key] !== null) {
+	                    if (b[key] instanceof Array) {
+	                        a[key] = new Array(b[key].length);
+	                        for (var i = 0; i < b[key].length; i++) {
+	                            a[key][i] = Utility.clone(b[key][i]);
+	                        }
+	                    }
+	                    else {
+	                      a[key] = Utility.clone(b[key]);
+	                    }
+	                }
+	                else {
+	                    a[key] = b[key];
+	                }
+	            }
+	        }
+	        else {
+	            a = b;
+	        }
+	        return a;
+	    };
+	
+	    module.exports = Utility;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 36 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Entity = __webpack_require__(44);
+	    var EventHandler = __webpack_require__(32);
+	    var Transform = __webpack_require__(18);
+	
+	    var usePrefix = !('transform' in document.documentElement.style);
+	    var devicePixelRatio = window.devicePixelRatio || 1;
+	
+	    /**
+	     * A base class for viewable content and event
+	     *   targets inside a Famo.us application, containing a renderable document
+	     *   fragment. Like an HTML div, it can accept internal markup,
+	     *   properties, classes, and handle events.
+	     *
+	     * @class ElementOutput
+	     * @constructor
+	     *
+	     * @param {Node} element document parent of this container
+	     */
+	    function ElementOutput(element) {
+	        this._matrix = null;
+	        this._opacity = 1;
+	        this._origin = null;
+	        this._size = null;
+	
+	        this._eventOutput = new EventHandler();
+	        this._eventOutput.bindThis(this);
+	
+	        /** @ignore */
+	        this.eventForwarder = function eventForwarder(event) {
+	            this._eventOutput.emit(event.type, event);
+	        }.bind(this);
+	
+	        this.id = Entity.register(this);
+	        this._element = null;
+	        this._sizeDirty = false;
+	        this._originDirty = false;
+	        this._transformDirty = false;
+	
+	        this._invisible = false;
+	        if (element) this.attach(element);
+	    }
+	
+	    /**
+	     * Bind a callback function to an event type handled by this object.
+	     *
+	     * @method "on"
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function(string, Object)} fn handler callback
+	     * @return {EventHandler} this
+	     */
+	    ElementOutput.prototype.on = function on(type, fn) {
+	        if (this._element) this._element.addEventListener(type, this.eventForwarder);
+	        this._eventOutput.on(type, fn);
+	    };
+	
+	    /**
+	     * Unbind an event by type and handler.
+	     *   This undoes the work of "on"
+	     *
+	     * @method removeListener
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function(string, Object)} fn handler
+	     */
+	    ElementOutput.prototype.removeListener = function removeListener(type, fn) {
+	        this._eventOutput.removeListener(type, fn);
+	    };
+	
+	    /**
+	     * Trigger an event, sending to all downstream handlers
+	     *   listening for provided 'type' key.
+	     *
+	     * @method emit
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {Object} [event] event data
+	     * @return {EventHandler} this
+	     */
+	    ElementOutput.prototype.emit = function emit(type, event) {
+	        if (event && !event.origin) event.origin = this;
+	        var handled = this._eventOutput.emit(type, event);
+	        if (handled && event && event.stopPropagation) event.stopPropagation();
+	        return handled;
+	    };
+	
+	    /**
+	     * Add event handler object to set of downstream handlers.
+	     *
+	     * @method pipe
+	     *
+	     * @param {EventHandler} target event handler target object
+	     * @return {EventHandler} passed event handler
+	     */
+	    ElementOutput.prototype.pipe = function pipe(target) {
+	        return this._eventOutput.pipe(target);
+	    };
+	
+	    /**
+	     * Remove handler object from set of downstream handlers.
+	     *   Undoes work of "pipe"
+	     *
+	     * @method unpipe
+	     *
+	     * @param {EventHandler} target target handler object
+	     * @return {EventHandler} provided target
+	     */
+	    ElementOutput.prototype.unpipe = function unpipe(target) {
+	        return this._eventOutput.unpipe(target);
+	    };
+	
+	    /**
+	     * Return spec for this surface. Note that for a base surface, this is
+	     *    simply an id.
+	     *
+	     * @method render
+	     * @private
+	     * @return {Object} render spec for this surface (spec id)
+	     */
+	    ElementOutput.prototype.render = function render() {
+	        return this.id;
+	    };
+	
+	    //  Attach Famous event handling to document events emanating from target
+	    //    document element.  This occurs just after attachment to the document.
+	    //    Calling this enables methods like #on and #pipe.
+	    function _addEventListeners(target) {
+	        for (var i in this._eventOutput.listeners) {
+	            target.addEventListener(i, this.eventForwarder);
+	        }
+	    }
+	
+	    //  Detach Famous event handling from document events emanating from target
+	    //  document element.  This occurs just before detach from the document.
+	    function _removeEventListeners(target) {
+	        for (var i in this._eventOutput.listeners) {
+	            target.removeEventListener(i, this.eventForwarder);
+	        }
+	    }
+	
+	    /**
+	     * Return a Matrix's webkit css representation to be used with the
+	     *    CSS3 -webkit-transform style.
+	     *    Example: -webkit-transform: matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,716,243,0,1)
+	     *
+	     * @method _formatCSSTransform
+	     * @private
+	     * @param {FamousMatrix} m matrix
+	     * @return {string} matrix3d CSS style representation of the transform
+	     */
+	    function _formatCSSTransform(m) {
+	        m[12] = Math.round(m[12] * devicePixelRatio) / devicePixelRatio;
+	        m[13] = Math.round(m[13] * devicePixelRatio) / devicePixelRatio;
+	
+	        var result = 'matrix3d(';
+	        for (var i = 0; i < 15; i++) {
+	            result += (m[i] < 0.000001 && m[i] > -0.000001) ? '0,' : m[i] + ',';
+	        }
+	        result += m[15] + ')';
+	        return result;
+	    }
+	
+	    /**
+	     * Directly apply given FamousMatrix to the document element as the
+	     *   appropriate webkit CSS style.
+	     *
+	     * @method setMatrix
+	     *
+	     * @static
+	     * @private
+	     * @param {Element} element document element
+	     * @param {FamousMatrix} matrix
+	     */
+	
+	    var _setMatrix;
+	    if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
+	        _setMatrix = function(element, matrix) {
+	            element.style.zIndex = (matrix[14] * 1000000) | 0;    // fix for Firefox z-buffer issues
+	            element.style.transform = _formatCSSTransform(matrix);
+	        };
+	    }
+	    else if (usePrefix) {
+	        _setMatrix = function(element, matrix) {
+	            element.style.webkitTransform = _formatCSSTransform(matrix);
+	        };
+	    }
+	    else {
+	        _setMatrix = function(element, matrix) {
+	            element.style.transform = _formatCSSTransform(matrix);
+	        };
+	    }
+	
+	    // format origin as CSS percentage string
+	    function _formatCSSOrigin(origin) {
+	        return (100 * origin[0]) + '% ' + (100 * origin[1]) + '%';
+	    }
+	
+	    // Directly apply given origin coordinates to the document element as the
+	    // appropriate webkit CSS style.
+	    var _setOrigin = usePrefix ? function(element, origin) {
+	        element.style.webkitTransformOrigin = _formatCSSOrigin(origin);
+	    } : function(element, origin) {
+	        element.style.transformOrigin = _formatCSSOrigin(origin);
+	    };
+	
+	    // Shrink given document element until it is effectively invisible.
+	    var _setInvisible = usePrefix ? function(element) {
+	        element.style.webkitTransform = 'scale3d(0.0001,0.0001,0.0001)';
+	        element.style.opacity = 0;
+	    } : function(element) {
+	        element.style.transform = 'scale3d(0.0001,0.0001,0.0001)';
+	        element.style.opacity = 0;
+	    };
+	
+	    function _xyNotEquals(a, b) {
+	        return (a && b) ? (a[0] !== b[0] || a[1] !== b[1]) : a !== b;
+	    }
+	
+	    /**
+	     * Apply changes from this component to the corresponding document element.
+	     * This includes changes to classes, styles, size, content, opacity, origin,
+	     * and matrix transforms.
+	     *
+	     * @private
+	     * @method commit
+	     * @param {Context} context commit context
+	     */
+	    ElementOutput.prototype.commit = function commit(context) {
+	        var target = this._element;
+	        if (!target) return;
+	
+	        var matrix = context.transform;
+	        var opacity = context.opacity;
+	        var origin = context.origin;
+	        var size = context.size;
+	
+	        if (!matrix && this._matrix) {
+	            this._matrix = null;
+	            this._opacity = 0;
+	            _setInvisible(target);
+	            return;
+	        }
+	
+	        if (_xyNotEquals(this._origin, origin)) this._originDirty = true;
+	        if (Transform.notEquals(this._matrix, matrix)) this._transformDirty = true;
+	
+	        if (this._invisible) {
+	            this._invisible = false;
+	            this._element.style.display = '';
+	        }
+	
+	        if (this._opacity !== opacity) {
+	            this._opacity = opacity;
+	            target.style.opacity = (opacity >= 1) ? '0.999999' : opacity;
+	        }
+	
+	        if (this._transformDirty || this._originDirty || this._sizeDirty) {
+	            if (this._sizeDirty) this._sizeDirty = false;
+	
+	            if (this._originDirty) {
+	                if (origin) {
+	                    if (!this._origin) this._origin = [0, 0];
+	                    this._origin[0] = origin[0];
+	                    this._origin[1] = origin[1];
+	                }
+	                else this._origin = null;
+	                _setOrigin(target, this._origin);
+	                this._originDirty = false;
+	            }
+	
+	            if (!matrix) matrix = Transform.identity;
+	            this._matrix = matrix;
+	            var aaMatrix = this._size ? Transform.thenMove(matrix, [-this._size[0]*origin[0], -this._size[1]*origin[1], 0]) : matrix;
+	            _setMatrix(target, aaMatrix);
+	            this._transformDirty = false;
+	        }
+	    };
+	
+	    ElementOutput.prototype.cleanup = function cleanup() {
+	        if (this._element) {
+	            this._invisible = true;
+	            this._element.style.display = 'none';
+	        }
+	    };
+	
+	    /**
+	     * Place the document element that this component manages into the document.
+	     *
+	     * @private
+	     * @method attach
+	     * @param {Node} target document parent of this container
+	     */
+	    ElementOutput.prototype.attach = function attach(target) {
+	        this._element = target;
+	        _addEventListeners.call(this, target);
+	    };
+	
+	    /**
+	     * Remove any contained document content associated with this surface
+	     *   from the actual document.
+	     *
+	     * @private
+	     * @method detach
+	     */
+	    ElementOutput.prototype.detach = function detach() {
+	        var target = this._element;
+	        if (target) {
+	            _removeEventListeners.call(this, target);
+	            if (this._invisible) {
+	                this._invisible = false;
+	                this._element.style.display = '';
+	            }
+	        }
+	        this._element = null;
+	        return target;
+	    };
+	
+	    module.exports = ElementOutput;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 37 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Entity = __webpack_require__(44);
+	    var SpecParser = __webpack_require__(45);
 	
 	    /**
 	     * A wrapper for inserting a renderable component (like a Modifer or
@@ -7547,7 +8192,735 @@
 
 
 /***/ },
-/* 34 */
+/* 38 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: david@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Utility = __webpack_require__(35);
+	
+	    /**
+	     * Transition meta-method to support transitioning multiple
+	     *   values with scalar-only methods.
+	     *
+	     *
+	     * @class MultipleTransition
+	     * @constructor
+	     *
+	     * @param {Object} method Transionable class to multiplex
+	     */
+	    function MultipleTransition(method) {
+	        this.method = method;
+	        this._instances = [];
+	        this.state = [];
+	    }
+	
+	    MultipleTransition.SUPPORTS_MULTIPLE = true;
+	
+	    /**
+	     * Get the state of each transition.
+	     *
+	     * @method get
+	     *
+	     * @return state {Number|Array} state array
+	     */
+	    MultipleTransition.prototype.get = function get() {
+	        for (var i = 0; i < this._instances.length; i++) {
+	            this.state[i] = this._instances[i].get();
+	        }
+	        return this.state;
+	    };
+	
+	    /**
+	     * Set the end states with a shared transition, with optional callback.
+	     *
+	     * @method set
+	     *
+	     * @param {Number|Array} endState Final State.  Use a multi-element argument for multiple transitions.
+	     * @param {Object} transition Transition definition, shared among all instances
+	     * @param {Function} callback called when all endStates have been reached.
+	     */
+	    MultipleTransition.prototype.set = function set(endState, transition, callback) {
+	        var _allCallback = Utility.after(endState.length, callback);
+	        for (var i = 0; i < endState.length; i++) {
+	            if (!this._instances[i]) this._instances[i] = new (this.method)();
+	            this._instances[i].set(endState[i], transition, _allCallback);
+	        }
+	    };
+	
+	    /**
+	     * Reset all transitions to start state.
+	     *
+	     * @method reset
+	     *
+	     * @param  {Number|Array} startState Start state
+	     */
+	    MultipleTransition.prototype.reset = function reset(startState) {
+	        for (var i = 0; i < startState.length; i++) {
+	            if (!this._instances[i]) this._instances[i] = new (this.method)();
+	            this._instances[i].reset(startState[i]);
+	        }
+	    };
+	
+	    module.exports = MultipleTransition;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 39 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: david@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    /**
+	     *
+	     * A state maintainer for a smooth transition between
+	     *    numerically-specified states.  Example numeric states include floats or
+	     *    Transfornm objects.
+	     *
+	     *    An initial state is set with the constructor or set(startValue). A
+	     *    corresponding end state and transition are set with set(endValue,
+	     *    transition). Subsequent calls to set(endValue, transition) begin at
+	     *    the last state. Calls to get(timestamp) provide the _interpolated state
+	     *    along the way.
+	     *
+	     *   Note that there is no event loop here - calls to get() are the only way
+	     *    to find out state projected to the current (or provided) time and are
+	     *    the only way to trigger callbacks. Usually this kind of object would
+	     *    be part of the render() path of a visible component.
+	     *
+	     * @class TweenTransition
+	     * @constructor
+	     *
+	     * @param {Object} options TODO
+	     *    beginning state
+	     */
+	    function TweenTransition(options) {
+	        this.options = Object.create(TweenTransition.DEFAULT_OPTIONS);
+	        if (options) this.setOptions(options);
+	
+	        this._startTime = 0;
+	        this._startValue = 0;
+	        this._updateTime = 0;
+	        this._endValue = 0;
+	        this._curve = undefined;
+	        this._duration = 0;
+	        this._active = false;
+	        this._callback = undefined;
+	        this.state = 0;
+	        this.velocity = undefined;
+	    }
+	
+	    /**
+	     * Transition curves mapping independent variable t from domain [0,1] to a
+	     *    range within [0,1]. Includes functions 'linear', 'easeIn', 'easeOut',
+	     *    'easeInOut', 'easeOutBounce', 'spring'.
+	     *
+	     * @property {object} Curve
+	     * @final
+	     */
+	    TweenTransition.Curves = {
+	        linear: function(t) {
+	            return t;
+	        },
+	        easeIn: function(t) {
+	            return t*t;
+	        },
+	        easeOut: function(t) {
+	            return t*(2-t);
+	        },
+	        easeInOut: function(t) {
+	            if (t <= 0.5) return 2*t*t;
+	            else return -2*t*t + 4*t - 1;
+	        },
+	        easeOutBounce: function(t) {
+	            return t*(3 - 2*t);
+	        },
+	        spring: function(t) {
+	            return (1 - t) * Math.sin(6 * Math.PI * t) + t;
+	        }
+	    };
+	
+	    TweenTransition.SUPPORTS_MULTIPLE = true;
+	    TweenTransition.DEFAULT_OPTIONS = {
+	        curve: TweenTransition.Curves.linear,
+	        duration: 500,
+	        speed: 0 /* considered only if positive */
+	    };
+	
+	    var registeredCurves = {};
+	
+	    /**
+	     * Add "unit" curve to internal dictionary of registered curves.
+	     *
+	     * @method registerCurve
+	     *
+	     * @static
+	     *
+	     * @param {string} curveName dictionary key
+	     * @param {unitCurve} curve function of one numeric variable mapping [0,1]
+	     *    to range inside [0,1]
+	     * @return {boolean} false if key is taken, else true
+	     */
+	    TweenTransition.registerCurve = function registerCurve(curveName, curve) {
+	        if (!registeredCurves[curveName]) {
+	            registeredCurves[curveName] = curve;
+	            return true;
+	        }
+	        else {
+	            return false;
+	        }
+	    };
+	
+	    /**
+	     * Remove object with key "curveName" from internal dictionary of registered
+	     *    curves.
+	     *
+	     * @method unregisterCurve
+	     *
+	     * @static
+	     *
+	     * @param {string} curveName dictionary key
+	     * @return {boolean} false if key has no dictionary value
+	     */
+	    TweenTransition.unregisterCurve = function unregisterCurve(curveName) {
+	        if (registeredCurves[curveName]) {
+	            delete registeredCurves[curveName];
+	            return true;
+	        }
+	        else {
+	            return false;
+	        }
+	    };
+	
+	    /**
+	     * Retrieve function with key "curveName" from internal dictionary of
+	     *    registered curves. Default curves are defined in the
+	     *    TweenTransition.Curves array, where the values represent
+	     *    unitCurve functions.
+	     *
+	     * @method getCurve
+	     *
+	     * @static
+	     *
+	     * @param {string} curveName dictionary key
+	     * @return {unitCurve} curve function of one numeric variable mapping [0,1]
+	     *    to range inside [0,1]
+	     */
+	    TweenTransition.getCurve = function getCurve(curveName) {
+	        var curve = registeredCurves[curveName];
+	        if (curve !== undefined) return curve;
+	        else throw new Error('curve not registered');
+	    };
+	
+	    /**
+	     * Retrieve all available curves.
+	     *
+	     * @method getCurves
+	     *
+	     * @static
+	     *
+	     * @return {object} curve functions of one numeric variable mapping [0,1]
+	     *    to range inside [0,1]
+	     */
+	    TweenTransition.getCurves = function getCurves() {
+	        return registeredCurves;
+	    };
+	
+	     // Interpolate: If a linear function f(0) = a, f(1) = b, then return f(t)
+	    function _interpolate(a, b, t) {
+	        return ((1 - t) * a) + (t * b);
+	    }
+	
+	    function _clone(obj) {
+	        if (obj instanceof Object) {
+	            if (obj instanceof Array) return obj.slice(0);
+	            else return Object.create(obj);
+	        }
+	        else return obj;
+	    }
+	
+	    // Fill in missing properties in "transition" with those in defaultTransition, and
+	    //   convert internal named curve to function object, returning as new
+	    //   object.
+	    function _normalize(transition, defaultTransition) {
+	        var result = {curve: defaultTransition.curve};
+	        if (defaultTransition.duration) result.duration = defaultTransition.duration;
+	        if (defaultTransition.speed) result.speed = defaultTransition.speed;
+	        if (transition instanceof Object) {
+	            if (transition.duration !== undefined) result.duration = transition.duration;
+	            if (transition.curve) result.curve = transition.curve;
+	            if (transition.speed) result.speed = transition.speed;
+	        }
+	        if (typeof result.curve === 'string') result.curve = TweenTransition.getCurve(result.curve);
+	        return result;
+	    }
+	
+	    /**
+	     * Set internal options, overriding any default options.
+	     *
+	     * @method setOptions
+	     *
+	     *
+	     * @param {Object} options options object
+	     * @param {Object} [options.curve] function mapping [0,1] to [0,1] or identifier
+	     * @param {Number} [options.duration] duration in ms
+	     * @param {Number} [options.speed] speed in pixels per ms
+	     */
+	    TweenTransition.prototype.setOptions = function setOptions(options) {
+	        if (options.curve !== undefined) this.options.curve = options.curve;
+	        if (options.duration !== undefined) this.options.duration = options.duration;
+	        if (options.speed !== undefined) this.options.speed = options.speed;
+	    };
+	
+	    /**
+	     * Add transition to end state to the queue of pending transitions. Special
+	     *    Use: calling without a transition resets the object to that state with
+	     *    no pending actions
+	     *
+	     * @method set
+	     *
+	     *
+	     * @param {number|FamousMatrix|Array.Number|Object.<number, number>} endValue
+	     *    end state to which we _interpolate
+	     * @param {transition=} transition object of type {duration: number, curve:
+	     *    f[0,1] -> [0,1] or name}. If transition is omitted, change will be
+	     *    instantaneous.
+	     * @param {function()=} callback Zero-argument function to call on observed
+	     *    completion (t=1)
+	     */
+	    TweenTransition.prototype.set = function set(endValue, transition, callback) {
+	        if (!transition) {
+	            this.reset(endValue);
+	            if (callback) callback();
+	            return;
+	        }
+	
+	        this._startValue = _clone(this.get());
+	        transition = _normalize(transition, this.options);
+	        if (transition.speed) {
+	            var startValue = this._startValue;
+	            if (startValue instanceof Object) {
+	                var variance = 0;
+	                for (var i in startValue) variance += (endValue[i] - startValue[i]) * (endValue[i] - startValue[i]);
+	                transition.duration = Math.sqrt(variance) / transition.speed;
+	            }
+	            else {
+	                transition.duration = Math.abs(endValue - startValue) / transition.speed;
+	            }
+	        }
+	
+	        this._startTime = Date.now();
+	        this._endValue = _clone(endValue);
+	        this._startVelocity = _clone(transition.velocity);
+	        this._duration = transition.duration;
+	        this._curve = transition.curve;
+	        this._active = true;
+	        this._callback = callback;
+	    };
+	
+	    /**
+	     * Cancel all transitions and reset to a stable state
+	     *
+	     * @method reset
+	     *
+	     * @param {number|Array.Number|Object.<number, number>} startValue
+	     *    starting state
+	     * @param {number} startVelocity
+	     *    starting velocity
+	     */
+	    TweenTransition.prototype.reset = function reset(startValue, startVelocity) {
+	        if (this._callback) {
+	            var callback = this._callback;
+	            this._callback = undefined;
+	            callback();
+	        }
+	        this.state = _clone(startValue);
+	        this.velocity = _clone(startVelocity);
+	        this._startTime = 0;
+	        this._duration = 0;
+	        this._updateTime = 0;
+	        this._startValue = this.state;
+	        this._startVelocity = this.velocity;
+	        this._endValue = this.state;
+	        this._active = false;
+	    };
+	
+	    /**
+	     * Get current velocity
+	     *
+	     * @method getVelocity
+	     *
+	     * @returns {Number} velocity
+	     */
+	    TweenTransition.prototype.getVelocity = function getVelocity() {
+	        return this.velocity;
+	    };
+	
+	    /**
+	     * Get interpolated state of current action at provided time. If the last
+	     *    action has completed, invoke its callback.
+	     *
+	     * @method get
+	     *
+	     *
+	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
+	     *    time. If omitted, use current time. (Unix epoch time)
+	     * @return {number|Object.<number|string, number>} beginning state
+	     *    _interpolated to this point in time.
+	     */
+	    TweenTransition.prototype.get = function get(timestamp) {
+	        this.update(timestamp);
+	        return this.state;
+	    };
+	
+	    function _calculateVelocity(current, start, curve, duration, t) {
+	        var velocity;
+	        var eps = 1e-7;
+	        var speed = (curve(t) - curve(t - eps)) / eps;
+	        if (current instanceof Array) {
+	            velocity = [];
+	            for (var i = 0; i < current.length; i++){
+	                if (typeof current[i] === 'number')
+	                    velocity[i] = speed * (current[i] - start[i]) / duration;
+	                else
+	                    velocity[i] = 0;
+	            }
+	
+	        }
+	        else velocity = speed * (current - start) / duration;
+	        return velocity;
+	    }
+	
+	    function _calculateState(start, end, t) {
+	        var state;
+	        if (start instanceof Array) {
+	            state = [];
+	            for (var i = 0; i < start.length; i++) {
+	                if (typeof start[i] === 'number')
+	                    state[i] = _interpolate(start[i], end[i], t);
+	                else
+	                    state[i] = start[i];
+	            }
+	        }
+	        else state = _interpolate(start, end, t);
+	        return state;
+	    }
+	
+	    /**
+	     * Update internal state to the provided timestamp. This may invoke the last
+	     *    callback and begin a new action.
+	     *
+	     * @method update
+	     *
+	     *
+	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
+	     *    time. If omitted, use current time. (Unix epoch time)
+	     */
+	    TweenTransition.prototype.update = function update(timestamp) {
+	        if (!this._active) {
+	            if (this._callback) {
+	                var callback = this._callback;
+	                this._callback = undefined;
+	                callback();
+	            }
+	            return;
+	        }
+	
+	        if (!timestamp) timestamp = Date.now();
+	        if (this._updateTime >= timestamp) return;
+	        this._updateTime = timestamp;
+	
+	        var timeSinceStart = timestamp - this._startTime;
+	        if (timeSinceStart >= this._duration) {
+	            this.state = this._endValue;
+	            this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, 1);
+	            this._active = false;
+	        }
+	        else if (timeSinceStart < 0) {
+	            this.state = this._startValue;
+	            this.velocity = this._startVelocity;
+	        }
+	        else {
+	            var t = timeSinceStart / this._duration;
+	            this.state = _calculateState(this._startValue, this._endValue, this._curve(t));
+	            this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, t);
+	        }
+	    };
+	
+	    /**
+	     * Is there at least one action pending completion?
+	     *
+	     * @method isActive
+	     *
+	     *
+	     * @return {boolean}
+	     */
+	    TweenTransition.prototype.isActive = function isActive() {
+	        return this._active;
+	    };
+	
+	    /**
+	     * Halt transition at current state and erase all pending actions.
+	     *
+	     * @method halt
+	     *
+	     */
+	    TweenTransition.prototype.halt = function halt() {
+	        this.reset(this.get());
+	    };
+	
+	    // Register all the default curves
+	    TweenTransition.registerCurve('linear', TweenTransition.Curves.linear);
+	    TweenTransition.registerCurve('easeIn', TweenTransition.Curves.easeIn);
+	    TweenTransition.registerCurve('easeOut', TweenTransition.Curves.easeOut);
+	    TweenTransition.registerCurve('easeInOut', TweenTransition.Curves.easeInOut);
+	    TweenTransition.registerCurve('easeOutBounce', TweenTransition.Curves.easeOutBounce);
+	    TweenTransition.registerCurve('spring', TweenTransition.Curves.spring);
+	
+	    TweenTransition.customCurve = function customCurve(v1, v2) {
+	        v1 = v1 || 0; v2 = v2 || 0;
+	        return function(t) {
+	            return v1*t + (-2*v1 - v2 + 3)*t*t + (v1 + v2 - 2)*t*t*t;
+	        };
+	    };
+	
+	    module.exports = TweenTransition;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 40 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    /**
+	     * Internal helper object to Context that handles the process of
+	     *   creating and allocating DOM elements within a managed div.
+	     *   Private.
+	     *
+	     * @class ElementAllocator
+	     * @constructor
+	     * @private
+	     * @param {Node} container document element in which Famo.us content will be inserted
+	     */
+	    function ElementAllocator(container) {
+	        if (!container) container = document.createDocumentFragment();
+	        this.container = container;
+	        this.detachedNodes = {};
+	        this.nodeCount = 0;
+	    }
+	
+	    /**
+	     * Move the document elements from their original container to a new one.
+	     *
+	     * @private
+	     * @method migrate
+	     *
+	     * @param {Node} container document element to which Famo.us content will be migrated
+	     */
+	    ElementAllocator.prototype.migrate = function migrate(container) {
+	        var oldContainer = this.container;
+	        if (container === oldContainer) return;
+	
+	        if (oldContainer instanceof DocumentFragment) {
+	            container.appendChild(oldContainer);
+	        }
+	        else {
+	            while (oldContainer.hasChildNodes()) {
+	                container.appendChild(oldContainer.removeChild(oldContainer.firstChild));
+	            }
+	        }
+	
+	        this.container = container;
+	    };
+	
+	    /**
+	     * Allocate an element of specified type from the pool.
+	     *
+	     * @private
+	     * @method allocate
+	     *
+	     * @param {string} type type of element, e.g. 'div'
+	     * @return {Node} allocated document element
+	     */
+	    ElementAllocator.prototype.allocate = function allocate(type) {
+	        type = type.toLowerCase();
+	        if (!(type in this.detachedNodes)) this.detachedNodes[type] = [];
+	        var nodeStore = this.detachedNodes[type];
+	        var result;
+	        if (nodeStore.length > 0) {
+	            result = nodeStore.pop();
+	        }
+	        else {
+	            result = document.createElement(type);
+	            this.container.appendChild(result);
+	        }
+	        this.nodeCount++;
+	        return result;
+	    };
+	
+	    /**
+	     * De-allocate an element of specified type to the pool.
+	     *
+	     * @private
+	     * @method deallocate
+	     *
+	     * @param {Node} element document element to deallocate
+	     */
+	    ElementAllocator.prototype.deallocate = function deallocate(element) {
+	        var nodeType = element.nodeName.toLowerCase();
+	        var nodeStore = this.detachedNodes[nodeType];
+	        nodeStore.push(element);
+	        this.nodeCount--;
+	    };
+	
+	    /**
+	     * Get count of total allocated nodes in the document.
+	     *
+	     * @private
+	     * @method getNodeCount
+	     *
+	     * @return {Number} total node count
+	     */
+	    ElementAllocator.prototype.getNodeCount = function getNodeCount() {
+	        return this.nodeCount;
+	    };
+	
+	    module.exports = ElementAllocator;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 41 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    /**
+	     * EventEmitter represents a channel for events.
+	     *
+	     * @class EventEmitter
+	     * @constructor
+	     */
+	    function EventEmitter() {
+	        this.listeners = {};
+	        this._owner = this;
+	    }
+	
+	    /**
+	     * Trigger an event, sending to all downstream handlers
+	     *   listening for provided 'type' key.
+	     *
+	     * @method emit
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {Object} event event data
+	     * @return {EventHandler} this
+	     */
+	    EventEmitter.prototype.emit = function emit(type, event) {
+	        var handlers = this.listeners[type];
+	        if (handlers) {
+	            for (var i = 0; i < handlers.length; i++) {
+	                handlers[i].call(this._owner, event);
+	            }
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Bind a callback function to an event type handled by this object.
+	     *
+	     * @method "on"
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function(string, Object)} handler callback
+	     * @return {EventHandler} this
+	     */
+	   EventEmitter.prototype.on = function on(type, handler) {
+	        if (!(type in this.listeners)) this.listeners[type] = [];
+	        var index = this.listeners[type].indexOf(handler);
+	        if (index < 0) this.listeners[type].push(handler);
+	        return this;
+	    };
+	
+	    /**
+	     * Alias for "on".
+	     * @method addListener
+	     */
+	    EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+	
+	   /**
+	     * Unbind an event by type and handler.
+	     *   This undoes the work of "on".
+	     *
+	     * @method removeListener
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function} handler function object to remove
+	     * @return {EventEmitter} this
+	     */
+	    EventEmitter.prototype.removeListener = function removeListener(type, handler) {
+	        var listener = this.listeners[type];
+	        if (listener !== undefined) {
+	            var index = listener.indexOf(handler);
+	            if (index >= 0) listener.splice(index, 1);
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Call event handlers with this set to owner.
+	     *
+	     * @method bindThis
+	     *
+	     * @param {Object} owner object this EventEmitter belongs to
+	     */
+	    EventEmitter.prototype.bindThis = function bindThis(owner) {
+	        this._owner = owner;
+	    };
+	
+	    module.exports = EventEmitter;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7891,17 +9264,17 @@
 
 
 /***/ },
-/* 35 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(52);
-	    var Group = __webpack_require__(54);
-	    var OptionsManager = __webpack_require__(32);
-	    var Transform = __webpack_require__(24);
-	    var Utility = __webpack_require__(40);
-	    var ViewSequence = __webpack_require__(34);
-	    var EventHandler = __webpack_require__(31);
+	    var Entity = __webpack_require__(44);
+	    var Group = __webpack_require__(53);
+	    var OptionsManager = __webpack_require__(33);
+	    var Transform = __webpack_require__(18);
+	    var Utility = __webpack_require__(35);
+	    var ViewSequence = __webpack_require__(42);
+	    var EventHandler = __webpack_require__(32);
 	
 	    /**
 	     * Scroller lays out a collection of renderables, and will browse through them based on
@@ -8207,7 +9580,272 @@
 
 
 /***/ },
-/* 36 */
+/* 44 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    /**
+	     * A singleton that maintains a global registry of Surfaces.
+	     *   Private.
+	     *
+	     * @private
+	     * @static
+	     * @class Entity
+	     */
+	
+	    var entities = [];
+	
+	    /**
+	     * Get entity from global index.
+	     *
+	     * @private
+	     * @method get
+	     * @param {Number} id entity registration id
+	     * @return {Surface} entity in the global index
+	     */
+	    function get(id) {
+	        return entities[id];
+	    }
+	
+	    /**
+	     * Overwrite entity in the global index
+	     *
+	     * @private
+	     * @method set
+	     * @param {Number} id entity registration id
+	     * @param {Surface} entity to add to the global index
+	     */
+	    function set(id, entity) {
+	        entities[id] = entity;
+	    }
+	
+	    /**
+	     * Add entity to global index
+	     *
+	     * @private
+	     * @method register
+	     * @param {Surface} entity to add to global index
+	     * @return {Number} new id
+	     */
+	    function register(entity) {
+	        var id = entities.length;
+	        set(id, entity);
+	        return id;
+	    }
+	
+	    /**
+	     * Remove entity from global index
+	     *
+	     * @private
+	     * @method unregister
+	     * @param {Number} id entity registration id
+	     */
+	    function unregister(id) {
+	        set(id, null);
+	    }
+	
+	    module.exports = {
+	        register: register,
+	        unregister: unregister,
+	        get: get,
+	        set: set
+	    };
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 45 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Transform = __webpack_require__(18);
+	
+	    /**
+	     *
+	     * This object translates the rendering instructions ("render specs")
+	     *   that renderable components generate into document update
+	     *   instructions ("update specs").  Private.
+	     *
+	     * @private
+	     * @class SpecParser
+	     * @constructor
+	     */
+	    function SpecParser() {
+	        this.result = {};
+	    }
+	    SpecParser._instance = new SpecParser();
+	
+	    /**
+	     * Convert a render spec coming from the context's render chain to an
+	     *    update spec for the update chain. This is the only major entry point
+	     *    for a consumer of this class.
+	     *
+	     * @method parse
+	     * @static
+	     * @private
+	     *
+	     * @param {renderSpec} spec input render spec
+	     * @param {Object} context context to do the parse in
+	     * @return {Object} the resulting update spec (if no callback
+	     *   specified, else none)
+	     */
+	    SpecParser.parse = function parse(spec, context) {
+	        return SpecParser._instance.parse(spec, context);
+	    };
+	
+	    /**
+	     * Convert a renderSpec coming from the context's render chain to an update
+	     *    spec for the update chain. This is the only major entrypoint for a
+	     *    consumer of this class.
+	     *
+	     * @method parse
+	     *
+	     * @private
+	     * @param {renderSpec} spec input render spec
+	     * @param {Context} context
+	     * @return {updateSpec} the resulting update spec
+	     */
+	    SpecParser.prototype.parse = function parse(spec, context) {
+	        this.reset();
+	        this._parseSpec(spec, context, Transform.identity);
+	        return this.result;
+	    };
+	
+	    /**
+	     * Prepare SpecParser for re-use (or first use) by setting internal state
+	     *  to blank.
+	     *
+	     * @private
+	     * @method reset
+	     */
+	    SpecParser.prototype.reset = function reset() {
+	        this.result = {};
+	    };
+	
+	    // Multiply matrix M by vector v
+	    function _vecInContext(v, m) {
+	        return [
+	            v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
+	            v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
+	            v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
+	        ];
+	    }
+	
+	    var _zeroZero = [0, 0];
+	
+	    // From the provided renderSpec tree, recursively compose opacities,
+	    //    origins, transforms, and sizes corresponding to each surface id from
+	    //    the provided renderSpec tree structure. On completion, those
+	    //    properties of 'this' object should be ready to use to build an
+	    //    updateSpec.
+	    SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
+	        var id;
+	        var target;
+	        var transform;
+	        var opacity;
+	        var origin;
+	        var align;
+	        var size;
+	
+	        if (typeof spec === 'number') {
+	            id = spec;
+	            transform = parentContext.transform;
+	            align = parentContext.align || _zeroZero;
+	            if (parentContext.size && align && (align[0] || align[1])) {
+	                var alignAdjust = [align[0] * parentContext.size[0], align[1] * parentContext.size[1], 0];
+	                transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
+	            }
+	            this.result[id] = {
+	                transform: transform,
+	                opacity: parentContext.opacity,
+	                origin: parentContext.origin || _zeroZero,
+	                align: parentContext.align || _zeroZero,
+	                size: parentContext.size
+	            };
+	        }
+	        else if (!spec) { // placed here so 0 will be cached earlier
+	            return;
+	        }
+	        else if (spec instanceof Array) {
+	            for (var i = 0; i < spec.length; i++) {
+	                this._parseSpec(spec[i], parentContext, sizeContext);
+	            }
+	        }
+	        else {
+	            target = spec.target;
+	            transform = parentContext.transform;
+	            opacity = parentContext.opacity;
+	            origin = parentContext.origin;
+	            align = parentContext.align;
+	            size = parentContext.size;
+	            var nextSizeContext = sizeContext;
+	
+	            if (spec.opacity !== undefined) opacity = parentContext.opacity * spec.opacity;
+	            if (spec.transform) transform = Transform.multiply(parentContext.transform, spec.transform);
+	            if (spec.origin) {
+	                origin = spec.origin;
+	                nextSizeContext = parentContext.transform;
+	            }
+	            if (spec.align) align = spec.align;
+	
+	            if (spec.size || spec.proportions) {
+	                var parentSize = size;
+	                size = [size[0], size[1]];
+	
+	                if (spec.size) {
+	                    if (spec.size[0] !== undefined) size[0] = spec.size[0];
+	                    if (spec.size[1] !== undefined) size[1] = spec.size[1];
+	                }
+	
+	                if (spec.proportions) {
+	                    if (spec.proportions[0] !== undefined) size[0] = size[0] * spec.proportions[0];
+	                    if (spec.proportions[1] !== undefined) size[1] = size[1] * spec.proportions[1];
+	                }
+	
+	                if (parentSize) {
+	                    if (align && (align[0] || align[1])) transform = Transform.thenMove(transform, _vecInContext([align[0] * parentSize[0], align[1] * parentSize[1], 0], sizeContext));
+	                    if (origin && (origin[0] || origin[1])) transform = Transform.moveThen([-origin[0] * size[0], -origin[1] * size[1], 0], transform);
+	                }
+	
+	                nextSizeContext = parentContext.transform;
+	                origin = null;
+	                align = null;
+	            }
+	
+	            this._parseSpec(target, {
+	                transform: transform,
+	                opacity: opacity,
+	                origin: origin,
+	                align: align,
+	                size: size
+	            }, nextSizeContext);
+	        }
+	    };
+	
+	    module.exports = SpecParser;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8218,7 +9856,7 @@
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(31);
+	    var EventHandler = __webpack_require__(32);
 	
 	    /**
 	     * The Physics Engine is responsible for mediating bodies with their
@@ -8736,7 +10374,7 @@
 
 
 /***/ },
-/* 37 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8749,10 +10387,10 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(46);
-	    var Transform = __webpack_require__(24);
-	    var EventHandler = __webpack_require__(31);
-	    var Integrator = __webpack_require__(58);
+	    var Vector = __webpack_require__(56);
+	    var Transform = __webpack_require__(18);
+	    var EventHandler = __webpack_require__(32);
+	    var Integrator = __webpack_require__(57);
 	
 	    /**
 	     * A point body that is controlled by the Physics Engine. A particle has
@@ -9129,7 +10767,7 @@
 
 
 /***/ },
-/* 38 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9254,7 +10892,7 @@
 
 
 /***/ },
-/* 39 */
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9270,7 +10908,7 @@
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	    var Force = __webpack_require__(55);
-	    var Vector = __webpack_require__(46);
+	    var Vector = __webpack_require__(56);
 	
 	    /**
 	     *  A force that moves a physics body to a location with a spring motion.
@@ -9527,134 +11165,7 @@
 
 
 /***/ },
-/* 40 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    /**
-	     * This namespace holds standalone functionality.
-	     *  Currently includes name mapping for transition curves,
-	     *  name mapping for origin pairs, and the after() function.
-	     *
-	     * @class Utility
-	     * @static
-	     */
-	    var Utility = {};
-	
-	    /**
-	     * Table of direction array positions
-	     *
-	     * @property {object} Direction
-	     * @final
-	     */
-	    Utility.Direction = {
-	        X: 0,
-	        Y: 1,
-	        Z: 2
-	    };
-	
-	    /**
-	     * Return wrapper around callback function. Once the wrapper is called N
-	     *   times, invoke the callback function. Arguments and scope preserved.
-	     *
-	     * @method after
-	     *
-	     * @param {number} count number of calls before callback function invoked
-	     * @param {Function} callback wrapped callback function
-	     *
-	     * @return {function} wrapped callback with coundown feature
-	     */
-	    Utility.after = function after(count, callback) {
-	        var counter = count;
-	        return function() {
-	            counter--;
-	            if (counter === 0) callback.apply(this, arguments);
-	        };
-	    };
-	
-	    /**
-	     * Load a URL and return its contents in a callback
-	     *
-	     * @method loadURL
-	     *
-	     * @param {string} url URL of object
-	     * @param {function} callback callback to dispatch with content
-	     */
-	    Utility.loadURL = function loadURL(url, callback) {
-	        var xhr = new XMLHttpRequest();
-	        xhr.onreadystatechange = function onreadystatechange() {
-	            if (this.readyState === 4) {
-	                if (callback) callback(this.responseText);
-	            }
-	        };
-	        xhr.open('GET', url);
-	        xhr.send();
-	    };
-	
-	    /**
-	     * Create a document fragment from a string of HTML
-	     *
-	     * @method createDocumentFragmentFromHTML
-	     *
-	     * @param {string} html HTML to convert to DocumentFragment
-	     *
-	     * @return {DocumentFragment} DocumentFragment representing input HTML
-	     */
-	    Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
-	        var element = document.createElement('div');
-	        element.innerHTML = html;
-	        var result = document.createDocumentFragment();
-	        while (element.hasChildNodes()) result.appendChild(element.firstChild);
-	        return result;
-	    };
-	
-	    /*
-	     *  Deep clone an object.
-	     *  @param b {Object} Object to clone
-	     *  @return a {Object} Cloned object.
-	     */
-	    Utility.clone = function clone(b) {
-	        var a;
-	        if (typeof b === 'object') {
-	            a = (b instanceof Array) ? [] : {};
-	            for (var key in b) {
-	                if (typeof b[key] === 'object' && b[key] !== null) {
-	                    if (b[key] instanceof Array) {
-	                        a[key] = new Array(b[key].length);
-	                        for (var i = 0; i < b[key].length; i++) {
-	                            a[key][i] = Utility.clone(b[key][i]);
-	                        }
-	                    }
-	                    else {
-	                      a[key] = Utility.clone(b[key]);
-	                    }
-	                }
-	                else {
-	                    a[key] = b[key];
-	                }
-	            }
-	        }
-	        else {
-	            a = b;
-	        }
-	        return a;
-	    };
-	
-	    module.exports = Utility;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 41 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9667,7 +11178,7 @@
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
-	    var EventHandler = __webpack_require__(31);
+	    var EventHandler = __webpack_require__(32);
 	
 	    /**
 	     * Combines multiple types of sync classes (e.g. mouse, touch,
@@ -9785,7 +11296,7 @@
 
 
 /***/ },
-/* 42 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9797,9 +11308,9 @@
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(31);
-	    var Engine = __webpack_require__(14);
-	    var OptionsManager = __webpack_require__(32);
+	    var EventHandler = __webpack_require__(32);
+	    var Engine = __webpack_require__(17);
+	    var OptionsManager = __webpack_require__(33);
 	
 	    /**
 	     * Handles piped in mousewheel events.
@@ -9988,7 +11499,7 @@
 
 
 /***/ },
-/* 43 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10000,9 +11511,9 @@
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var TouchTracker = __webpack_require__(56);
-	    var EventHandler = __webpack_require__(31);
-	    var OptionsManager = __webpack_require__(32);
+	    var TouchTracker = __webpack_require__(54);
+	    var EventHandler = __webpack_require__(32);
+	    var OptionsManager = __webpack_require__(33);
 	
 	    /**
 	     * Handles piped in touch events. Emits 'start', 'update', and 'events'
@@ -10215,90 +11726,267 @@
 
 
 /***/ },
-/* 44 */
+/* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
 	 * License, v. 2.0. If a copy of the MPL was not distributed with this
 	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	 *
-	 * Owner: david@famo.us
+	 * Owner: mark@famo.us
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Utility = __webpack_require__(40);
+	    var Context = __webpack_require__(31);
+	    var Transform = __webpack_require__(18);
+	    var Surface = __webpack_require__(23);
 	
 	    /**
-	     * Transition meta-method to support transitioning multiple
-	     *   values with scalar-only methods.
+	     * A Context designed to contain surfaces and set properties
+	     *   to be applied to all of them at once.
+	     *   This is primarily used for specific performance improvements in the rendering engine.
+	     *   Private.
 	     *
-	     *
-	     * @class MultipleTransition
+	     * @private
+	     * @class Group
+	     * @extends Surface
 	     * @constructor
-	     *
-	     * @param {Object} method Transionable class to multiplex
+	     * @param {Object} [options] Surface options array (see Surface})
 	     */
-	    function MultipleTransition(method) {
-	        this.method = method;
-	        this._instances = [];
-	        this.state = [];
+	    function Group(options) {
+	        Surface.call(this, options);
+	        this._shouldRecalculateSize = false;
+	        this._container = document.createDocumentFragment();
+	        this.context = new Context(this._container);
+	        this.setContent(this._container);
+	        this._groupSize = [undefined, undefined];
 	    }
 	
-	    MultipleTransition.SUPPORTS_MULTIPLE = true;
+	    /** @const */
+	    Group.SIZE_ZERO = [0, 0];
+	
+	    Group.prototype = Object.create(Surface.prototype);
+	    Group.prototype.elementType = 'div';
+	    Group.prototype.elementClass = 'famous-group';
 	
 	    /**
-	     * Get the state of each transition.
+	     * Add renderables to this component's render tree.
 	     *
-	     * @method get
-	     *
-	     * @return state {Number|Array} state array
+	     * @method add
+	     * @private
+	     * @param {Object} obj renderable object
+	     * @return {RenderNode} Render wrapping provided object, if not already a RenderNode
 	     */
-	    MultipleTransition.prototype.get = function get() {
-	        for (var i = 0; i < this._instances.length; i++) {
-	            this.state[i] = this._instances[i].get();
-	        }
-	        return this.state;
+	    Group.prototype.add = function add() {
+	        return this.context.add.apply(this.context, arguments);
 	    };
 	
 	    /**
-	     * Set the end states with a shared transition, with optional callback.
+	     * Generate a render spec from the contents of this component.
 	     *
-	     * @method set
-	     *
-	     * @param {Number|Array} endState Final State.  Use a multi-element argument for multiple transitions.
-	     * @param {Object} transition Transition definition, shared among all instances
-	     * @param {Function} callback called when all endStates have been reached.
+	     * @private
+	     * @method render
+	     * @return {Number} Render spec for this component
 	     */
-	    MultipleTransition.prototype.set = function set(endState, transition, callback) {
-	        var _allCallback = Utility.after(endState.length, callback);
-	        for (var i = 0; i < endState.length; i++) {
-	            if (!this._instances[i]) this._instances[i] = new (this.method)();
-	            this._instances[i].set(endState[i], transition, _allCallback);
-	        }
+	    Group.prototype.render = function render() {
+	        return Surface.prototype.render.call(this);
 	    };
 	
 	    /**
-	     * Reset all transitions to start state.
+	     * Place the document element this component manages into the document.
 	     *
-	     * @method reset
-	     *
-	     * @param  {Number|Array} startState Start state
+	     * @private
+	     * @method deploy
+	     * @param {Node} target document parent of this container
 	     */
-	    MultipleTransition.prototype.reset = function reset(startState) {
-	        for (var i = 0; i < startState.length; i++) {
-	            if (!this._instances[i]) this._instances[i] = new (this.method)();
-	            this._instances[i].reset(startState[i]);
-	        }
+	    Group.prototype.deploy = function deploy(target) {
+	        this.context.migrate(target);
 	    };
 	
-	    module.exports = MultipleTransition;
+	    /**
+	     * Remove this component and contained content from the document
+	     *
+	     * @private
+	     * @method recall
+	     *
+	     * @param {Node} target node to which the component was deployed
+	     */
+	    Group.prototype.recall = function recall(target) {
+	        this._container = document.createDocumentFragment();
+	        this.context.migrate(this._container);
+	    };
+	
+	    /**
+	     * Apply changes from this component to the corresponding document element.
+	     *
+	     * @private
+	     * @method commit
+	     *
+	     * @param {Object} context update spec passed in from above in the render tree.
+	     */
+	    Group.prototype.commit = function commit(context) {
+	        var transform = context.transform;
+	        var origin = context.origin;
+	        var opacity = context.opacity;
+	        var size = context.size;
+	        var result = Surface.prototype.commit.call(this, {
+	            allocator: context.allocator,
+	            transform: Transform.thenMove(transform, [-origin[0] * size[0], -origin[1] * size[1], 0]),
+	            opacity: opacity,
+	            origin: origin,
+	            size: Group.SIZE_ZERO
+	        });
+	        if (size[0] !== this._groupSize[0] || size[1] !== this._groupSize[1]) {
+	            this._groupSize[0] = size[0];
+	            this._groupSize[1] = size[1];
+	            this.context.setSize(size);
+	        }
+	        this.context.update({
+	            transform: Transform.translate(-origin[0] * size[0], -origin[1] * size[1], 0),
+	            origin: origin,
+	            size: size
+	        });
+	        return result;
+	    };
+	
+	    module.exports = Group;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
-/* 45 */
+/* 54 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var EventHandler = __webpack_require__(32);
+	
+	    var _now = Date.now;
+	
+	    function _timestampTouch(touch, event, history) {
+	        return {
+	            x: touch.clientX,
+	            y: touch.clientY,
+	            identifier : touch.identifier,
+	            origin: event.origin,
+	            timestamp: _now(),
+	            count: event.touches.length,
+	            history: history
+	        };
+	    }
+	
+	    function _handleStart(event) {
+	        if (event.touches.length > this.touchLimit) return;
+	        this.isTouched = true;
+	
+	        for (var i = 0; i < event.changedTouches.length; i++) {
+	            var touch = event.changedTouches[i];
+	            var data = _timestampTouch(touch, event, null);
+	            this.eventOutput.emit('trackstart', data);
+	            if (!this.selective && !this.touchHistory[touch.identifier]) this.track(data);
+	        }
+	    }
+	
+	    function _handleMove(event) {
+	        if (event.touches.length > this.touchLimit) return;
+	
+	        for (var i = 0; i < event.changedTouches.length; i++) {
+	            var touch = event.changedTouches[i];
+	            var history = this.touchHistory[touch.identifier];
+	            if (history) {
+	                var data = _timestampTouch(touch, event, history);
+	                this.touchHistory[touch.identifier].push(data);
+	                this.eventOutput.emit('trackmove', data);
+	            }
+	        }
+	    }
+	
+	    function _handleEnd(event) {
+	        if (!this.isTouched) return;
+	
+	        for (var i = 0; i < event.changedTouches.length; i++) {
+	            var touch = event.changedTouches[i];
+	            var history = this.touchHistory[touch.identifier];
+	            if (history) {
+	                var data = _timestampTouch(touch, event, history);
+	                this.eventOutput.emit('trackend', data);
+	                delete this.touchHistory[touch.identifier];
+	            }
+	        }
+	
+	        this.isTouched = false;
+	    }
+	
+	    function _handleUnpipe() {
+	        for (var i in this.touchHistory) {
+	            var history = this.touchHistory[i];
+	            this.eventOutput.emit('trackend', {
+	                touch: history[history.length - 1].touch,
+	                timestamp: Date.now(),
+	                count: 0,
+	                history: history
+	            });
+	            delete this.touchHistory[i];
+	        }
+	    }
+	
+	    /**
+	     * Helper to TouchSync – tracks piped in touch events, organizes touch
+	     *   events by ID, and emits track events back to TouchSync.
+	     *   Emits 'trackstart', 'trackmove', and 'trackend' events upstream.
+	     *
+	     * @class TouchTracker
+	     * @constructor
+	     * @param {Object} options default options overrides
+	     * @param [options.selective] {Boolean} selective if false, saves state for each touch
+	     * @param [options.touchLimit] {Number} touchLimit upper bound for emitting events based on number of touches
+	     */
+	    function TouchTracker(options) {
+	        this.selective = options.selective;
+	        this.touchLimit = options.touchLimit || 1;
+	
+	        this.touchHistory = {};
+	
+	        this.eventInput = new EventHandler();
+	        this.eventOutput = new EventHandler();
+	
+	        EventHandler.setInputHandler(this, this.eventInput);
+	        EventHandler.setOutputHandler(this, this.eventOutput);
+	
+	        this.eventInput.on('touchstart', _handleStart.bind(this));
+	        this.eventInput.on('touchmove', _handleMove.bind(this));
+	        this.eventInput.on('touchend', _handleEnd.bind(this));
+	        this.eventInput.on('touchcancel', _handleEnd.bind(this));
+	        this.eventInput.on('unpipe', _handleUnpipe.bind(this));
+	
+	        this.isTouched = false;
+	    }
+	
+	    /**
+	     * Record touch data, if selective is false.
+	     * @private
+	     * @method track
+	     * @param {Object} data touch data
+	     */
+	    TouchTracker.prototype.track = function track(data) {
+	        this.touchHistory[data.identifier] = [data];
+	    };
+	
+	    module.exports = TouchTracker;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 55 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10311,426 +11999,61 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Vector = __webpack_require__(56);
+	    var EventHandler = __webpack_require__(32);
 	
 	    /**
+	     * Force base class.
 	     *
-	     * A state maintainer for a smooth transition between
-	     *    numerically-specified states.  Example numeric states include floats or
-	     *    Transfornm objects.
-	     *
-	     *    An initial state is set with the constructor or set(startValue). A
-	     *    corresponding end state and transition are set with set(endValue,
-	     *    transition). Subsequent calls to set(endValue, transition) begin at
-	     *    the last state. Calls to get(timestamp) provide the _interpolated state
-	     *    along the way.
-	     *
-	     *   Note that there is no event loop here - calls to get() are the only way
-	     *    to find out state projected to the current (or provided) time and are
-	     *    the only way to trigger callbacks. Usually this kind of object would
-	     *    be part of the render() path of a visible component.
-	     *
-	     * @class TweenTransition
+	     * @class Force
+	     * @uses EventHandler
 	     * @constructor
-	     *
-	     * @param {Object} options TODO
-	     *    beginning state
 	     */
-	    function TweenTransition(options) {
-	        this.options = Object.create(TweenTransition.DEFAULT_OPTIONS);
-	        if (options) this.setOptions(options);
-	
-	        this._startTime = 0;
-	        this._startValue = 0;
-	        this._updateTime = 0;
-	        this._endValue = 0;
-	        this._curve = undefined;
-	        this._duration = 0;
-	        this._active = false;
-	        this._callback = undefined;
-	        this.state = 0;
-	        this.velocity = undefined;
+	    function Force(force) {
+	        this.force = new Vector(force);
+	        this._eventOutput = new EventHandler();
+	        EventHandler.setOutputHandler(this, this._eventOutput);
 	    }
 	
 	    /**
-	     * Transition curves mapping independent variable t from domain [0,1] to a
-	     *    range within [0,1]. Includes functions 'linear', 'easeIn', 'easeOut',
-	     *    'easeInOut', 'easeOutBounce', 'spring'.
-	     *
-	     * @property {object} Curve
-	     * @final
-	     */
-	    TweenTransition.Curves = {
-	        linear: function(t) {
-	            return t;
-	        },
-	        easeIn: function(t) {
-	            return t*t;
-	        },
-	        easeOut: function(t) {
-	            return t*(2-t);
-	        },
-	        easeInOut: function(t) {
-	            if (t <= 0.5) return 2*t*t;
-	            else return -2*t*t + 4*t - 1;
-	        },
-	        easeOutBounce: function(t) {
-	            return t*(3 - 2*t);
-	        },
-	        spring: function(t) {
-	            return (1 - t) * Math.sin(6 * Math.PI * t) + t;
-	        }
-	    };
-	
-	    TweenTransition.SUPPORTS_MULTIPLE = true;
-	    TweenTransition.DEFAULT_OPTIONS = {
-	        curve: TweenTransition.Curves.linear,
-	        duration: 500,
-	        speed: 0 /* considered only if positive */
-	    };
-	
-	    var registeredCurves = {};
-	
-	    /**
-	     * Add "unit" curve to internal dictionary of registered curves.
-	     *
-	     * @method registerCurve
-	     *
-	     * @static
-	     *
-	     * @param {string} curveName dictionary key
-	     * @param {unitCurve} curve function of one numeric variable mapping [0,1]
-	     *    to range inside [0,1]
-	     * @return {boolean} false if key is taken, else true
-	     */
-	    TweenTransition.registerCurve = function registerCurve(curveName, curve) {
-	        if (!registeredCurves[curveName]) {
-	            registeredCurves[curveName] = curve;
-	            return true;
-	        }
-	        else {
-	            return false;
-	        }
-	    };
-	
-	    /**
-	     * Remove object with key "curveName" from internal dictionary of registered
-	     *    curves.
-	     *
-	     * @method unregisterCurve
-	     *
-	     * @static
-	     *
-	     * @param {string} curveName dictionary key
-	     * @return {boolean} false if key has no dictionary value
-	     */
-	    TweenTransition.unregisterCurve = function unregisterCurve(curveName) {
-	        if (registeredCurves[curveName]) {
-	            delete registeredCurves[curveName];
-	            return true;
-	        }
-	        else {
-	            return false;
-	        }
-	    };
-	
-	    /**
-	     * Retrieve function with key "curveName" from internal dictionary of
-	     *    registered curves. Default curves are defined in the
-	     *    TweenTransition.Curves array, where the values represent
-	     *    unitCurve functions.
-	     *
-	     * @method getCurve
-	     *
-	     * @static
-	     *
-	     * @param {string} curveName dictionary key
-	     * @return {unitCurve} curve function of one numeric variable mapping [0,1]
-	     *    to range inside [0,1]
-	     */
-	    TweenTransition.getCurve = function getCurve(curveName) {
-	        var curve = registeredCurves[curveName];
-	        if (curve !== undefined) return curve;
-	        else throw new Error('curve not registered');
-	    };
-	
-	    /**
-	     * Retrieve all available curves.
-	     *
-	     * @method getCurves
-	     *
-	     * @static
-	     *
-	     * @return {object} curve functions of one numeric variable mapping [0,1]
-	     *    to range inside [0,1]
-	     */
-	    TweenTransition.getCurves = function getCurves() {
-	        return registeredCurves;
-	    };
-	
-	     // Interpolate: If a linear function f(0) = a, f(1) = b, then return f(t)
-	    function _interpolate(a, b, t) {
-	        return ((1 - t) * a) + (t * b);
-	    }
-	
-	    function _clone(obj) {
-	        if (obj instanceof Object) {
-	            if (obj instanceof Array) return obj.slice(0);
-	            else return Object.create(obj);
-	        }
-	        else return obj;
-	    }
-	
-	    // Fill in missing properties in "transition" with those in defaultTransition, and
-	    //   convert internal named curve to function object, returning as new
-	    //   object.
-	    function _normalize(transition, defaultTransition) {
-	        var result = {curve: defaultTransition.curve};
-	        if (defaultTransition.duration) result.duration = defaultTransition.duration;
-	        if (defaultTransition.speed) result.speed = defaultTransition.speed;
-	        if (transition instanceof Object) {
-	            if (transition.duration !== undefined) result.duration = transition.duration;
-	            if (transition.curve) result.curve = transition.curve;
-	            if (transition.speed) result.speed = transition.speed;
-	        }
-	        if (typeof result.curve === 'string') result.curve = TweenTransition.getCurve(result.curve);
-	        return result;
-	    }
-	
-	    /**
-	     * Set internal options, overriding any default options.
+	     * Basic setter for options
 	     *
 	     * @method setOptions
-	     *
-	     *
-	     * @param {Object} options options object
-	     * @param {Object} [options.curve] function mapping [0,1] to [0,1] or identifier
-	     * @param {Number} [options.duration] duration in ms
-	     * @param {Number} [options.speed] speed in pixels per ms
+	     * @param options {Objects}
 	     */
-	    TweenTransition.prototype.setOptions = function setOptions(options) {
-	        if (options.curve !== undefined) this.options.curve = options.curve;
-	        if (options.duration !== undefined) this.options.duration = options.duration;
-	        if (options.speed !== undefined) this.options.speed = options.speed;
+	    Force.prototype.setOptions = function setOptions(options) {
+	        this._eventOutput.emit('change', options);
 	    };
 	
 	    /**
-	     * Add transition to end state to the queue of pending transitions. Special
-	     *    Use: calling without a transition resets the object to that state with
-	     *    no pending actions
+	     * Adds a force to a physics body's force accumulator.
 	     *
-	     * @method set
-	     *
-	     *
-	     * @param {number|FamousMatrix|Array.Number|Object.<number, number>} endValue
-	     *    end state to which we _interpolate
-	     * @param {transition=} transition object of type {duration: number, curve:
-	     *    f[0,1] -> [0,1] or name}. If transition is omitted, change will be
-	     *    instantaneous.
-	     * @param {function()=} callback Zero-argument function to call on observed
-	     *    completion (t=1)
+	     * @method applyForce
+	     * @param targets {Array.Body} Array of bodies to apply a force to.
 	     */
-	    TweenTransition.prototype.set = function set(endValue, transition, callback) {
-	        if (!transition) {
-	            this.reset(endValue);
-	            if (callback) callback();
-	            return;
-	        }
-	
-	        this._startValue = _clone(this.get());
-	        transition = _normalize(transition, this.options);
-	        if (transition.speed) {
-	            var startValue = this._startValue;
-	            if (startValue instanceof Object) {
-	                var variance = 0;
-	                for (var i in startValue) variance += (endValue[i] - startValue[i]) * (endValue[i] - startValue[i]);
-	                transition.duration = Math.sqrt(variance) / transition.speed;
-	            }
-	            else {
-	                transition.duration = Math.abs(endValue - startValue) / transition.speed;
-	            }
-	        }
-	
-	        this._startTime = Date.now();
-	        this._endValue = _clone(endValue);
-	        this._startVelocity = _clone(transition.velocity);
-	        this._duration = transition.duration;
-	        this._curve = transition.curve;
-	        this._active = true;
-	        this._callback = callback;
-	    };
-	
-	    /**
-	     * Cancel all transitions and reset to a stable state
-	     *
-	     * @method reset
-	     *
-	     * @param {number|Array.Number|Object.<number, number>} startValue
-	     *    starting state
-	     * @param {number} startVelocity
-	     *    starting velocity
-	     */
-	    TweenTransition.prototype.reset = function reset(startValue, startVelocity) {
-	        if (this._callback) {
-	            var callback = this._callback;
-	            this._callback = undefined;
-	            callback();
-	        }
-	        this.state = _clone(startValue);
-	        this.velocity = _clone(startVelocity);
-	        this._startTime = 0;
-	        this._duration = 0;
-	        this._updateTime = 0;
-	        this._startValue = this.state;
-	        this._startVelocity = this.velocity;
-	        this._endValue = this.state;
-	        this._active = false;
-	    };
-	
-	    /**
-	     * Get current velocity
-	     *
-	     * @method getVelocity
-	     *
-	     * @returns {Number} velocity
-	     */
-	    TweenTransition.prototype.getVelocity = function getVelocity() {
-	        return this.velocity;
-	    };
-	
-	    /**
-	     * Get interpolated state of current action at provided time. If the last
-	     *    action has completed, invoke its callback.
-	     *
-	     * @method get
-	     *
-	     *
-	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
-	     *    time. If omitted, use current time. (Unix epoch time)
-	     * @return {number|Object.<number|string, number>} beginning state
-	     *    _interpolated to this point in time.
-	     */
-	    TweenTransition.prototype.get = function get(timestamp) {
-	        this.update(timestamp);
-	        return this.state;
-	    };
-	
-	    function _calculateVelocity(current, start, curve, duration, t) {
-	        var velocity;
-	        var eps = 1e-7;
-	        var speed = (curve(t) - curve(t - eps)) / eps;
-	        if (current instanceof Array) {
-	            velocity = [];
-	            for (var i = 0; i < current.length; i++){
-	                if (typeof current[i] === 'number')
-	                    velocity[i] = speed * (current[i] - start[i]) / duration;
-	                else
-	                    velocity[i] = 0;
-	            }
-	
-	        }
-	        else velocity = speed * (current - start) / duration;
-	        return velocity;
-	    }
-	
-	    function _calculateState(start, end, t) {
-	        var state;
-	        if (start instanceof Array) {
-	            state = [];
-	            for (var i = 0; i < start.length; i++) {
-	                if (typeof start[i] === 'number')
-	                    state[i] = _interpolate(start[i], end[i], t);
-	                else
-	                    state[i] = start[i];
-	            }
-	        }
-	        else state = _interpolate(start, end, t);
-	        return state;
-	    }
-	
-	    /**
-	     * Update internal state to the provided timestamp. This may invoke the last
-	     *    callback and begin a new action.
-	     *
-	     * @method update
-	     *
-	     *
-	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
-	     *    time. If omitted, use current time. (Unix epoch time)
-	     */
-	    TweenTransition.prototype.update = function update(timestamp) {
-	        if (!this._active) {
-	            if (this._callback) {
-	                var callback = this._callback;
-	                this._callback = undefined;
-	                callback();
-	            }
-	            return;
-	        }
-	
-	        if (!timestamp) timestamp = Date.now();
-	        if (this._updateTime >= timestamp) return;
-	        this._updateTime = timestamp;
-	
-	        var timeSinceStart = timestamp - this._startTime;
-	        if (timeSinceStart >= this._duration) {
-	            this.state = this._endValue;
-	            this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, 1);
-	            this._active = false;
-	        }
-	        else if (timeSinceStart < 0) {
-	            this.state = this._startValue;
-	            this.velocity = this._startVelocity;
-	        }
-	        else {
-	            var t = timeSinceStart / this._duration;
-	            this.state = _calculateState(this._startValue, this._endValue, this._curve(t));
-	            this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, t);
+	    Force.prototype.applyForce = function applyForce(targets) {
+	        var length = targets.length;
+	        while (length--) {
+	            targets[length].applyForce(this.force);
 	        }
 	    };
 	
 	    /**
-	     * Is there at least one action pending completion?
+	     * Getter for a force's potential energy.
 	     *
-	     * @method isActive
-	     *
-	     *
-	     * @return {boolean}
+	     * @method getEnergy
+	     * @return energy {Number}
 	     */
-	    TweenTransition.prototype.isActive = function isActive() {
-	        return this._active;
+	    Force.prototype.getEnergy = function getEnergy() {
+	        return 0.0;
 	    };
 	
-	    /**
-	     * Halt transition at current state and erase all pending actions.
-	     *
-	     * @method halt
-	     *
-	     */
-	    TweenTransition.prototype.halt = function halt() {
-	        this.reset(this.get());
-	    };
-	
-	    // Register all the default curves
-	    TweenTransition.registerCurve('linear', TweenTransition.Curves.linear);
-	    TweenTransition.registerCurve('easeIn', TweenTransition.Curves.easeIn);
-	    TweenTransition.registerCurve('easeOut', TweenTransition.Curves.easeOut);
-	    TweenTransition.registerCurve('easeInOut', TweenTransition.Curves.easeInOut);
-	    TweenTransition.registerCurve('easeOutBounce', TweenTransition.Curves.easeOutBounce);
-	    TweenTransition.registerCurve('spring', TweenTransition.Curves.spring);
-	
-	    TweenTransition.customCurve = function customCurve(v1, v2) {
-	        v1 = v1 || 0; v2 = v2 || 0;
-	        return function(t) {
-	            return v1*t + (-2*v1 - v2 + 3)*t*t + (v1 + v2 - 2)*t*t*t;
-	        };
-	    };
-	
-	    module.exports = TweenTransition;
+	    module.exports = Force;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
-/* 46 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -11116,1582 +12439,7 @@
 
 
 /***/ },
-/* 47 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Constraint = __webpack_require__(57);
-	    var Vector = __webpack_require__(46);
-	
-	    /**
-	     *  A wall describes an infinite two-dimensional plane that physics bodies
-	     *    can collide with. To define a wall, you must give it a distance (from
-	     *    the center of the physics engine's origin, and a normal defining the plane
-	     *    of the wall.
-	     *
-	     *    (wall)
-	     *      |
-	     *      | (normal)     (origin)
-	     *      | --->            *
-	     *      |
-	     *      |    (distance)
-	     *      ...................
-	     *            (100px)
-	     *
-	     *      e.g., Wall({normal : [1,0,0], distance : 100})
-	     *      would be a wall 100 pixels to the left, whose normal points right
-	     *
-	     *  @class Wall
-	     *  @constructor
-	     *  @extends Constraint
-	     *  @param {Options} [options] An object of configurable options.
-	     *  @param {Number} [options.restitution] The energy ratio lost in a collision (0 = stick, 1 = elastic). Range : [0, 1]
-	     *  @param {Number} [options.drift] Baumgarte stabilization parameter. Makes constraints "loosely" (0) or "tightly" (1) enforced. Range : [0, 1]
-	     *  @param {Number} [options.slop] Amount of penetration in pixels to ignore before collision event triggers.
-	     *  @param {Array} [options.normal] The normal direction to the wall.
-	     *  @param {Number} [options.distance] The distance from the origin that the wall is placed.
-	     *  @param {onContact} [options.onContact] How to handle collision against the wall.
-	     *
-	     */
-	    function Wall(options) {
-	        this.options = Object.create(Wall.DEFAULT_OPTIONS);
-	        if (options) this.setOptions(options);
-	
-	        //registers
-	        this.diff = new Vector();
-	        this.impulse = new Vector();
-	
-	        Constraint.call(this);
-	    }
-	
-	    Wall.prototype = Object.create(Constraint.prototype);
-	    Wall.prototype.constructor = Wall;
-	
-	    /**
-	     * @property Wall.ON_CONTACT
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    Wall.ON_CONTACT = {
-	
-	        /**
-	         * Physical bodies bounce off the wall
-	         * @attribute REFLECT
-	         */
-	        REFLECT : 0,
-	
-	        /**
-	         * Physical bodies are unaffected. Usecase is to fire events on contact.
-	         * @attribute SILENT
-	         */
-	        SILENT : 1
-	    };
-	
-	    Wall.DEFAULT_OPTIONS = {
-	        restitution : 0.5,
-	        drift : 0.5,
-	        slop : 0,
-	        normal : [1, 0, 0],
-	        distance : 0,
-	        onContact : Wall.ON_CONTACT.REFLECT
-	    };
-	
-	    /*
-	     * Setter for options.
-	     *
-	     * @method setOptions
-	     * @param options {Objects}
-	     */
-	    Wall.prototype.setOptions = function setOptions(options) {
-	        if (options.normal !== undefined) {
-	            if (options.normal instanceof Vector) this.options.normal = options.normal.clone();
-	            if (options.normal instanceof Array)  this.options.normal = new Vector(options.normal);
-	        }
-	        if (options.restitution !== undefined) this.options.restitution = options.restitution;
-	        if (options.drift !== undefined) this.options.drift = options.drift;
-	        if (options.slop !== undefined) this.options.slop = options.slop;
-	        if (options.distance !== undefined) this.options.distance = options.distance;
-	        if (options.onContact !== undefined) this.options.onContact = options.onContact;
-	    };
-	
-	    function _getNormalVelocity(n, v) {
-	        return v.dot(n);
-	    }
-	
-	    function _getDistanceFromOrigin(p) {
-	        var n = this.options.normal;
-	        var d = this.options.distance;
-	        return p.dot(n) + d;
-	    }
-	
-	    function _onEnter(particle, overlap, dt) {
-	        var p = particle.position;
-	        var v = particle.velocity;
-	        var m = particle.mass;
-	        var n = this.options.normal;
-	        var action = this.options.onContact;
-	        var restitution = this.options.restitution;
-	        var impulse = this.impulse;
-	
-	        var drift = this.options.drift;
-	        var slop = -this.options.slop;
-	        var gamma = 0;
-	
-	        if (this._eventOutput) {
-	            var data = {particle : particle, wall : this, overlap : overlap, normal : n};
-	            this._eventOutput.emit('preCollision', data);
-	            this._eventOutput.emit('collision', data);
-	        }
-	
-	        switch (action) {
-	            case Wall.ON_CONTACT.REFLECT:
-	                var lambda = (overlap < slop)
-	                    ? -((1 + restitution) * n.dot(v) + drift / dt * (overlap - slop)) / (m * dt + gamma)
-	                    : -((1 + restitution) * n.dot(v)) / (m * dt + gamma);
-	
-	                impulse.set(n.mult(dt * lambda));
-	                particle.applyImpulse(impulse);
-	                particle.setPosition(p.add(n.mult(-overlap)));
-	                break;
-	        }
-	
-	        if (this._eventOutput) this._eventOutput.emit('postCollision', data);
-	    }
-	
-	    function _onExit(particle, overlap, dt) {
-	        var action = this.options.onContact;
-	        var p = particle.position;
-	        var n = this.options.normal;
-	
-	        if (action === Wall.ON_CONTACT.REFLECT) {
-	            particle.setPosition(p.add(n.mult(-overlap)));
-	        }
-	    }
-	
-	    /**
-	     * Adds an impulse to a physics body's velocity due to the wall constraint
-	     *
-	     * @method applyConstraint
-	     * @param targets {Array.Body}  Array of bodies to apply the constraint to
-	     * @param source {Body}         The source of the constraint
-	     * @param dt {Number}           Delta time
-	     */
-	    Wall.prototype.applyConstraint = function applyConstraint(targets, source, dt) {
-	        var n = this.options.normal;
-	
-	        for (var i = 0; i < targets.length; i++) {
-	            var particle = targets[i];
-	            var p = particle.position;
-	            var v = particle.velocity;
-	            var r = particle.radius || 0;
-	
-	            var overlap = _getDistanceFromOrigin.call(this, p.add(n.mult(-r)));
-	            var nv = _getNormalVelocity.call(this, n, v);
-	
-	            if (overlap <= 0) {
-	                if (nv < 0) _onEnter.call(this, particle, overlap, dt);
-	                else _onExit.call(this, particle, overlap, dt);
-	            }
-	        }
-	    };
-	
-	    module.exports = Wall;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 48 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Constraint = __webpack_require__(57);
-	    var Vector = __webpack_require__(46);
-	
-	    /**
-	     *  A spring constraint is like a spring force, except that it is always
-	     *    numerically stable (even for low periods), at the expense of introducing
-	     *    damping (even with dampingRatio set to 0).
-	     *
-	     *    Use this if you need fast spring-like behavior, e.g., snapping
-	     *
-	     *  @class Snap
-	     *  @constructor
-	     *  @extends Constraint
-	     *  @param {Options} [options] An object of configurable options.
-	     *  @param {Number} [options.period] The amount of time in milliseconds taken for one complete oscillation when there is no damping. Range : [150, Infinity]
-	     *  @param {Number} [options.dampingRatio] Additional damping of the spring. Range : [0, 1]. At 0 this spring will still be damped, at 1 the spring will be critically damped (the spring will never oscillate)
-	     *  @param {Number} [options.length] The rest length of the spring. Range: [0, Infinity].
-	     *  @param {Array} [options.anchor] The location of the spring's anchor, if not another physics body.
-	     *
-	     */
-	    function Snap(options) {
-	        Constraint.call(this);
-	
-	        this.options = Object.create(this.constructor.DEFAULT_OPTIONS);
-	        if (options) this.setOptions(options);
-	
-	        //registers
-	        this.pDiff  = new Vector();
-	        this.vDiff  = new Vector();
-	        this.impulse1 = new Vector();
-	        this.impulse2 = new Vector();
-	    }
-	
-	    Snap.prototype = Object.create(Constraint.prototype);
-	    Snap.prototype.constructor = Snap;
-	
-	    Snap.DEFAULT_OPTIONS = {
-	        period : 300,
-	        dampingRatio : 0.1,
-	        length : 0,
-	        anchor : undefined
-	    };
-	
-	    /** const */ var pi = Math.PI;
-	
-	    /**
-	     * Basic options setter
-	     *
-	     * @method setOptions
-	     * @param options {Objects} options
-	     */
-	    Snap.prototype.setOptions = function setOptions(options) {
-	        if (options.anchor !== undefined) {
-	            if (options.anchor   instanceof Vector) this.options.anchor = options.anchor;
-	            if (options.anchor.position instanceof Vector) this.options.anchor = options.anchor.position;
-	            if (options.anchor   instanceof Array)  this.options.anchor = new Vector(options.anchor);
-	        }
-	        if (options.length !== undefined) this.options.length = options.length;
-	        if (options.dampingRatio !== undefined) this.options.dampingRatio = options.dampingRatio;
-	        if (options.period !== undefined) this.options.period = options.period;
-	        Constraint.prototype.setOptions.call(this, options);
-	    };
-	
-	    /**
-	     * Calculates energy of spring
-	     *
-	     * @method getEnergy
-	     * @param targets {Body} target physics body
-	     * @param source {Body} source physics body
-	     * @return energy {Number}
-	     */
-	    Snap.prototype.getEnergy = function getEnergy(targets, source) {
-	        var options     = this.options;
-	        var restLength  = options.length;
-	        var anchor      = options.anchor || source.position;
-	        var strength    = Math.pow(2 * pi / options.period, 2);
-	
-	        var energy = 0.0;
-	        for (var i = 0; i < targets.length; i++){
-	            var target = targets[i];
-	            var dist = anchor.sub(target.position).norm() - restLength;
-	            energy += 0.5 * strength * dist * dist;
-	        }
-	        return energy;
-	    };
-	
-	    /**
-	     * Adds a spring impulse to a physics body's velocity due to the constraint
-	     *
-	     * @method applyConstraint
-	     * @param targets {Array.Body}  Array of bodies to apply the constraint to
-	     * @param source {Body}         The source of the constraint
-	     * @param dt {Number}           Delta time
-	     */
-	    Snap.prototype.applyConstraint = function applyConstraint(targets, source, dt) {
-	        var options      = this.options;
-	        var pDiff        = this.pDiff;
-	        var vDiff        = this.vDiff;
-	        var impulse1     = this.impulse1;
-	        var impulse2     = this.impulse2;
-	        var length       = options.length;
-	        var anchor       = options.anchor || source.position;
-	        var period       = options.period;
-	        var dampingRatio = options.dampingRatio;
-	
-	        for (var i = 0; i < targets.length ; i++) {
-	            var target = targets[i];
-	
-	            var p1 = target.position;
-	            var v1 = target.velocity;
-	            var m1 = target.mass;
-	            var w1 = target.inverseMass;
-	
-	            pDiff.set(p1.sub(anchor));
-	            var dist = pDiff.norm() - length;
-	            var effMass;
-	
-	            if (source) {
-	                var w2 = source.inverseMass;
-	                var v2 = source.velocity;
-	                vDiff.set(v1.sub(v2));
-	                effMass = 1 / (w1 + w2);
-	            }
-	            else {
-	                vDiff.set(v1);
-	                effMass = m1;
-	            }
-	
-	            var gamma;
-	            var beta;
-	
-	            if (this.options.period === 0) {
-	                gamma = 0;
-	                beta = 1;
-	            }
-	            else {
-	                var k = 4 * effMass * pi * pi / (period * period);
-	                var c = 4 * effMass * pi * dampingRatio / period;
-	
-	                beta  = dt * k / (c + dt * k);
-	                gamma = 1 / (c + dt*k);
-	            }
-	
-	            var antiDrift = beta/dt * dist;
-	            pDiff.normalize(-antiDrift)
-	                .sub(vDiff)
-	                .mult(dt / (gamma + dt/effMass))
-	                .put(impulse1);
-	
-	            // var n = new Vector();
-	            // n.set(pDiff.normalize());
-	            // var lambda = -(n.dot(vDiff) + antiDrift) / (gamma + dt/effMass);
-	            // impulse2.set(n.mult(dt*lambda));
-	
-	            target.applyImpulse(impulse1);
-	
-	            if (source) {
-	                impulse1.mult(-1).put(impulse2);
-	                source.applyImpulse(impulse2);
-	            }
-	        }
-	    };
-	
-	    module.exports = Snap;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 49 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(52);
-	    var EventHandler = __webpack_require__(31);
-	    var Transform = __webpack_require__(24);
-	
-	    var usePrefix = !('transform' in document.documentElement.style);
-	    var devicePixelRatio = window.devicePixelRatio || 1;
-	
-	    /**
-	     * A base class for viewable content and event
-	     *   targets inside a Famo.us application, containing a renderable document
-	     *   fragment. Like an HTML div, it can accept internal markup,
-	     *   properties, classes, and handle events.
-	     *
-	     * @class ElementOutput
-	     * @constructor
-	     *
-	     * @param {Node} element document parent of this container
-	     */
-	    function ElementOutput(element) {
-	        this._matrix = null;
-	        this._opacity = 1;
-	        this._origin = null;
-	        this._size = null;
-	
-	        this._eventOutput = new EventHandler();
-	        this._eventOutput.bindThis(this);
-	
-	        /** @ignore */
-	        this.eventForwarder = function eventForwarder(event) {
-	            this._eventOutput.emit(event.type, event);
-	        }.bind(this);
-	
-	        this.id = Entity.register(this);
-	        this._element = null;
-	        this._sizeDirty = false;
-	        this._originDirty = false;
-	        this._transformDirty = false;
-	
-	        this._invisible = false;
-	        if (element) this.attach(element);
-	    }
-	
-	    /**
-	     * Bind a callback function to an event type handled by this object.
-	     *
-	     * @method "on"
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function(string, Object)} fn handler callback
-	     * @return {EventHandler} this
-	     */
-	    ElementOutput.prototype.on = function on(type, fn) {
-	        if (this._element) this._element.addEventListener(type, this.eventForwarder);
-	        this._eventOutput.on(type, fn);
-	    };
-	
-	    /**
-	     * Unbind an event by type and handler.
-	     *   This undoes the work of "on"
-	     *
-	     * @method removeListener
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function(string, Object)} fn handler
-	     */
-	    ElementOutput.prototype.removeListener = function removeListener(type, fn) {
-	        this._eventOutput.removeListener(type, fn);
-	    };
-	
-	    /**
-	     * Trigger an event, sending to all downstream handlers
-	     *   listening for provided 'type' key.
-	     *
-	     * @method emit
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {Object} [event] event data
-	     * @return {EventHandler} this
-	     */
-	    ElementOutput.prototype.emit = function emit(type, event) {
-	        if (event && !event.origin) event.origin = this;
-	        var handled = this._eventOutput.emit(type, event);
-	        if (handled && event && event.stopPropagation) event.stopPropagation();
-	        return handled;
-	    };
-	
-	    /**
-	     * Add event handler object to set of downstream handlers.
-	     *
-	     * @method pipe
-	     *
-	     * @param {EventHandler} target event handler target object
-	     * @return {EventHandler} passed event handler
-	     */
-	    ElementOutput.prototype.pipe = function pipe(target) {
-	        return this._eventOutput.pipe(target);
-	    };
-	
-	    /**
-	     * Remove handler object from set of downstream handlers.
-	     *   Undoes work of "pipe"
-	     *
-	     * @method unpipe
-	     *
-	     * @param {EventHandler} target target handler object
-	     * @return {EventHandler} provided target
-	     */
-	    ElementOutput.prototype.unpipe = function unpipe(target) {
-	        return this._eventOutput.unpipe(target);
-	    };
-	
-	    /**
-	     * Return spec for this surface. Note that for a base surface, this is
-	     *    simply an id.
-	     *
-	     * @method render
-	     * @private
-	     * @return {Object} render spec for this surface (spec id)
-	     */
-	    ElementOutput.prototype.render = function render() {
-	        return this.id;
-	    };
-	
-	    //  Attach Famous event handling to document events emanating from target
-	    //    document element.  This occurs just after attachment to the document.
-	    //    Calling this enables methods like #on and #pipe.
-	    function _addEventListeners(target) {
-	        for (var i in this._eventOutput.listeners) {
-	            target.addEventListener(i, this.eventForwarder);
-	        }
-	    }
-	
-	    //  Detach Famous event handling from document events emanating from target
-	    //  document element.  This occurs just before detach from the document.
-	    function _removeEventListeners(target) {
-	        for (var i in this._eventOutput.listeners) {
-	            target.removeEventListener(i, this.eventForwarder);
-	        }
-	    }
-	
-	    /**
-	     * Return a Matrix's webkit css representation to be used with the
-	     *    CSS3 -webkit-transform style.
-	     *    Example: -webkit-transform: matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,716,243,0,1)
-	     *
-	     * @method _formatCSSTransform
-	     * @private
-	     * @param {FamousMatrix} m matrix
-	     * @return {string} matrix3d CSS style representation of the transform
-	     */
-	    function _formatCSSTransform(m) {
-	        m[12] = Math.round(m[12] * devicePixelRatio) / devicePixelRatio;
-	        m[13] = Math.round(m[13] * devicePixelRatio) / devicePixelRatio;
-	
-	        var result = 'matrix3d(';
-	        for (var i = 0; i < 15; i++) {
-	            result += (m[i] < 0.000001 && m[i] > -0.000001) ? '0,' : m[i] + ',';
-	        }
-	        result += m[15] + ')';
-	        return result;
-	    }
-	
-	    /**
-	     * Directly apply given FamousMatrix to the document element as the
-	     *   appropriate webkit CSS style.
-	     *
-	     * @method setMatrix
-	     *
-	     * @static
-	     * @private
-	     * @param {Element} element document element
-	     * @param {FamousMatrix} matrix
-	     */
-	
-	    var _setMatrix;
-	    if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
-	        _setMatrix = function(element, matrix) {
-	            element.style.zIndex = (matrix[14] * 1000000) | 0;    // fix for Firefox z-buffer issues
-	            element.style.transform = _formatCSSTransform(matrix);
-	        };
-	    }
-	    else if (usePrefix) {
-	        _setMatrix = function(element, matrix) {
-	            element.style.webkitTransform = _formatCSSTransform(matrix);
-	        };
-	    }
-	    else {
-	        _setMatrix = function(element, matrix) {
-	            element.style.transform = _formatCSSTransform(matrix);
-	        };
-	    }
-	
-	    // format origin as CSS percentage string
-	    function _formatCSSOrigin(origin) {
-	        return (100 * origin[0]) + '% ' + (100 * origin[1]) + '%';
-	    }
-	
-	    // Directly apply given origin coordinates to the document element as the
-	    // appropriate webkit CSS style.
-	    var _setOrigin = usePrefix ? function(element, origin) {
-	        element.style.webkitTransformOrigin = _formatCSSOrigin(origin);
-	    } : function(element, origin) {
-	        element.style.transformOrigin = _formatCSSOrigin(origin);
-	    };
-	
-	    // Shrink given document element until it is effectively invisible.
-	    var _setInvisible = usePrefix ? function(element) {
-	        element.style.webkitTransform = 'scale3d(0.0001,0.0001,0.0001)';
-	        element.style.opacity = 0;
-	    } : function(element) {
-	        element.style.transform = 'scale3d(0.0001,0.0001,0.0001)';
-	        element.style.opacity = 0;
-	    };
-	
-	    function _xyNotEquals(a, b) {
-	        return (a && b) ? (a[0] !== b[0] || a[1] !== b[1]) : a !== b;
-	    }
-	
-	    /**
-	     * Apply changes from this component to the corresponding document element.
-	     * This includes changes to classes, styles, size, content, opacity, origin,
-	     * and matrix transforms.
-	     *
-	     * @private
-	     * @method commit
-	     * @param {Context} context commit context
-	     */
-	    ElementOutput.prototype.commit = function commit(context) {
-	        var target = this._element;
-	        if (!target) return;
-	
-	        var matrix = context.transform;
-	        var opacity = context.opacity;
-	        var origin = context.origin;
-	        var size = context.size;
-	
-	        if (!matrix && this._matrix) {
-	            this._matrix = null;
-	            this._opacity = 0;
-	            _setInvisible(target);
-	            return;
-	        }
-	
-	        if (_xyNotEquals(this._origin, origin)) this._originDirty = true;
-	        if (Transform.notEquals(this._matrix, matrix)) this._transformDirty = true;
-	
-	        if (this._invisible) {
-	            this._invisible = false;
-	            this._element.style.display = '';
-	        }
-	
-	        if (this._opacity !== opacity) {
-	            this._opacity = opacity;
-	            target.style.opacity = (opacity >= 1) ? '0.999999' : opacity;
-	        }
-	
-	        if (this._transformDirty || this._originDirty || this._sizeDirty) {
-	            if (this._sizeDirty) this._sizeDirty = false;
-	
-	            if (this._originDirty) {
-	                if (origin) {
-	                    if (!this._origin) this._origin = [0, 0];
-	                    this._origin[0] = origin[0];
-	                    this._origin[1] = origin[1];
-	                }
-	                else this._origin = null;
-	                _setOrigin(target, this._origin);
-	                this._originDirty = false;
-	            }
-	
-	            if (!matrix) matrix = Transform.identity;
-	            this._matrix = matrix;
-	            var aaMatrix = this._size ? Transform.thenMove(matrix, [-this._size[0]*origin[0], -this._size[1]*origin[1], 0]) : matrix;
-	            _setMatrix(target, aaMatrix);
-	            this._transformDirty = false;
-	        }
-	    };
-	
-	    ElementOutput.prototype.cleanup = function cleanup() {
-	        if (this._element) {
-	            this._invisible = true;
-	            this._element.style.display = 'none';
-	        }
-	    };
-	
-	    /**
-	     * Place the document element that this component manages into the document.
-	     *
-	     * @private
-	     * @method attach
-	     * @param {Node} target document parent of this container
-	     */
-	    ElementOutput.prototype.attach = function attach(target) {
-	        this._element = target;
-	        _addEventListeners.call(this, target);
-	    };
-	
-	    /**
-	     * Remove any contained document content associated with this surface
-	     *   from the actual document.
-	     *
-	     * @private
-	     * @method detach
-	     */
-	    ElementOutput.prototype.detach = function detach() {
-	        var target = this._element;
-	        if (target) {
-	            _removeEventListeners.call(this, target);
-	            if (this._invisible) {
-	                this._invisible = false;
-	                this._element.style.display = '';
-	            }
-	        }
-	        this._element = null;
-	        return target;
-	    };
-	
-	    module.exports = ElementOutput;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	
-	    /**
-	     * Internal helper object to Context that handles the process of
-	     *   creating and allocating DOM elements within a managed div.
-	     *   Private.
-	     *
-	     * @class ElementAllocator
-	     * @constructor
-	     * @private
-	     * @param {Node} container document element in which Famo.us content will be inserted
-	     */
-	    function ElementAllocator(container) {
-	        if (!container) container = document.createDocumentFragment();
-	        this.container = container;
-	        this.detachedNodes = {};
-	        this.nodeCount = 0;
-	    }
-	
-	    /**
-	     * Move the document elements from their original container to a new one.
-	     *
-	     * @private
-	     * @method migrate
-	     *
-	     * @param {Node} container document element to which Famo.us content will be migrated
-	     */
-	    ElementAllocator.prototype.migrate = function migrate(container) {
-	        var oldContainer = this.container;
-	        if (container === oldContainer) return;
-	
-	        if (oldContainer instanceof DocumentFragment) {
-	            container.appendChild(oldContainer);
-	        }
-	        else {
-	            while (oldContainer.hasChildNodes()) {
-	                container.appendChild(oldContainer.removeChild(oldContainer.firstChild));
-	            }
-	        }
-	
-	        this.container = container;
-	    };
-	
-	    /**
-	     * Allocate an element of specified type from the pool.
-	     *
-	     * @private
-	     * @method allocate
-	     *
-	     * @param {string} type type of element, e.g. 'div'
-	     * @return {Node} allocated document element
-	     */
-	    ElementAllocator.prototype.allocate = function allocate(type) {
-	        type = type.toLowerCase();
-	        if (!(type in this.detachedNodes)) this.detachedNodes[type] = [];
-	        var nodeStore = this.detachedNodes[type];
-	        var result;
-	        if (nodeStore.length > 0) {
-	            result = nodeStore.pop();
-	        }
-	        else {
-	            result = document.createElement(type);
-	            this.container.appendChild(result);
-	        }
-	        this.nodeCount++;
-	        return result;
-	    };
-	
-	    /**
-	     * De-allocate an element of specified type to the pool.
-	     *
-	     * @private
-	     * @method deallocate
-	     *
-	     * @param {Node} element document element to deallocate
-	     */
-	    ElementAllocator.prototype.deallocate = function deallocate(element) {
-	        var nodeType = element.nodeName.toLowerCase();
-	        var nodeStore = this.detachedNodes[nodeType];
-	        nodeStore.push(element);
-	        this.nodeCount--;
-	    };
-	
-	    /**
-	     * Get count of total allocated nodes in the document.
-	     *
-	     * @private
-	     * @method getNodeCount
-	     *
-	     * @return {Number} total node count
-	     */
-	    ElementAllocator.prototype.getNodeCount = function getNodeCount() {
-	        return this.nodeCount;
-	    };
-	
-	    module.exports = ElementAllocator;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 51 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    /**
-	     * EventEmitter represents a channel for events.
-	     *
-	     * @class EventEmitter
-	     * @constructor
-	     */
-	    function EventEmitter() {
-	        this.listeners = {};
-	        this._owner = this;
-	    }
-	
-	    /**
-	     * Trigger an event, sending to all downstream handlers
-	     *   listening for provided 'type' key.
-	     *
-	     * @method emit
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {Object} event event data
-	     * @return {EventHandler} this
-	     */
-	    EventEmitter.prototype.emit = function emit(type, event) {
-	        var handlers = this.listeners[type];
-	        if (handlers) {
-	            for (var i = 0; i < handlers.length; i++) {
-	                handlers[i].call(this._owner, event);
-	            }
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Bind a callback function to an event type handled by this object.
-	     *
-	     * @method "on"
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function(string, Object)} handler callback
-	     * @return {EventHandler} this
-	     */
-	   EventEmitter.prototype.on = function on(type, handler) {
-	        if (!(type in this.listeners)) this.listeners[type] = [];
-	        var index = this.listeners[type].indexOf(handler);
-	        if (index < 0) this.listeners[type].push(handler);
-	        return this;
-	    };
-	
-	    /**
-	     * Alias for "on".
-	     * @method addListener
-	     */
-	    EventEmitter.prototype.addListener = EventEmitter.prototype.on;
-	
-	   /**
-	     * Unbind an event by type and handler.
-	     *   This undoes the work of "on".
-	     *
-	     * @method removeListener
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function} handler function object to remove
-	     * @return {EventEmitter} this
-	     */
-	    EventEmitter.prototype.removeListener = function removeListener(type, handler) {
-	        var listener = this.listeners[type];
-	        if (listener !== undefined) {
-	            var index = listener.indexOf(handler);
-	            if (index >= 0) listener.splice(index, 1);
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Call event handlers with this set to owner.
-	     *
-	     * @method bindThis
-	     *
-	     * @param {Object} owner object this EventEmitter belongs to
-	     */
-	    EventEmitter.prototype.bindThis = function bindThis(owner) {
-	        this._owner = owner;
-	    };
-	
-	    module.exports = EventEmitter;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 52 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    /**
-	     * A singleton that maintains a global registry of Surfaces.
-	     *   Private.
-	     *
-	     * @private
-	     * @static
-	     * @class Entity
-	     */
-	
-	    var entities = [];
-	
-	    /**
-	     * Get entity from global index.
-	     *
-	     * @private
-	     * @method get
-	     * @param {Number} id entity registration id
-	     * @return {Surface} entity in the global index
-	     */
-	    function get(id) {
-	        return entities[id];
-	    }
-	
-	    /**
-	     * Overwrite entity in the global index
-	     *
-	     * @private
-	     * @method set
-	     * @param {Number} id entity registration id
-	     * @param {Surface} entity to add to the global index
-	     */
-	    function set(id, entity) {
-	        entities[id] = entity;
-	    }
-	
-	    /**
-	     * Add entity to global index
-	     *
-	     * @private
-	     * @method register
-	     * @param {Surface} entity to add to global index
-	     * @return {Number} new id
-	     */
-	    function register(entity) {
-	        var id = entities.length;
-	        set(id, entity);
-	        return id;
-	    }
-	
-	    /**
-	     * Remove entity from global index
-	     *
-	     * @private
-	     * @method unregister
-	     * @param {Number} id entity registration id
-	     */
-	    function unregister(id) {
-	        set(id, null);
-	    }
-	
-	    module.exports = {
-	        register: register,
-	        unregister: unregister,
-	        get: get,
-	        set: set
-	    };
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 53 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Transform = __webpack_require__(24);
-	
-	    /**
-	     *
-	     * This object translates the rendering instructions ("render specs")
-	     *   that renderable components generate into document update
-	     *   instructions ("update specs").  Private.
-	     *
-	     * @private
-	     * @class SpecParser
-	     * @constructor
-	     */
-	    function SpecParser() {
-	        this.result = {};
-	    }
-	    SpecParser._instance = new SpecParser();
-	
-	    /**
-	     * Convert a render spec coming from the context's render chain to an
-	     *    update spec for the update chain. This is the only major entry point
-	     *    for a consumer of this class.
-	     *
-	     * @method parse
-	     * @static
-	     * @private
-	     *
-	     * @param {renderSpec} spec input render spec
-	     * @param {Object} context context to do the parse in
-	     * @return {Object} the resulting update spec (if no callback
-	     *   specified, else none)
-	     */
-	    SpecParser.parse = function parse(spec, context) {
-	        return SpecParser._instance.parse(spec, context);
-	    };
-	
-	    /**
-	     * Convert a renderSpec coming from the context's render chain to an update
-	     *    spec for the update chain. This is the only major entrypoint for a
-	     *    consumer of this class.
-	     *
-	     * @method parse
-	     *
-	     * @private
-	     * @param {renderSpec} spec input render spec
-	     * @param {Context} context
-	     * @return {updateSpec} the resulting update spec
-	     */
-	    SpecParser.prototype.parse = function parse(spec, context) {
-	        this.reset();
-	        this._parseSpec(spec, context, Transform.identity);
-	        return this.result;
-	    };
-	
-	    /**
-	     * Prepare SpecParser for re-use (or first use) by setting internal state
-	     *  to blank.
-	     *
-	     * @private
-	     * @method reset
-	     */
-	    SpecParser.prototype.reset = function reset() {
-	        this.result = {};
-	    };
-	
-	    // Multiply matrix M by vector v
-	    function _vecInContext(v, m) {
-	        return [
-	            v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
-	            v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
-	            v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
-	        ];
-	    }
-	
-	    var _zeroZero = [0, 0];
-	
-	    // From the provided renderSpec tree, recursively compose opacities,
-	    //    origins, transforms, and sizes corresponding to each surface id from
-	    //    the provided renderSpec tree structure. On completion, those
-	    //    properties of 'this' object should be ready to use to build an
-	    //    updateSpec.
-	    SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
-	        var id;
-	        var target;
-	        var transform;
-	        var opacity;
-	        var origin;
-	        var align;
-	        var size;
-	
-	        if (typeof spec === 'number') {
-	            id = spec;
-	            transform = parentContext.transform;
-	            align = parentContext.align || _zeroZero;
-	            if (parentContext.size && align && (align[0] || align[1])) {
-	                var alignAdjust = [align[0] * parentContext.size[0], align[1] * parentContext.size[1], 0];
-	                transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
-	            }
-	            this.result[id] = {
-	                transform: transform,
-	                opacity: parentContext.opacity,
-	                origin: parentContext.origin || _zeroZero,
-	                align: parentContext.align || _zeroZero,
-	                size: parentContext.size
-	            };
-	        }
-	        else if (!spec) { // placed here so 0 will be cached earlier
-	            return;
-	        }
-	        else if (spec instanceof Array) {
-	            for (var i = 0; i < spec.length; i++) {
-	                this._parseSpec(spec[i], parentContext, sizeContext);
-	            }
-	        }
-	        else {
-	            target = spec.target;
-	            transform = parentContext.transform;
-	            opacity = parentContext.opacity;
-	            origin = parentContext.origin;
-	            align = parentContext.align;
-	            size = parentContext.size;
-	            var nextSizeContext = sizeContext;
-	
-	            if (spec.opacity !== undefined) opacity = parentContext.opacity * spec.opacity;
-	            if (spec.transform) transform = Transform.multiply(parentContext.transform, spec.transform);
-	            if (spec.origin) {
-	                origin = spec.origin;
-	                nextSizeContext = parentContext.transform;
-	            }
-	            if (spec.align) align = spec.align;
-	
-	            if (spec.size || spec.proportions) {
-	                var parentSize = size;
-	                size = [size[0], size[1]];
-	
-	                if (spec.size) {
-	                    if (spec.size[0] !== undefined) size[0] = spec.size[0];
-	                    if (spec.size[1] !== undefined) size[1] = spec.size[1];
-	                }
-	
-	                if (spec.proportions) {
-	                    if (spec.proportions[0] !== undefined) size[0] = size[0] * spec.proportions[0];
-	                    if (spec.proportions[1] !== undefined) size[1] = size[1] * spec.proportions[1];
-	                }
-	
-	                if (parentSize) {
-	                    if (align && (align[0] || align[1])) transform = Transform.thenMove(transform, _vecInContext([align[0] * parentSize[0], align[1] * parentSize[1], 0], sizeContext));
-	                    if (origin && (origin[0] || origin[1])) transform = Transform.moveThen([-origin[0] * size[0], -origin[1] * size[1], 0], transform);
-	                }
-	
-	                nextSizeContext = parentContext.transform;
-	                origin = null;
-	                align = null;
-	            }
-	
-	            this._parseSpec(target, {
-	                transform: transform,
-	                opacity: opacity,
-	                origin: origin,
-	                align: align,
-	                size: size
-	            }, nextSizeContext);
-	        }
-	    };
-	
-	    module.exports = SpecParser;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 54 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Context = __webpack_require__(30);
-	    var Transform = __webpack_require__(24);
-	    var Surface = __webpack_require__(23);
-	
-	    /**
-	     * A Context designed to contain surfaces and set properties
-	     *   to be applied to all of them at once.
-	     *   This is primarily used for specific performance improvements in the rendering engine.
-	     *   Private.
-	     *
-	     * @private
-	     * @class Group
-	     * @extends Surface
-	     * @constructor
-	     * @param {Object} [options] Surface options array (see Surface})
-	     */
-	    function Group(options) {
-	        Surface.call(this, options);
-	        this._shouldRecalculateSize = false;
-	        this._container = document.createDocumentFragment();
-	        this.context = new Context(this._container);
-	        this.setContent(this._container);
-	        this._groupSize = [undefined, undefined];
-	    }
-	
-	    /** @const */
-	    Group.SIZE_ZERO = [0, 0];
-	
-	    Group.prototype = Object.create(Surface.prototype);
-	    Group.prototype.elementType = 'div';
-	    Group.prototype.elementClass = 'famous-group';
-	
-	    /**
-	     * Add renderables to this component's render tree.
-	     *
-	     * @method add
-	     * @private
-	     * @param {Object} obj renderable object
-	     * @return {RenderNode} Render wrapping provided object, if not already a RenderNode
-	     */
-	    Group.prototype.add = function add() {
-	        return this.context.add.apply(this.context, arguments);
-	    };
-	
-	    /**
-	     * Generate a render spec from the contents of this component.
-	     *
-	     * @private
-	     * @method render
-	     * @return {Number} Render spec for this component
-	     */
-	    Group.prototype.render = function render() {
-	        return Surface.prototype.render.call(this);
-	    };
-	
-	    /**
-	     * Place the document element this component manages into the document.
-	     *
-	     * @private
-	     * @method deploy
-	     * @param {Node} target document parent of this container
-	     */
-	    Group.prototype.deploy = function deploy(target) {
-	        this.context.migrate(target);
-	    };
-	
-	    /**
-	     * Remove this component and contained content from the document
-	     *
-	     * @private
-	     * @method recall
-	     *
-	     * @param {Node} target node to which the component was deployed
-	     */
-	    Group.prototype.recall = function recall(target) {
-	        this._container = document.createDocumentFragment();
-	        this.context.migrate(this._container);
-	    };
-	
-	    /**
-	     * Apply changes from this component to the corresponding document element.
-	     *
-	     * @private
-	     * @method commit
-	     *
-	     * @param {Object} context update spec passed in from above in the render tree.
-	     */
-	    Group.prototype.commit = function commit(context) {
-	        var transform = context.transform;
-	        var origin = context.origin;
-	        var opacity = context.opacity;
-	        var size = context.size;
-	        var result = Surface.prototype.commit.call(this, {
-	            allocator: context.allocator,
-	            transform: Transform.thenMove(transform, [-origin[0] * size[0], -origin[1] * size[1], 0]),
-	            opacity: opacity,
-	            origin: origin,
-	            size: Group.SIZE_ZERO
-	        });
-	        if (size[0] !== this._groupSize[0] || size[1] !== this._groupSize[1]) {
-	            this._groupSize[0] = size[0];
-	            this._groupSize[1] = size[1];
-	            this.context.setSize(size);
-	        }
-	        this.context.update({
-	            transform: Transform.translate(-origin[0] * size[0], -origin[1] * size[1], 0),
-	            origin: origin,
-	            size: size
-	        });
-	        return result;
-	    };
-	
-	    module.exports = Group;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 55 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(46);
-	    var EventHandler = __webpack_require__(31);
-	
-	    /**
-	     * Force base class.
-	     *
-	     * @class Force
-	     * @uses EventHandler
-	     * @constructor
-	     */
-	    function Force(force) {
-	        this.force = new Vector(force);
-	        this._eventOutput = new EventHandler();
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	    }
-	
-	    /**
-	     * Basic setter for options
-	     *
-	     * @method setOptions
-	     * @param options {Objects}
-	     */
-	    Force.prototype.setOptions = function setOptions(options) {
-	        this._eventOutput.emit('change', options);
-	    };
-	
-	    /**
-	     * Adds a force to a physics body's force accumulator.
-	     *
-	     * @method applyForce
-	     * @param targets {Array.Body} Array of bodies to apply a force to.
-	     */
-	    Force.prototype.applyForce = function applyForce(targets) {
-	        var length = targets.length;
-	        while (length--) {
-	            targets[length].applyForce(this.force);
-	        }
-	    };
-	
-	    /**
-	     * Getter for a force's potential energy.
-	     *
-	     * @method getEnergy
-	     * @return energy {Number}
-	     */
-	    Force.prototype.getEnergy = function getEnergy() {
-	        return 0.0;
-	    };
-	
-	    module.exports = Force;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 56 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(31);
-	
-	    var _now = Date.now;
-	
-	    function _timestampTouch(touch, event, history) {
-	        return {
-	            x: touch.clientX,
-	            y: touch.clientY,
-	            identifier : touch.identifier,
-	            origin: event.origin,
-	            timestamp: _now(),
-	            count: event.touches.length,
-	            history: history
-	        };
-	    }
-	
-	    function _handleStart(event) {
-	        if (event.touches.length > this.touchLimit) return;
-	        this.isTouched = true;
-	
-	        for (var i = 0; i < event.changedTouches.length; i++) {
-	            var touch = event.changedTouches[i];
-	            var data = _timestampTouch(touch, event, null);
-	            this.eventOutput.emit('trackstart', data);
-	            if (!this.selective && !this.touchHistory[touch.identifier]) this.track(data);
-	        }
-	    }
-	
-	    function _handleMove(event) {
-	        if (event.touches.length > this.touchLimit) return;
-	
-	        for (var i = 0; i < event.changedTouches.length; i++) {
-	            var touch = event.changedTouches[i];
-	            var history = this.touchHistory[touch.identifier];
-	            if (history) {
-	                var data = _timestampTouch(touch, event, history);
-	                this.touchHistory[touch.identifier].push(data);
-	                this.eventOutput.emit('trackmove', data);
-	            }
-	        }
-	    }
-	
-	    function _handleEnd(event) {
-	        if (!this.isTouched) return;
-	
-	        for (var i = 0; i < event.changedTouches.length; i++) {
-	            var touch = event.changedTouches[i];
-	            var history = this.touchHistory[touch.identifier];
-	            if (history) {
-	                var data = _timestampTouch(touch, event, history);
-	                this.eventOutput.emit('trackend', data);
-	                delete this.touchHistory[touch.identifier];
-	            }
-	        }
-	
-	        this.isTouched = false;
-	    }
-	
-	    function _handleUnpipe() {
-	        for (var i in this.touchHistory) {
-	            var history = this.touchHistory[i];
-	            this.eventOutput.emit('trackend', {
-	                touch: history[history.length - 1].touch,
-	                timestamp: Date.now(),
-	                count: 0,
-	                history: history
-	            });
-	            delete this.touchHistory[i];
-	        }
-	    }
-	
-	    /**
-	     * Helper to TouchSync – tracks piped in touch events, organizes touch
-	     *   events by ID, and emits track events back to TouchSync.
-	     *   Emits 'trackstart', 'trackmove', and 'trackend' events upstream.
-	     *
-	     * @class TouchTracker
-	     * @constructor
-	     * @param {Object} options default options overrides
-	     * @param [options.selective] {Boolean} selective if false, saves state for each touch
-	     * @param [options.touchLimit] {Number} touchLimit upper bound for emitting events based on number of touches
-	     */
-	    function TouchTracker(options) {
-	        this.selective = options.selective;
-	        this.touchLimit = options.touchLimit || 1;
-	
-	        this.touchHistory = {};
-	
-	        this.eventInput = new EventHandler();
-	        this.eventOutput = new EventHandler();
-	
-	        EventHandler.setInputHandler(this, this.eventInput);
-	        EventHandler.setOutputHandler(this, this.eventOutput);
-	
-	        this.eventInput.on('touchstart', _handleStart.bind(this));
-	        this.eventInput.on('touchmove', _handleMove.bind(this));
-	        this.eventInput.on('touchend', _handleEnd.bind(this));
-	        this.eventInput.on('touchcancel', _handleEnd.bind(this));
-	        this.eventInput.on('unpipe', _handleUnpipe.bind(this));
-	
-	        this.isTouched = false;
-	    }
-	
-	    /**
-	     * Record touch data, if selective is false.
-	     * @private
-	     * @method track
-	     * @param {Object} data touch data
-	     */
-	    TouchTracker.prototype.track = function track(data) {
-	        this.touchHistory[data.identifier] = [data];
-	    };
-	
-	    module.exports = TouchTracker;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
 /* 57 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(31);
-	
-	    /**
-	     *  Allows for two circular bodies to collide and bounce off each other.
-	     *
-	     *  @class Constraint
-	     *  @constructor
-	     *  @uses EventHandler
-	     *  @param options {Object}
-	     */
-	    function Constraint() {
-	        this.options = this.options || {};
-	        this._eventOutput = new EventHandler();
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	    }
-	
-	    /*
-	     * Setter for options.
-	     *
-	     * @method setOptions
-	     * @param options {Objects}
-	     */
-	    Constraint.prototype.setOptions = function setOptions(options) {
-	        this._eventOutput.emit('change', options);
-	    };
-	
-	    /**
-	     * Adds an impulse to a physics body's velocity due to the constraint
-	     *
-	     * @method applyConstraint
-	     */
-	    Constraint.prototype.applyConstraint = function applyConstraint() {};
-	
-	    /**
-	     * Getter for energy
-	     *
-	     * @method getEnergy
-	     * @return energy {Number}
-	     */
-	    Constraint.prototype.getEnergy = function getEnergy() {
-	        return 0.0;
-	    };
-	
-	    module.exports = Constraint;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public

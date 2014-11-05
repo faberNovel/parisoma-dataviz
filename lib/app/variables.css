@@ -2,12 +2,15 @@
   --color-pink: rgb(255, 31, 171);
   --color-yellow: rgb(255, 255, 0);
   --color-gray: rgb(162, 169, 162);
+  --color-gray-transparent: rgba(162, 169, 162, 0.5);
   --color-black: rgb(0, 0, 0);
+  --color-white: rgb(255, 255, 255);
   --Grid-gutter-size: 50px;
   --size-massive: 68px;
   --size-huge: 60px;
   --size-xlarge: 50px;
   --size-large: 40px;
+  --size-big: 28px;
   --size-normal: 22px;
   --size-small: 18px;
 }
