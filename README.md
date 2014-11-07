@@ -1,4 +1,11 @@
-parisoma-dataviz
-================
+http://faberNovel.github.io/parisoma-dataviz
 
-Data visualization on PARISOMA members created in Fall 2014
+# publishing
+```
+git checkout gh-pages
+git rebase master
+git push origin gh-pages -f
+git checkout master
+```
+
+
