@@ -288,7 +288,7 @@
 	  // background surface
 	  this.bg = {};
 	  this.bg.surface = new ImageSurface({
-	    content: '/assets/images/01-parisoma.png',
+	    content: './assets/images/01-parisoma.png',
 	    size: [true, true]
 	  });
 	
@@ -378,7 +378,7 @@
 	  // light image
 	  this.lightImg = {};
 	  this.lightImg.surface = new ImageSurface({
-	    content: '/assets/images/02-light.png',
+	    content: './assets/images/02-light.png',
 	    size: [true, true],
 	  });
 	
@@ -392,7 +392,7 @@
 	  // group image
 	  this.groupImg = {};
 	  this.groupImg.surface = new ImageSurface({
-	    content: '/assets/images/03-group.png',
+	    content: './assets/images/03-group.png',
 	    size: [true, true]
 	  });
 	
@@ -726,7 +726,7 @@
 	
 	  this.legoImg = {};
 	  this.legoImg.surface = new ImageSurface({
-	    content: '/assets/images/04-lego.png',
+	    content: './assets/images/04-lego.png',
 	    size: [true, true]
 	  });
 	
@@ -969,7 +969,7 @@
 	
 	  this.rocketImg = {};
 	  this.rocketImg.surface = new ImageSurface({
-	    content: '/assets/images/05-rocket.png',
+	    content: './assets/images/05-rocket.png',
 	    size: [true, true]
 	  });
 	
@@ -1198,7 +1198,7 @@
 	
 	  this.parisomaImg = {};
 	  this.parisomaImg.surface = new ImageSurface({
-	    content: '/assets/images/07-parisoma.png',
+	    content: './assets/images/07-parisoma.png',
 	    size: [true, true]
 	  });
 	
@@ -1214,7 +1214,7 @@
 	
 	  this.shelfImg = {};
 	  this.shelfImg.surface = new ImageSurface({
-	    content: '/assets/images/06-shelf.png',
+	    content: './assets/images/06-shelf.png',
 	    size: [true, true]
 	  });
 	
@@ -1230,7 +1230,7 @@
 	
 	  this.keyboardImg = {};
 	  this.keyboardImg.surface = new ImageSurface({
-	    content: '/assets/images/08-keyboard.png',
+	    content: './assets/images/08-keyboard.png',
 	    size: [true, true]
 	  });
 	
@@ -1240,7 +1240,7 @@
 	
 	  this.donutImg = {};
 	  this.donutImg.surface = new ImageSurface({
-	    content: '/assets/images/10-donut.png',
+	    content: './assets/images/10-donut.png',
 	    size: [true, true]
 	  });
 	
@@ -1282,7 +1282,7 @@
 	
 	  this.taglineImg = {};
 	  this.taglineImg.surface = new ImageSurface({
-	    content: '/assets/images/09-tagline.png',
+	    content: './assets/images/09-tagline.png',
 	    size: [true, true]
 	  });
 	
@@ -1694,7 +1694,7 @@
 	
 	  this.printingImg = {};
 	  this.printingImg.surface = new ImageSurface({
-	    content: '/assets/images/11-3Dprinting.png',
+	    content: './assets/images/11-3Dprinting.png',
 	    size: [true, true],
 	    properties: {
 	      zIndex: 1
@@ -1929,7 +1929,7 @@
 	
 	  this.groupImg = {};
 	  this.groupImg.surface = new ImageSurface({
-	    content: '/assets/images/12-group.png',
+	    content: './assets/images/12-group.png',
 	    size: [true, true]
 	  });
 	
@@ -2108,7 +2108,7 @@
 	
 	  this.truckImg = {};
 	  this.truckImg.surface = new ImageSurface({
-	    content: '/assets/images/13-truck.png',
+	    content: './assets/images/13-truck.png',
 	    size: [true, true]
 	  });
 	
@@ -2356,7 +2356,7 @@
 	  // fawn image
 	  this.fawnImg = {};
 	  this.fawnImg.surface = new ImageSurface({
-	    content: '/assets/images/14-fawn.png',
+	    content: './assets/images/14-fawn.png',
 	    size: [true, true]
 	  });
 	
@@ -2369,7 +2369,7 @@
 	  // open image
 	  this.openImg = {};
 	  this.openImg.surface = new ImageSurface({
-	    content: '/assets/images/15-open.png',
+	    content: './assets/images/15-open.png',
 	    size: [true, true]
 	  });
 	
@@ -2527,7 +2527,7 @@
 	
 	  this.brand = {};
 	  this.brand.surface = new ImageSurface({
-	    content: '/assets/brand.svg',
+	    content: './assets/brand.svg',
 	    properties: {
 	      zIndex: 3
 	    }
