@@ -53,6 +53,19 @@ html, body {
   color: var(--color-pink);
 }
 
+/* stat
+-------------------------------------------------- */
+
+.stat-number {
+  font-size: var(--size-huge);
+  line-height: var(--size-huge);
+}
+
+.stat-sign {
+  font-size: var(--size-large);
+  padding-top: 8px
+}
+
 /* note
 -------------------------------------------------- */
 
@@ -81,6 +94,11 @@ html, body {
 .text--white {
   color: var(--color-white);
 }
+
+.text--gray {
+  color: var(--color-gray);
+}
+
 
 .text--big {
   font-size: var(--size-big);

@@ -44,9 +44,9 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*!
-	 * load styles
-	 */
+	// /*!
+	//  * load styles
+	//  */
 	
 	__webpack_require__(15);
 	__webpack_require__(12);
@@ -58,9 +58,10 @@
 	var Engine = __webpack_require__(17),
 	    KeyCodes = __webpack_require__(20),
 	    Transform = __webpack_require__(18),
-	    ScrollContainer = __webpack_require__(21),
 	    Modifier = __webpack_require__(19),
 	    ContainerSurface = __webpack_require__(22),
+	    RenderController = __webpack_require__(23),
+	
 	    Slide01 = __webpack_require__(1),
 	    Slide02 = __webpack_require__(2),
 	    Slide03 = __webpack_require__(3),
@@ -78,125 +79,181 @@
 	mainContext.setPerspective(500);
 	
 	var Slides = [Slide01, Slide02, Slide03, Slide04, Slide05, Slide06, Slide07, Slide08, Slide09, Slide10];
-	// var Slides = [Slide02];
-	
+	// var Slides = [ViewStat];
 	var views = [];
-	var surfaces = [];
 	
-	var scrollContainer = new ScrollContainer();
-	scrollContainer.sequenceFrom(surfaces);
+	var renderController = new RenderController();
 	
 	/*!
 	 * kick off
 	 */
 	
-	// var logo, container;
-	
-	var logo = new Logo();
-	var container = new ContainerSurface({
-	  size: [undefined, undefined]
-	});
-	
-	container
-	  .add(new Modifier({
-	    align: [0.5, 0.5],
-	    origin: [0.5, 0.5],
-	    transform: Transform.multiply(
-	      Transform.translate(0, 32, 0),
-	      Transform.scale(0.5)
-	    )
-	  }))
-	  .add(logo);
-	
-	container.pipe(scrollContainer);
-	views.push(logo);
-	surfaces.push(container);
-	
-	// genericSync.pipe(logo);
-	// Engine.pipe(logo);
-	
-	// logo.on('update', function() {
-	//   console.log('xxxx');
-	// });
-	
-	// logo._eventInput.on('update', function() {
-	//   console.log('xxxx');
-	// });
-	
-	// logo._eventInput.on('keydown', function() {
-	//   console.log('keydown');
-	// });
-	
-	// logo._eventOutput.on('update', function() {
-	//   console.log('xxxx');
-	// });
-	
-	
-	
-	// mainContext.add(new Modifier({
-	//   origin: [0.5, 0.5],
-	//   align: [0.5, 0],
-	//   opacity: 0.5
-	// })).add(new ImageSurface({
-	//   content: '/assets/layer.png',
-	//   size: [true, true],
-	//   properties: {
-	//     zIndex: 2
-	//   }
-	// }));
-	
-	Slides.forEach(function (Slide) {
-	  var slide, container;
-	
-	  container = new ContainerSurface({
-	    size: [980, window.innerHeight]
+	function wrap(view) {
+	  var container = new ContainerSurface({
+	    size: [800, 800],
+	    properties: {
+	      // backgroundColor: 'lightgray'
+	    }
 	  });
 	
-	  slide = new Slide();
-	  container.add(slide);
-	  views.push(slide);
-	  surfaces.push(container);
-	  Engine.pipe(slide);
-	});
+	  container
+	    .add(new Modifier({
+	      align: [0.5, 0.5],
+	      origin: [0.5, 0.5]
+	    }))
+	    .add(view);
 	
-	container = new ContainerSurface({
-	  size: [980, undefined]
-	});
+	  Engine.pipe(view);
+	  view.container = container;
+	  views.push(view);
+	}
 	
-	container.add(scrollContainer);
+	Slides.forEach(function (Slide) {
+	  wrap(new Slide());
+	});
 	
 	mainContext
 	  .add(new Modifier({
 	    align: [0.5, 0.5],
 	    origin: [0.5, 0.5],
+	    transform: Transform.scale(1)
 	  }))
-	  .add(container);
+	  .add(renderController);
+	
+	
+	var index = 0;
+	
+	renderController.show(views[index].container);
+	views[index]._eventInput.trigger('enter');
+	
+	
+	
+	
+	var GenericSync = __webpack_require__(24);
+	var MouseSync = __webpack_require__(25);
+	var TouchSync = __webpack_require__(26);
+	var ScrollSync = __webpack_require__(27);
+	var Utility = __webpack_require__(21);
+	
+	
+	GenericSync.register({
+	    'mouse': MouseSync,
+	    'touch': TouchSync,
+	    'scroll': ScrollSync
+	});
+	
+	
+	GenericSync.register({
+	  mouse : MouseSync,
+	  touch : TouchSync,
+	  scroll : ScrollSync
+	});
+	
+	
+	var sync = new GenericSync(['mouse', 'touch', 'scroll']);
+	Engine.pipe(sync);
+	
+	sync.on("start", function(data) {
+	  console.log('start ...', data);
+	});
+	
+	// sync.on("update", function(data) {
+	//   console.log('update ...', data);
+	// });
+	
+	sync.on("end", function(data) {
+	  console.log('update ...', data);
+	});
+	
 	
 	
 	Engine.on('keydown', function(e) {
-	  var current;
 	  setTimeout(function() {
 	    if (e.defaultPrevented) return;
-	    if (e.which === KeyCodes.UP_ARROW) {
-	      current = scrollContainer.scrollview.goToPreviousPage();
-	      if (current) views[current.index]._eventInput.trigger('enter', { direction: -1 });
-	      if (current && views[current.index + 1]) views[current.index + 1]._eventInput.trigger('leave', { direction: - 1 });
-	    }
-	    else if (e.which === KeyCodes.DOWN_ARROW) {
-	      current = scrollContainer.scrollview.goToNextPage();
-	      if (current) views[current.index]._eventInput.trigger('enter', { direction: 1 });
-	      if (current && views[current.index - 1]) views[current.index - 1]._eventInput.trigger('leave', { direction: 1 });
+	    if (e.which === KeyCodes.UP_ARROW && views[index - 1]) {
+	      index--;
+	      renderController.show(views[index].container);
+	      if (views[index + 1]) views[index + 1]._eventInput.trigger('leave', { direction: - 1 });
+	      views[index]._eventInput.trigger('enter', { direction: -1 });
+	    } else if (e.which === KeyCodes.DOWN_ARROW && views[index + 1]) {
+	      index++;
+	      renderController.show(views[index].container);
+	      if (views[index - 1]) views[index - 1]._eventInput.trigger('leave', { direction: 1 });
+	      views[index]._eventInput.trigger('enter', { direction: 1 });
 	    }
 	  }, 0);
 	});
 	
-	window.scrollview = scrollContainer.scrollview;
 	
-	// setTimeout(function() {
-	//   var scroller = window.scroller = scrollContainer.scrollview;
-	//   scroller.goToPage(1);
-	// }, 100);
-
+	/*!
+	 * logo cover
+	 */
+	
+	var logo = new Logo();
+	mainContext.add(logo);
+	logo.animate();
+	
+	
+	// var Engine          = require('famous/core/Engine');
+	// var Surface         = require('famous/core/Surface');
+	// var StateModifier   = require('famous/modifiers/StateModifier');
+	// var PhysicsEngine   = require('famous/physics/PhysicsEngine');
+	// var Circle          = require('famous/physics/bodies/Circle');
+	// var Spring          = require('famous/physics/constraints/Distance');
+	// var Walls           = require('famous/physics/constraints/Walls');
+	
+	// var context = Engine.createContext();
+	// var physicsEngine = new PhysicsEngine();
+	
+	// context.setPerspective(500);
+	
+	// /*!
+	//  * ball
+	//  */
+	
+	// var ball = new Surface ({
+	//   size: [200, 200],
+	//   properties: {
+	//     backgroundColor: 'red',
+	//     borderRadius: '100px'
+	//   }
+	// });
+	
+	// ball.state = new StateModifier({
+	//     align: [0.5, 0.5],
+	//     origin: [0.5, 0.5]
+	// });
+	
+	// ball.particle = new Circle({
+	//   radius: 100
+	// });
+	
+	
+	// !
+	//  * add to context
+	
+	
+	// physicsEngine.addBody(ball.particle);
+	// context.add(ball.state).add(ball);
+	
+	// var walls    = new Walls({ size: [600, 600], origin: [0.5, 0.5]});
+	// physicsEngine.attach( walls.components[0],  [ball.particle]);
+	// physicsEngine.attach( walls.components[1],  [ball.particle]);
+	// physicsEngine.attach( walls.components[2],  [ball.particle]);
+	// physicsEngine.attach( walls.components[3],  [ball.particle]);
+	// // physicsEngine.attach( walls,  [ball.particle]);
+	// // physicsEngine.attach( rightWall, [ball.particle]);
+	// // physicsEngine.attach( topWall,   [ball.particle]);
+	// // physicsEngine.attach( bottomWall,[ball.particle]);
+	
+	// ball.particle.setVelocity([0.5,1,0]);
+	
+	// physicsEngine.attach( walls.components[3],  [ball.particle]);
+	
+	
+	// Engine.on('prerender', function(){
+	//   ball.state.setTransform(ball.particle.getTransform())
+	// });
 
 /***/ },
 /* 1 */
@@ -206,12 +263,12 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    ImageSurface = __webpack_require__(24),
-	    StateModifier = __webpack_require__(26),
-	    Easing = __webpack_require__(27),
+	var Surface = __webpack_require__(28),
+	    ImageSurface = __webpack_require__(29),
+	    StateModifier = __webpack_require__(31),
+	    Easing = __webpack_require__(32),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    View = __webpack_require__(30);
 	
 	/*!
 	 * globals
@@ -219,21 +276,6 @@
 	
 	var toRadian = Math.PI/180;
 	
-	/*!
-	 * templates
-	 */
-	
-	var title1 = ("\n<h1 class='title title--intro text--white u-textRight'>Who starts a Startup?</h1>"
-	);
-	
-	var who = ("\n<h1 class='title title--intro'>Who</h1>"
-	);
-	
-	var content1 = ("\n<div class='text--white'>\n  <p>Starting a company has never been easier. While entrepreneurship was once the calling of the venturous few, it has since become a career path chosen by many. At PARISOMA, we have hosted over 450 entrepreneurs for the past six years.</p>\n  <p class='u-pad-top-10'>We know that two startup founders are the same, we chose to ask our members - who starts a startup?</p>\n</div>"
-	
-	
-	
-	);
 	
 	/**
 	 * create view layout
@@ -249,6 +291,7 @@
 	  });
 	
 	  this.bg.modifier = new StateModifier({
+	    opacity: 0,
 	    transform: Transform.translate(0, -600, 0)
 	  });
 	
@@ -256,13 +299,14 @@
 	  this.text = {};
 	  this.text.surface = new Surface({
 	    size: [780, 300],
-	    content: content1
+	    content: ("<div class='text--white'><p>Starting a company has never been easier. While entrepreneurship was once the calling of the venturous few, it has since become a career path chosen by many. At PARISOMA, we have hosted over 450 entrepreneurs for the past six years.</p><p class='u-pad-top-10'>We know that two startup founders are the same, we chose to ask our members - who starts a startup?</p></div>")
 	  });
 	
 	  this.text.modifier = new StateModifier({
 	    origin: [0.5, 0],
 	    align: [0.5, 0],
-	    transform: Transform.translate(0, 50, 0)
+	    transform: Transform.translate(0, 50, 0),
+	    opacity: 0
 	  });
 	
 	  // yellow ticker
@@ -285,7 +329,7 @@
 	  // title 1
 	  this.title1 = {};
 	  this.title1.surface = new Surface({
-	    content: title1,
+	    content: ("<h1 class='title title--intro u-textRight'>Who starts a Startup?</h1>"),
 	    size: [400, true]
 	  });
 	
@@ -298,7 +342,7 @@
 	  // title 1
 	  this.who = {};
 	  this.who.surface = new Surface({
-	    content: who,
+	    content: ("<h1 class='title title--intro'>Who</h1>"),
 	    size: [105, true],
 	    properties: {
 	      overflow: 'hidden'
@@ -319,7 +363,8 @@
 	  });
 	
 	  this.pinkTicker.tickerModifier = new StateModifier({
-	    transform: Transform.skew(0, 39 * toRadian, 0)
+	    transform: Transform.skew(0, 39 * toRadian, 0),
+	    opacity: 0
 	  });
 	
 	  this.pinkTicker.modifier = new StateModifier({
@@ -332,12 +377,13 @@
 	  this.lightImg = {};
 	  this.lightImg.surface = new ImageSurface({
 	    content: '/assets/images/02-light.png',
-	    size: [true, true]
+	    size: [true, true],
 	  });
 	
 	  this.lightImg.modifier = new StateModifier({
 	    origin: [1, 0],
 	    align: [0.5, 0],
+	    opacity: 0,
 	    transform: Transform.translate(0, 518, 0)
 	  });
 	
@@ -372,31 +418,53 @@
 	    .add(this.groupImg.surface);
 	
 	  node
+	    .add(this.pinkTicker.modifier)
+	    .add(this.pinkTicker.tickerModifier)
+	    .add(this.pinkTicker.surface);
+	
+	  this.titleGroupModifer = new StateModifier({
+	    transform: Transform.translate(0, -200, 0)
+	  });
+	
+	  var titleGroupNode = node.add(this.titleGroupModifer);
+	
+	  titleGroupNode
 	    .add(this.yellowTicker.modifier)
 	    .add(this.yellowTicker.tickerModifier)
 	    .add(this.yellowTicker.surface);
 	
-	  node
-	    .add(this.pinkTicker.modifier)
-	    .add(this.pinkTicker.tickerModifier)
-	    .add(this.pinkTicker.surface);
+	  titleGroupNode
+	    .add(this.who.modifier)
+	    .add(this.who.surface);
+	
+	  titleGroupNode
+	    .add(this.title1.modifier)
+	    .add(this.title1.surface);
 	
 	  node
 	    .add(this.text.modifier)
 	    .add(this.text.surface);
 	
-	  node
-	    .add(this.who.modifier)
-	    .add(this.who.surface);
-	
-	  node
-	    .add(this.title1.modifier)
-	    .add(this.title1.surface);
 	}
 	
 	function _onEnter() {
-	  this.modifier.setOpacity(1, { duration : 1500, curve: Easing.outBack });
-	  this.bg.modifier.setTransform(Transform.translate(0, 0, 0), { duration : 500, curve: Easing.outBack });
+	
+	  function doStep0() {
+	    this.modifier.setOpacity(1, { duration : 1500, curve: Easing.outBack });
+	  }
+	
+	  function doStep1() {
+	    this.title1.surface.addClass('text--white');
+	    this.titleGroupModifer.setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack });
+	
+	    this.text.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack });
+	    this.bg.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack });
+	    this.bg.modifier.setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack });
+	  }
+	
+	  doStep0.call(this);
+	  setTimeout(doStep1.bind(this), 2000);
+	
 	}
 	
 	function _onLeave() {
@@ -422,10 +490,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 1100]
-	};
-	
 	
 	/*!
 	 * module exports
@@ -441,29 +505,12 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    Easing = __webpack_require__(27),
-	    StateModifier = __webpack_require__(26),
+	var Surface = __webpack_require__(28),
+	    StateModifier = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
-	
-	/*!
-	 * templates
-	 */
-	
-	var title1 = ("\n<h1 class='title title--section title--pink u-textRight'>they come from all over</h1>"
-	);
-	
-	var number1 = ("<span class='u-textHuge'>20</span>");
-	
-	var content1 = ("\n<div>\n  <p>different countries represented</p>\n  <div class='u-pad-top-10'>\n    <p>54% USA</p>\n    <p>34% Europe</p>\n  </div>\n</div>"
-	
-	
-	
-	
-	
-	
-	);
+	    View = __webpack_require__(30),
+	    ViewList = __webpack_require__(33),
+	    ViewStat = __webpack_require__(34);
 	
 	/**
 	 * create view layout
@@ -471,63 +518,87 @@
 	
 	function _createLayout(){
 	
-	  // title 1
-	  this.title1 = {};
-	  this.title1.surface = new Surface({
-	    content: title1,
-	    size: [300, true]
+	  /*!
+	   * title
+	   */
+	
+	  this.title = {};
+	  this.title.surface = new Surface({
+	    size: [300, true],
+	    content: ("<h1 class='title title--section title--pink u-textRight'>they come from all over</h1>")
 	  });
 	
-	  this.title1.modifier = new StateModifier({
+	  this.title.modifier = new StateModifier({
 	    origin: [1, 0.5],
 	    align: [0.5, 0.5],
 	    transform: Transform.translate(-10, 0, 0)
 	  });
 	
-	  // content 1
-	  this.content1 = {};
-	  this.content1.surface = new Surface({
-	    content: content1,
-	    size: [160, true]
+	  /*!
+	   * stat
+	   */
+	
+	  this.stat = {};
+	  this.stat.surface = new ViewStat({
+	    container: {
+	      size: [180, 120]
+	    },
+	    number: {
+	      content: '20'
+	    },
+	    sign: null,
+	    label: {
+	      content: ("<p style='text-indent: 80px'>different countries represented</>"),
+	      size: [50, true],
+	      transform: Transform.translate(0, 24, 0)
+	    }
 	  });
 	
-	  this.content1.modifier = new StateModifier({
+	  this.stat.modifier = new StateModifier({
 	    origin: [0, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(10, 0, 0)
+	    transform: Transform.translate(20, 0, 0)
 	  });
 	
-	  this.number1 = {};
-	  this.number1.surface = new Surface({
-	    content: number1,
-	    size: [160, true]
-	  });
+	  /*!
+	   * list
+	   */
 	
-	  this.number1.modifier = new StateModifier({
+	  this.list = {};
+	  this.list.surface = new ViewList();
+	  this.list.surface.sequenceFrom(['54% USA', '34% Europe'].map(function(el) {
+	    return new Surface({
+	      content: el,
+	      size: [true, true]
+	    });
+	  }));
+	
+	  this.list.modifier = new StateModifier({
 	    origin: [0, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(10, 0, 0)
+	    transform: Transform.translate(20, 90, 0)
 	  });
 	
-	  this.modifier = new StateModifier({
-	    transform: Transform.translate(0, 700, 0)
-	  });
+	  /*!
+	   * render tree
+	   */
 	
-	  var node = this.add(this.modifier);
+	  this
+	    .add(this.title.modifier)
+	    .add(this.title.surface);
 	
-	  node
-	    .add(this.title1.modifier)
-	    .add(this.title1.surface);
+	  this
+	    .add(this.stat.modifier)
+	    .add(this.stat.surface);
 	
-	  node
-	    .add(this.content1.modifier)
-	    .add(this.content1.surface);
+	  this
+	    .add(this.list.modifier)
+	    .add(this.list.surface);
 	}
 	
 	function _onEnter() {
-	  this.modifier
-	    .setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack }
-	  );
+	  this.stat.surface.count();
+	  this.list.surface.open();
 	}
 	
 	function _onLeave() {
@@ -551,9 +622,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 240]
-	};
 	
 	/*!
 	 * module exports
@@ -569,101 +637,32 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    StateModifier = __webpack_require__(26),
+	var Surface = __webpack_require__(28),
+	    StateModifier = __webpack_require__(31),
 	    KeyCodes = __webpack_require__(20),
-	    ImageSurface = __webpack_require__(24),
-	    Easing = __webpack_require__(27),
+	    ImageSurface = __webpack_require__(29),
+	    Easing = __webpack_require__(32),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    Utility = __webpack_require__(21),
+	    View = __webpack_require__(30),
+	    ViewList = __webpack_require__(33),
+	    ViewStat = __webpack_require__(34);
 	
 	/*!
 	 * globals
 	 */
 	
-	var toRadian = Math.PI/180;
-	
-	/*!
-	 * templates
-	 */
-	
-	var title2 = ("\n<h1 class='title title--section title--pink u-textRight'>they know what they are getting into</h1>"
-	);
-	
-	var content2 = ("\n<div class='Grid Grid--alignMiddle'>\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>40</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n  </div>\n  <div class='Grid-cell u-size2of3'>\n    <span> consider themselves to be </span>\n    <span class='u-textBold'> serial entrepreneurs</span>\n  </div>\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
-	var content3 = ("\n<div class='Grid Grid--alignTop Grid--withGutter'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>40</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span> have a Master Degree </span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>40</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span> have a Bachelors Degree<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>15</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span> have a Phd</span>\n  </div>\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
-	var content4 = ("\n<div>\n  <div class='u-pad-bottom-20 u-textUnderscore'>before joining PARISOMA</div>\n  <div class='Grid Grid--alignTop Grid--withGutter'>\n\n    <div class='Grid-cell u-size1of3'>\n      <div>\n        <span class='u-textHuge'>44</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <span> worked for a large organisation</span>\n    </div>\n\n    <div class='Grid-cell u-size1of3 Grid-cell--withBorder'>\n      <div>\n        <span class='u-textHuge'>27</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <span> worked for another startup</span>\n    </div>\n\n    <div class='Grid-cell u-size1of3'>\n      <div>\n        <span class='u-textHuge'>2</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <span> were still in school</span>\n    </div>\n  </div>\n\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
+	var list1 = [
+	  { number: 40, label: 'have a Masters Degree' },
+	  { number: 40, label: 'have a Bachelors Degree' },
+	  { number: 15, label: 'have a PhD' }
+	];
+	
+	var list2 = [
+	  { number: 44, label: 'worked for a large organization' },
+	  { number: 27, label: 'worked for another startup' },
+	  { number: 2,  label: 'were still in school' }
+	];
 	
 	/**
 	 * create view layout
@@ -671,78 +670,58 @@
 	
 	function _createLayout(){
 	
-	  // title 2
-	  this.title2 = {};
-	  this.title2.surface = new Surface({
-	    content: title2,
+	  /*!
+	   * title
+	   */
+	
+	  this.title = {};
+	  this.title.surface = new Surface({
+	    content: ("<h1 class='title title--section title--pink u-textRight'>they know what they are getting into</h1>"),
 	    size: [300, true]
 	  });
 	
-	  this.title2.modifier = new StateModifier({
+	  this.title.modifier = new StateModifier({
 	    origin: [1, 0.5],
 	    align: [0.5, 0.5],
 	    transform: Transform.translate(0, -150, 0)
 	  });
 	
-	  // content 2
-	  this.content2 = {};
-	  this.content2.surface = new Surface({
-	    content: content2,
-	    size: [400, true],
-	    properties: {
-	      zIndex: 1
+	  /*!
+	   * stats 1
+	   */
+	
+	  this.stat1 = {};
+	  this.stat1.surface = new ViewStat({
+	    container: {
+	      size: [380, 120]
+	    },
+	    number: {
+	      content: '40'
+	    },
+	    sign: {
+	      transform: Transform.translate(70, 0, 0),
+	      content: '%'
+	    },
+	    ticker: {
+	      size: [100, 90],
+	      transform: Transform.translate(0, 20, 0)
+	    },
+	    label: {
+	      transform: Transform.translate(120, 0, 0),
+	      size: [300, true],
+	      content: ("<p><span> consider themselves to be </span><span class='u-textBold'> serial entrepreneurs</span></p>")
 	    }
 	  });
-	
-	  this.content2.modifier = new StateModifier({
+	  this.stat1.modifier = new StateModifier({
 	    origin: [1, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(0, 0, 0)
+	    transform: Transform.translate(0, 50, 0)
 	  });
 	
-	  // yellow ticker 1
-	  this.yellowTicker1 = {};
-	  this.yellowTicker1.surface = new Surface({
-	    size: [70, 80],
-	    classes: ['ticker', 'ticker--yellow']
-	  });
+	  /*!
+	   * lego image
+	   */
 	
-	  this.yellowTicker1.tickerModifier = new StateModifier({
-	    transform: Transform.skew(0, 0, -39 * toRadian, 0)
-	  });
-	
-	  this.yellowTicker1.modifier = new StateModifier({
-	    origin: [1, 0.5],
-	    align: [0.5, 0.5],
-	    transform: Transform.translate(-310, 0, 0)
-	  });
-	
-	  // content 3
-	  this.content3 = {};
-	  this.content3.surface = new Surface({
-	    content: content3,
-	    size: [450, true]
-	  });
-	
-	  this.content3.modifier = new StateModifier({
-	    transform: Transform.translate(0, 550, 0)
-	  });
-	
-	  // content 4
-	  this.content4 = {};
-	  this.content4.surface = new Surface({
-	    content: content4,
-	    size: [450, true]
-	  });
-	
-	  this.content4.modifier = new StateModifier({
-	    origin: [1, 0.5],
-	    align: [0.5, 0.5],
-	    transform: Transform.translate(40, 200, 0),
-	    opacity: 0
-	  });
-	
-	  // lego image
 	  this.legoImg = {};
 	  this.legoImg.surface = new ImageSurface({
 	    content: '/assets/images/04-lego.png',
@@ -755,54 +734,163 @@
 	    transform: Transform.translate(100, 0, 0)
 	  });
 	
-	  this.modifier = new StateModifier();
+	  /*!
+	   * list 1
+	   */
 	
-	  var node = this.add(this.modifier);
+	  this.list1 = {};
+	  this.list1.surface = new ViewList({
+	    direction: Utility.Direction.X,
+	    itemSpacing: 30
+	  });
 	
-	  node
+	  this.list1.surface.sequenceFrom(list1.map(function(item) {
+	    return new ViewStat({
+	      container: {
+	        size: [120, 150],
+	      },
+	      number: {
+	        content: item.number,
+	        transform: Transform.translate(0, 0, 0)
+	      },
+	      sign: {
+	        content: '%',
+	        transform: Transform.translate(70, 0, 0)
+	      },
+	      label: {
+	        content: item.label,
+	        size: [100, true],
+	        transform: Transform.translate(0, 60, 0)
+	      }
+	    });
+	  }));
+	
+	  this.list1.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 150, 0)
+	  });
+	
+	  /*!
+	   * text 2
+	   */
+	
+	  this.text2 = {};
+	  this.text2.surface = new Surface({
+	    content: '_before joining PARISOMA',
+	    size: [true, true]
+	  });
+	
+	  this.text2.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-80, 30, 0)
+	  });
+	
+	  /*!
+	   * list 2
+	   */
+	
+	  this.list2 = {};
+	  this.list2.surface = new ViewList({
+	    direction: Utility.Direction.X,
+	    itemSpacing: 30
+	  });
+	
+	  this.list2.surface.sequenceFrom(list2.map(function(item) {
+	    return new ViewStat({
+	      container: {
+	        size: [120, 150],
+	      },
+	      number: {
+	        content: item.number,
+	        transform: Transform.translate(0, 0, 0)
+	      },
+	      sign: {
+	        content: '%',
+	        transform: Transform.translate(70, 0, 0)
+	      },
+	      label: {
+	        content: item.label,
+	        size: [120, true],
+	        transform: Transform.translate(0, 60, 0)
+	      }
+	    });
+	  }));
+	
+	  this.list2.modifier = new StateModifier({
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 110, 0)
+	  });
+	
+	  /*!
+	   * steps
+	   */
+	
+	  this.steps = [];
+	  this.step1 = new StateModifier({
+	  });
+	  this.step2 = new StateModifier({
+	    opacity: 0
+	  });
+	
+	  /*!
+	   * node tree
+	   */
+	
+	  var step1 = this.add(this.step1);
+	  var step2 = this.add(this.step2);
+	
+	  step1
 	    .add(this.legoImg.modifier)
 	    .add(this.legoImg.surface);
 	
-	  node
-	    .add(this.yellowTicker1.modifier)
-	    .add(this.yellowTicker1.tickerModifier)
-	    .add(this.yellowTicker1.surface);
+	  step1
+	    .add(this.title.modifier)
+	    .add(this.title.surface);
 	
+	  step1
+	    .add(this.stat1.modifier)
+	    .add(this.stat1.surface);
 	
-	  node
-	    .add(this.title2.modifier)
-	    .add(this.title2.surface);
+	  step1
+	    .add(this.list1.modifier)
+	    .add(this.list1.surface);
 	
-	  node
-	    .add(this.content2.modifier)
-	    .add(this.content2.surface);
+	  step2
+	    .add(this.text2.modifier)
+	    .add(this.text2.surface);
 	
-	  node
-	    .add(this.content3.modifier)
-	    .add(this.content3.surface);
-	
-	  node
-	    .add(this.content4.modifier)
-	    .add(this.content4.surface);
+	  step2
+	    .add(this.list2.modifier)
+	    .add(this.list2.surface);
 	}
 	
 	function _onEnter() {
-	  var step = function(e) {
-	    e.preventDefault();
-	    this._eventInput.removeListener('keydown', step);
 	
-	    if (e.which === KeyCodes.DOWN_ARROW) {
-	      this.content3.modifier.setOpacity(0, { duration : 1000, curve: Easing.outBack });
-	      this.content4.modifier.setOpacity(1, { duration : 1000, curve: Easing.outBack });
-	    }
+	  var doStep0 = function() {
+	    this.stat1.surface.bump();
+	  };
 	
-	    if (e.which === KeyCodes.UP_ARROW) {
-	      this.content3.modifier.setOpacity(1, { duration : 1000, curve: Easing.outBack });
-	      this.content4.modifier.setOpacity(0, { duration : 1000, curve: Easing.outBack });
-	    }
-	  }.bind(this);
+	  var doStep1 = function() {
+	    this.list1.surface.open();
+	    this.list1.surface.forEach(function(s) { s.count(); });
+	  };
 	
-	  this._eventInput.on('keydown', step);
+	  var doStep2 = function() {
+	    this.step1.setTransform(Transform.translate(300, -400, -300), { duration : 1000, curve: Easing.outBack });
+	    this.step2.setOpacity(1, { duration : 1000, curve: Easing.outBack });
+	    this.list2.surface.open();
+	    this.list2.surface.forEach(function(s) { s.count(); });
+	  };
+	
+	
+	  doStep0.call(this);
+	  setTimeout(doStep1.bind(this), 2000);
+	  setTimeout(doStep2.bind(this), 4000);
+	
+	
 	}
 	
 	function _onLeave() {
@@ -825,9 +913,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 600]
-	};
 	
 	/*!
 	 * module exports
@@ -843,69 +928,32 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    Easing = __webpack_require__(27),
-	    StateModifier = __webpack_require__(26),
-	    ImageSurface = __webpack_require__(24),
+	var Surface = __webpack_require__(28),
+	    Easing = __webpack_require__(32),
+	    StateModifier = __webpack_require__(31),
+	    ImageSurface = __webpack_require__(29),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    View = __webpack_require__(30),
+	    ViewStat = __webpack_require__(34),
+	    ViewList = __webpack_require__(33);
 	
 	/*!
 	 * globals
 	 */
 	
-	var toRadian = Math.PI/180;
+	var list = [
+	  { number: 02, label: 'average size of founding team', ticker: true },
+	  { number: 75, label: 'knew their cofounders before going into business together', sign: '%' },
+	  { number: 20, label: 'worked with their cofounders at a previous job', sign: '%' },
+	  { number: 14, label: 'have known each other since childhood', sign: '%' }
+	];
 	
-	/*!
-	 * templates
-	 */
-	
-	
-	var title3 = ("\n<h1 class='title title--section title--pink'>and they know who they are getting into it with</h1>"
-	);
-	
-	var content5 = ("\n<div>\n  <div class='Grid Grid--alignTop'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge' style='padding-left: 37px;'>2</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>average size of founding team</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>75</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>knew their cofounders before going into business together</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>20</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>worked with their cofounders at a previous job</div>\n  </div>\n\n  <div class='Grid Grid--alignTop u-pad-top-10'>\n    <div class='Grid-cell u-size1of3'>\n      <span class='u-textHuge'>14</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <div class='Grid-cell u-size2of3'>have known each other since childhood</div>\n  </div>\n\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
-	var content6 = ("\n  <div class='note note--gray'>\n    <div>2 founding  teams are siblings</div>\n    <div>1 team met at a wedding</div>\n    <div>1 team at an event at PARISOMA</div>\n    <div>1 team met on a date</div>\n  </div>"
-	
-	
-	
-	
-	
-	);
+	var notes = [
+	  '2 founding  teams are siblings',
+	  '1 team met at a wedding',
+	  '1 team at an event at PARISOMA',
+	  '1 team met on a date'
+	];
 	
 	/**
 	 * create view layout
@@ -913,7 +961,10 @@
 	
 	function _createLayout(){
 	
-	  // rocket image
+	  /*!
+	   * rocket image
+	   */
+	
 	  this.rocketImg = {};
 	  this.rocketImg.surface = new ImageSurface({
 	    content: '/assets/images/05-rocket.png',
@@ -926,91 +977,153 @@
 	    transform: Transform.translate(-360, 180, 0)
 	  });
 	
-	  // yellow ticker 2
-	  this.yellowTicker2 = {};
-	  this.yellowTicker2.surface = new Surface({
-	    size: [170, 120],
-	    classes: ['ticker', 'ticker--yellow']
+	  /*!
+	   * title
+	   */
+	
+	  this.title = {};
+	  this.title.surface = new Surface({
+	    size: [510, true],
+	    content: ("<h1 class='title title--section title--pink'>and they know who they are getting into it with</h1>"),
 	  });
 	
-	  this.yellowTicker2.tickerModifier = new StateModifier({
-	    transform: Transform.skew(0, -39 * toRadian, 0)
-	  });
-	
-	  this.yellowTicker2.modifier = new StateModifier({
+	  this.title.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(-200, -80, 0)
+	    transform: Transform.translate(0, -300, 0)
 	  });
 	
-	  // title 3
-	  this.title3 = {};
-	  this.title3.surface = new Surface({
-	    content: title3,
-	    size: [510, true]
+	  /*!
+	   * list
+	   */
+	
+	  this.list = {};
+	  this.list.surface = new ViewList({
+	    itemSpacing: 10
 	  });
 	
-	  this.title3.modifier = new StateModifier({
-	    origin: [0.5, 0.5],
+	  this.list.surface.sequenceFrom(list.map(function(item) {
+	    var spec = {
+	      container: {
+	        size: [350, 100]
+	      },
+	      number: {
+	        content: item.number,
+	        transform: Transform.translate(0, 0, 0)
+	      },
+	      label: {
+	        content: item.label,
+	        size: [240, true],
+	        transform: Transform.translate(120, 0, 0)
+	      }
+	    };
+	
+	    if (item.sign) {
+	      spec.sign = {
+	        content: '%',
+	        transform: Transform.translate(70, 0, 0)
+	      };
+	    }
+	
+	    if (item.ticker) {
+	      spec.ticker = {
+	        size: [120, 120],
+	        transform: Transform.translate(-30, 80, 0)
+	      };
+	    }
+	
+	
+	    return new ViewStat(spec);
+	  }));
+	
+	  this.list.modifier = new StateModifier({
+	    origin: [0, 0.5],
 	    align: [0.5, 0.5],
 	    transform: Transform.translate(0, 0, 0)
 	  });
 	
-	  // content 5
-	  this.content5 = {};
-	  this.content5.surface = new Surface({
-	    content: content5,
-	    size: [400, true],
+	
+	  /*!
+	   * bracket
+	   */
+	
+	  this.bracket = {};
+	  this.bracket.surface = new Surface({
+	    size: [true, true],
+	    content: '{',
+	    classes: ['text--gray'],
 	    properties: {
-	      zIndex: 1
+	      fontWeight: 100,
+	      fontSize: 150,
+	      lineHeight: 150
 	    }
 	  });
 	
-	  this.content5.modifier = new StateModifier({
-	    origin: [0.5, 0.5],
+	  // this.bracket.modifier = new StateModifier({
+	  //   origin: [0.5, 0.5],
+	  //   align: [0.5, 0.5],
+	  //   transform: Transform.translate(100, -20, 0)
+	  // });
+	
+	  /*!
+	   * notes
+	   */
+	
+	  this.notes = {};
+	  this.notes.surface = new ViewList({
+	    itemSpacing: 5
+	  });
+	
+	  this.notes.surface.sequenceFrom(notes.map(function(text) {
+	    return new Surface({
+	      content: text,
+	      size: [300, true],
+	      classes: ['note', 'note--gray'],
+	    });
+	  }));
+	
+	  this.notes.modifier = new StateModifier({
+	    origin: [0, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(0, 0, 0)
+	    transform: Transform.translate(130, 0, 0)
 	  });
-	
-	  // content 6
-	  this.content6 = {};
-	  this.content6.surface = new Surface({
-	    content: content6,
-	    size: [300, true]
-	  });
-	
-	  this.content6.modifier = new StateModifier({
-	    origin: [0.5, 0.5],
-	    align: [0.5, 0.5],
-	    transform: Transform.translate(50, 250, 0)
-	  });
-	
 	
 	  this
 	    .add(this.rocketImg.modifier)
 	    .add(this.rocketImg.surface);
 	
 	  this
-	    .add(this.yellowTicker2.modifier)
-	    .add(this.yellowTicker2.tickerModifier)
-	    .add(this.yellowTicker2.surface);
+	    .add(this.title.modifier)
+	    .add(this.title.surface);
 	
 	  this
-	    .add(this.title3.modifier)
-	    .add(this.title3.surface);
+	    .add(this.list.modifier)
+	    .add(this.list.surface);
+	
+	  // this
+	  //   .add(this.bracket.modifier)
+	  //   .add(this.bracket.surface);
 	
 	  this
-	    .add(this.content5.modifier)
-	    .add(this.content5.surface);
-	
-	  this
-	    .add(this.content6.modifier)
-	    .add(this.content6.surface);
+	    .add(this.notes.modifier)
+	    .add(this.notes.surface);
 	}
 	
 	function _onEnter() {
-	  this.title3.modifier
-	    .setTransform(Transform.translate(0, -350, 0), { duration : 800, curve: Easing.outBack });
+	
+	  var doStep0 = function() {
+	    this.list.surface.open();
+	    this.list.surface.forEach(function(s) { s.count(); });
+	  };
+	
+	  var doStep1 = function() {
+	    this.list.modifier.setTransform(Transform.translate(-300, 0, 0), { duration : 500, curve: Easing.outBack });
+	    this.notes.surface.open();
+	  };
+	
+	  doStep0.call(this);
+	  setTimeout(doStep1.bind(this), 2000);
+	
 	}
 	
 	function _onLeave() {
@@ -1034,9 +1147,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 720]
-	};
 	
 	/*!
 	 * module exports
@@ -1052,12 +1162,15 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    Easing = __webpack_require__(27),
-	    ImageSurface = __webpack_require__(24),
-	    StateModifier = __webpack_require__(26),
+	var Surface = __webpack_require__(28),
+	    Easing = __webpack_require__(32),
+	    ImageSurface = __webpack_require__(29),
+	    StateModifier = __webpack_require__(31),
+	    Utility = __webpack_require__(21),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    View = __webpack_require__(30),
+	    ViewStat = __webpack_require__(34),
+	    ViewList = __webpack_require__(33);
 	
 	/*!
 	 * globals
@@ -1065,38 +1178,11 @@
 	
 	var toRadian = Math.PI/180;
 	
-	/*!
-	 * templates
-	 */
-	
-	var title1 = ("<h1 class='title title--section title--white'>they have an app for that</h1>");
-	var content1 = ("\n<div class='Grid Grid--alignTop Grid--withGutter text--white'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>55</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>are building a web app</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>have an IOS app<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>13</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>an Android app</span>\n  </div>\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
+	var list = [
+	  { number: 55, label: 'are building a web app' },
+	  { number: 26, label: 'have an IOS app' },
+	  { number: 13, label: 'an Android app' }
+	];
 	
 	/**
 	 * create view layout
@@ -1104,7 +1190,10 @@
 	
 	function _createLayout(){
 	
-	  // parisoma image
+	  /*!
+	   * parisoma image
+	   */
+	
 	  this.parisomaImg = {};
 	  this.parisomaImg.surface = new ImageSurface({
 	    content: '/assets/images/07-parisoma.png',
@@ -1117,7 +1206,10 @@
 	    transform: Transform.translate(0, -100, 0)
 	  });
 	
-	  // shelf image
+	  /*!
+	   * shelf
+	   */
+	
 	  this.shelfImg = {};
 	  this.shelfImg.surface = new ImageSurface({
 	    content: '/assets/images/06-shelf.png',
@@ -1130,14 +1222,20 @@
 	    transform: Transform.translate(-200, -440, 0)
 	  });
 	
-	  // shelf image
+	  /*!
+	   * keyboard
+	   */
+	
 	  this.keyboardImg = {};
 	  this.keyboardImg.surface = new ImageSurface({
 	    content: '/assets/images/08-keyboard.png',
 	    size: [true, true]
 	  });
 	
-	  // donut image
+	  /*!
+	   * donut
+	   */
+	
 	  this.donutImg = {};
 	  this.donutImg.surface = new ImageSurface({
 	    content: '/assets/images/10-donut.png',
@@ -1156,7 +1254,10 @@
 	    transform: Transform.translate(380, 30, 0)
 	  });
 	
-	  // pink ticker
+	  /*!
+	   * pink ticker
+	   */
+	
 	  this.pinkTicker = {};
 	  this.pinkTicker.surface = new Surface({
 	    size: [70, 180],
@@ -1173,7 +1274,10 @@
 	    transform: Transform.translate(-345, -320, 0)
 	  });
 	
-	  // tagline image
+	  /*!
+	   * tagline
+	   */
+	
 	  this.taglineImg = {};
 	  this.taglineImg.surface = new ImageSurface({
 	    content: '/assets/images/09-tagline.png',
@@ -1186,31 +1290,63 @@
 	    transform: Transform.translate(-200, 320, 0)
 	  });
 	
-	  // title 1
-	  this.title1 = {};
-	  this.title1.surface = new Surface({
-	    content: title1,
-	    size: [400, true]
+	  /*!
+	   * title
+	   */
+	
+	  this.title = {};
+	  this.title.surface = new Surface({
+	    size: [400, true],
+	    content: ("<h1 class='title title--section title--white'>they have an app for that</h1>")
 	  });
 	
-	  this.title1.modifier = new StateModifier({
+	  this.title.modifier = new StateModifier({
 	    align: [0.5, 0.5],
 	    origin: [0.5, 0.5],
-	    transform: Transform.translate(0, -65, 0)
+	    transform: Transform.translate(0, -90, 0)
 	  });
 	
-	  // content 1
-	  this.content1 = {};
-	  this.content1.surface = new Surface({
-	    content: content1,
-	    size: [450, true]
+	  /*!
+	   * list
+	   */
+	
+	  this.list = {};
+	  this.list.surface = new ViewList({
+	    itemSpacing: 20,
+	    direction: Utility.Direction.X
 	  });
 	
-	  this.content1.modifier = new StateModifier({
-	    align: [0.5, 0.5],
+	  this.list.surface.sequenceFrom(list.map(function(item) {
+	    return new ViewStat({
+	      container: {
+	        size: [110, 100],
+	        classes: ['text--white'],
+	        properties: {
+	          // background: 'green'
+	        }
+	      },
+	      number: {
+	        content: item.number,
+	        transform: Transform.translate(0, 0, 0)
+	      },
+	      sign: {
+	        content: '%',
+	        transform: Transform.translate(70, 0, 0)
+	      },
+	      label: {
+	        content: item.label,
+	        size: [110, true],
+	        transform: Transform.translate(0, 80, 0)
+	      }
+	    });
+	  }));
+	
+	  this.list.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
-	    transform: Transform.translate(0, 65, 0)
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, 30, 0)
 	  });
+	
 	
 	  this
 	    .add(this.parisomaImg.modifier)
@@ -1238,15 +1374,16 @@
 	    .add(this.donutImg.surface);
 	
 	  this
-	    .add(this.title1.modifier)
-	    .add(this.title1.surface);
+	    .add(this.title.modifier)
+	    .add(this.title.surface);
 	
 	  this
-	    .add(this.content1.modifier)
-	    .add(this.content1.surface);
+	    .add(this.list.modifier)
+	    .add(this.list.surface);
 	}
 	
 	function _onEnter() {
+	  this.list.surface.open();
 	  this.donutImg.modifier
 	    .setTransform(Transform.translate(-140, 580, 0));
 	
@@ -1265,7 +1402,6 @@
 	function Slide() {
 	  View.apply(this, arguments);
 	  _createLayout.call(this);
-	
 	  this._eventInput.on('enter', _onEnter.bind(this));
 	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
@@ -1276,9 +1412,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 1110]
-	};
 	
 	/*!
 	 * module exports
@@ -1294,80 +1427,28 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    Easing = __webpack_require__(27),
-	    StateModifier = __webpack_require__(26),
+	var Surface = __webpack_require__(28),
+	    Easing = __webpack_require__(32),
+	    StateModifier = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    Utility = __webpack_require__(21),
+	    View = __webpack_require__(30),
+	    ViewStat = __webpack_require__(34),
+	    ViewList = __webpack_require__(33);
 	
 	/*!
 	 * templates
 	 */
 	
-	var title2 = ("<h1 class='title title--section title--pink'>they code across the board</h1>");
-	var content2 = ("\n<div class='Grid Grid--alignTop Grid--withGutter'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>55</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Javascript</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>41</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>HTML5<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>34</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>PHP</span>\n  </div>\n\n</div>\n\n<div class='Grid Grid--alignTop Grid--withGutter u-pad-top-20'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Node.js</span>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3'>\n    <div>\n      <span class='u-textHuge'>26</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Python.js</span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>17</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>Ruby</span>\n  </div>\n</div>\n\n<div class='u-pad-top-20'>\n  <div>\n    <span class='u-textHuge'>14</span>\n    <span class='u-textLarge'>%</span>\n  </div>\n  <span>Java</span>\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
+	var list = [
+	  { number: 55, label: 'Javascript' },
+	  { number: 41, label: 'HTML5' },
+	  { number: 34, label: 'PHP' },
+	  { number: 26, label: 'Node.js' },
+	  { number: 26, label: 'Python.js' },
+	  { number: 17, label: 'Ruby' },
+	  { number: 14, label: 'Java' }
+	];
 	
 	/**
 	 * create view layout
@@ -1375,50 +1456,89 @@
 	
 	function _createLayout(){
 	
-	  // title 2
-	  this.title2 = {};
-	  this.title2.surface = new Surface({
-	    content: title2,
-	    size: [400, true]
+	  /*!
+	   * title
+	   */
+	
+	  this.title = {};
+	  this.title.surface = new Surface({
+	    size: [400, true],
+	    content: ("<h1 class='title title--section title--pink'>they code across the board</h1>")
 	  });
 	
-	  this.title2.modifier = new StateModifier({
+	  this.title.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(250, -250, 0)
+	    transform: Transform.translate(0, -100, 0)
 	  });
 	
-	  // content 2
-	  this.content2 = {};
-	  this.content2.surface = new Surface({
-	    content: content2,
-	    size: [420, true]
+	  /*!
+	   * list
+	   */
+	
+	  this.list = {};
+	  this.list.surface = new ViewList({
+	    itemSpacing: 20,
+	    direction: Utility.Direction.X
 	  });
 	
-	  this.content2.modifier = new StateModifier({
+	  this.list.surface.sequenceFrom(list.map(function(item) {
+	    return new ViewStat({
+	      container: {
+	        size: [110, 100],
+	        properties: {
+	          // background: 'green'
+	        }
+	      },
+	      number: {
+	        content: item.number,
+	        transform: Transform.translate(0, 0, 0)
+	      },
+	      sign: {
+	        content: '%',
+	        transform: Transform.translate(70, 0, 0)
+	      },
+	      label: {
+	        content: item.label,
+	        size: [110, true],
+	        transform: Transform.translate(0, 80, 0)
+	      }
+	    });
+	  }));
+	
+	  this.list.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5],
 	    transform: Transform.translate(0, 0, 0)
 	  });
 	
-	  this
-	    .add(this.title2.modifier)
-	    .add(this.title2.surface);
+	  /*!
+	   * setup render tree
+	   */
 	
 	  this
-	    .add(this.content2.modifier)
-	    .add(this.content2.surface);
+	    .add(this.title.modifier)
+	    .add(this.title.surface);
+	
+	  this
+	    .add(this.list.modifier)
+	    .add(this.list.surface);
 	}
 	
 	function _onEnter() {
-	  this.title2.modifier
-	    .setTransform(Transform.translate(250, -300, 0), { duration : 500 })
-	    .setTransform(Transform.translate(0, -250, 0), { duration : 500, curve: Easing.outBack });
+	  this.list.surface.open();
+	  this.list.surface.forEach(function(stat) {
+	    stat.count();
+	  });
+	
+	  // this.title.modifier
+	  //   .setTransform(Transform.translate(250, -300, 0), { duration : 500 })
+	  //   .setTransform(Transform.translate(0, -250, 0), { duration : 500, curve: Easing.outBack });
 	}
 	
 	function _onLeave() {
-	  this.title2.modifier
-	    .setTransform(Transform.translate(250, -300, 0));
+	  // this.title.modifier
+	  //   .setTransform(Transform.translate(250, -300, 0));
 	}
 	
 	/**
@@ -1438,9 +1558,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 480]
-	};
 	
 	/*!
 	 * module exports
@@ -1456,55 +1573,36 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
+	var Surface = __webpack_require__(28),
 	    KeyCodes = __webpack_require__(20),
-	    ImageSurface = __webpack_require__(24),
-	    Easing = __webpack_require__(27),
-	    StateModifier = __webpack_require__(26),
+	    ImageSurface = __webpack_require__(29),
+	    Easing = __webpack_require__(32),
+	    StateModifier = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    View = __webpack_require__(30),
+	    ViewList = __webpack_require__(33),
+	    ViewStat = __webpack_require__(34);
 	
 	/*!
 	 * globals
 	 */
 	
 	var toRadian = Math.PI/180;
-	
-	/*!
-	 * templates
-	 */
-	
-	var title1 = ("<h1 class='title title--section title--pink'>they dont discriminate</h1>");
-	var content1 = ("\n<div class='Grid Grid--alignMiddle'>\n  <div class='Grid-cell u-size1of3'>\n    <span class='u-textHuge'>35</span>\n    <span class='u-textLarge'>%</span>\n  </div>\n  <div class='Grid-cell u-size2of3'>\n    describe their company as both B2B & B2C\n  </div>\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
-	var title2 = ("<h1 class='title title--section title--pink'>and neither do we</h1>");
-	var content2 = ("\n  <div class='note'>We welcome startups from all over the hype curve. Here are just a few.</div>\n  <ul class='u-pad-top-20 u-pad-left-20'>\n    <li>Data Analytics</li>\n    <li>3D printing</li>\n    <li>E-Payments</li>\n    <li>Crypto-currency</li>\n    <li>Saas</li>\n    <li>Baas</li>\n    <li>Geolocation</li>\n    <li>Geolocation</li>\n    <li>APIs</li>\n    <li>Mobile Gaming</li>\n    <li>Financial Tech</li>\n    <li>E-Publishing</li>\n    <li>Internet of Things</li>\n  </ul>\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
+	var list = [
+	  'Data Analytics',
+	  '3D printing',
+	  'E-Payments',
+	  'Crypto-currency',
+	  'Saas',
+	  'Baas',
+	  'Geolocation',
+	  'Geolocation',
+	  'APIs',
+	  'Mobile Gaming',
+	  'Financial Tech',
+	  'E-Publishing',
+	  'Internet of Things'
+	];
 	
 	/**
 	 * create view layout
@@ -1513,13 +1611,12 @@
 	function _createLayout(){
 	
 	  /*!
-	   * first part
+	   * title
 	   */
 	
-	  // title 1
 	  this.title1 = {};
 	  this.title1.surface = new Surface({
-	    content: title1,
+	    content: ("<h1 class='title title--section title--pink'>they dont discriminate</h1>"),
 	    size: [400, true],
 	    properties: {
 	      zIndex: 1
@@ -1529,60 +1626,70 @@
 	  this.title1.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(0, -200, 0)
+	    transform: Transform.translate(0, -150, 0)
 	  });
 	
-	  // yellow ticker
-	  this.yellowTicker = {};
-	  this.yellowTicker.surface = new Surface({
-	    size: [120, 100],
-	    classes: ['ticker', 'ticker--yellow']
-	  });
+	  /*!
+	   * stats 1
+	   */
 	
-	  this.yellowTicker.tickerModifier = new StateModifier({
-	    transform: Transform.skew(0, -39 * toRadian, 0)
-	  });
-	
-	  this.yellowTicker.modifier = new StateModifier({
-	    origin: [0.5, 0.5],
-	    align: [0.5, 0.5],
-	    transform: Transform.translate(-170, -80, 0)
-	  });
-	
-	  // content 1
-	  this.content1 = {};
-	  this.content1.surface = new Surface({
-	    content: content1,
-	    size: [400, true],
-	    properties: {
-	      zIndex: 1
+	  this.stat1 = {};
+	  this.stat1.surface = new ViewStat({
+	    container: {
+	      size: [350, 100],
+	      properties: {
+	        // background: 'green'
+	      }
+	    },
+	    number: {
+	      content: 35,
+	      transform: Transform.translate(0, 0, 0)
+	    },
+	    ticker: {
+	      size: [100, 90],
+	      transform: Transform.translate(-20, 40, 0)
+	    },
+	    sign: {
+	      content: '%',
+	      transform: Transform.translate(70, 0, 0)
+	    },
+	    label: {
+	      content: 'describe their company as both B2B & B2C',
+	      size: [240, true],
+	      transform: Transform.translate(120, 0, 0)
 	    }
 	  });
 	
-	  this.content1.modifier = new StateModifier({
+	  this.stat1.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(0, -100, 0)
+	    transform: Transform.translate(20, 0, 0)
 	  });
 	
 	  /*!
 	   * second part
 	   */
 	
-	  // title 2
+	  /*!
+	   * title 2
+	   */
+	
 	  this.title2 = {};
 	  this.title2.surface = new Surface({
-	    content: title2,
+	    content: ("<h1 class='title title--section title--pink'>and neither do we</h1>"),
 	    size: [300, true]
 	  });
 	
 	  this.title2.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(-200, -500, 0)
+	    transform: Transform.translate(-200, -300, 0)
 	  });
 	
-	  // 3d printing image
+	  /*!
+	   * 3d printing
+	   */
+	
 	  this.printingImg = {};
 	  this.printingImg.surface = new ImageSurface({
 	    content: '/assets/images/11-3Dprinting.png',
@@ -1595,10 +1702,13 @@
 	  this.printingImg.modifier = new StateModifier({
 	    origin: [0, 0],
 	    align: [0.5, 0],
-	    transform: Transform.translate(100, 100, 0)
+	    transform: Transform.translate(100, 350, 0)
 	  });
 	
-	   // pink ticker
+	   /*!
+	    * pink tickers
+	    */
+	
 	  this.pinkTicker1 = {};
 	  this.pinkTicker1.surface = new Surface({
 	    size: [55, 45],
@@ -1615,7 +1725,7 @@
 	  this.pinkTicker1.modifier = new StateModifier({
 	    origin: [0, 0],
 	    align: [0.5, 0],
-	    transform: Transform.translate(0, 150, 0)
+	    transform: Transform.translate(0, 450, 0)
 	  });
 	
 	  this.pinkTicker2 = {};
@@ -1634,78 +1744,115 @@
 	  this.pinkTicker2.modifier = new StateModifier({
 	    origin: [0, 0],
 	    align: [0.5, 0],
-	    transform: Transform.translate(0, 230, 0)
+	    transform: Transform.translate(0, 530, 0)
 	  });
 	
-	  // content 2
-	  this.content2 = {};
-	  this.content2.surface = new Surface({
-	    content: content2,
-	    size: [300, true]
+	  /*!
+	   * label
+	   */
+	
+	  this.label2 = {};
+	  this.label2.surface = new Surface({
+	    content: 'We welcome startups from all over the hype curve. Here are just a few.',
+	    size: [350, true],
 	  });
 	
-	  this.content2.modifier = new StateModifier({
-	    transform: Transform.translate(100, 50, 0)
+	  this.label2.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(0, -220, 0)
 	  });
 	
-	  this.part1Modifier = new StateModifier();
-	  var node = this.add(this.part1Modifier);
+	  /*!
+	   * list
+	   */
 	
-	  node
-	    .add(this.yellowTicker.modifier)
-	    .add(this.yellowTicker.tickerModifier)
-	    .add(this.yellowTicker.surface);
+	  this.list = {};
+	  this.list.surface = new ViewList({
+	    itemSpacing: 0
+	  });
 	
-	  node
-	    .add(this.title1.modifier)
-	    .add(this.title1.surface);
+	  this.list.surface.sequenceFrom(list.map(function(text) {
+	    return new Surface({
+	      size: [true, true],
+	      content: text
+	    });
+	  }));
 	
-	  node
-	    .add(this.content1.modifier)
-	    .add(this.content1.surface);
+	  this.list.modifier = new StateModifier({
+	    origin: [1, 0.5],
+	    align: [0.5, 0.5],
+	    transform: Transform.translate(-100, 50, 0)
+	  });
 	
-	  this.part2Modifier = new StateModifier({
+	  /*!
+	   * steps
+	   */
+	
+	  this.step1 = new StateModifier({
+	  });
+	  this.step2 = new StateModifier({
 	    opacity: 0
 	  });
 	
-	  node = this.add(this.part2Modifier);
+	  /*!
+	   * node tree
+	   */
 	
-	  node
+	  var step1 = this.add(this.step1);
+	  var step2 = this.add(this.step2);
+	
+	  step1
+	    .add(this.title1.modifier)
+	    .add(this.title1.surface);
+	
+	  step1
+	    .add(this.stat1.modifier)
+	    .add(this.stat1.surface);
+	
+	  step2
 	    .add(this.printingImg.modifier)
 	    .add(this.printingImg.surface);
 	
-	  node
+	  step2
 	    .add(this.pinkTicker1.modifier)
 	    .add(this.pinkTicker1.tickerModifier)
 	    .add(this.pinkTicker1.surface);
 	
-	  node
+	  step2
 	    .add(this.pinkTicker2.modifier)
 	    .add(this.pinkTicker2.tickerModifier)
 	    .add(this.pinkTicker2.surface);
 	
-	  node
+	  step2
 	    .add(this.title2.modifier)
 	    .add(this.title2.surface);
 	
-	  node
-	    .add(this.content2.modifier)
-	    .add(this.content2.surface);
+	  step2
+	    .add(this.label2.modifier)
+	    .add(this.label2.surface);
+	
+	  step2
+	    .add(this.list.modifier)
+	    .add(this.list.surface);
 	
 	}
 	
 	function _onEnter() {
 	  var step = function(e) {
 	    e.preventDefault();
+	
+	    this.stat1.surface.bump();
 	    this._eventInput.removeListener('keydown', step);
 	
 	    if (e.which === KeyCodes.DOWN_ARROW) {
-	      this.part1Modifier.setTransform(Transform.translate(250, -200, 0), { duration : 1000, curve: Easing.outBack });
+	      this.step1.setTransform(Transform.translate(250, -200, 0), { duration : 1000, curve: Easing.outBack });
 	
-	      this.part2Modifier
+	      this.list.surface.open();
+	      this.step2
 	        .setTransform(Transform.translate(0, 900, 0))
 	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
-	        .setTransform(Transform.translate(0, 200, 0), { duration : 1000, curve: Easing.outBack });
+	        .setTransform(Transform.translate(0, 0, 0), { duration : 1000, curve: Easing.outBack });
 	    }
 	
 	  }.bind(this);
@@ -1734,9 +1881,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 600]
-	};
 	
 	/*!
 	 * module exports
@@ -1752,48 +1896,24 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    ImageSurface = __webpack_require__(24),
-	    StateModifier = __webpack_require__(26),
+	var Surface = __webpack_require__(28),
+	    ImageSurface = __webpack_require__(29),
+	    StateModifier = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    Utility = __webpack_require__(21),
+	    View = __webpack_require__(30),
+	    ViewStat = __webpack_require__(34),
+	    ViewList = __webpack_require__(33);
 	
 	/*!
 	 * templates
-	 */
+	  */
 	
-	var title1 = ("<h1 class='title title--section title--yellow'>They are bootstraping it</h1>");
-	
-	var content1 = ("\n<div class='note u-textRight u-after2of6 u-pad-bottom-20'>Most of our new members come with only a laptop and an idea</div>\n\n<div class='Grid Grid--alignTop Grid--withGutter'>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>58</span>\n      <span class='u-textLarge'>%</span>\n      <span> are bootstraping their business</span>\n    </div>\n  </div>\n\n  <div class='Grid-cell Grid-cell--withBorder u-size1of3 '>\n    <div>\n      <span class='u-textHuge'>32</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>have not launched their product<span>\n  </div>\n\n  <div class='Grid-cell u-size1of3'>\n    <div>\n      <span class='u-textHuge'>38</span>\n      <span class='u-textLarge'>%</span>\n    </div>\n    <span>are still in beta<span>\n  </div>\n</div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
+	var list = [
+	  {number: 58, label: 'are bootstraping their business'},
+	  {number: 32, label: 'have not launched their product'},
+	  {number: 38, label: 'are still in beta'}
+	];
 	
 	/**
 	 * create view layout
@@ -1801,7 +1921,10 @@
 	
 	function _createLayout(){
 	
-	  // group image
+	  /*!
+	   * group image
+	   */
+	
 	  this.groupImg = {};
 	  this.groupImg.surface = new ImageSurface({
 	    content: '/assets/images/12-group.png',
@@ -1814,69 +1937,130 @@
 	    transform: Transform.translate(200, -100, 0)
 	  });
 	
-	  // title 1
-	  this.title1 = {};
-	  this.title1.surface = new Surface({
-	    content: title1,
+	  /*!
+	   * title 1
+	   */
+	
+	  this.title = {};
+	  this.title.surface = new Surface({
+	    content: ("<h1 class='title title--section title--yellow'>They are bootstraping it</h1>"),
 	    size: [300, true]
 	  });
 	
-	  this.title1.modifier = new StateModifier({
+	  this.title.modifier = new StateModifier({
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5],
 	    transform: Transform.translate(200, 0, 0)
 	  });
 	
-	  // content 1
-	  this.content1 = {};
-	  this.content1.surface = new Surface({
-	    content: content1,
+	  /*!
+	   * label
+	   */
+	
+	  this.label = {};
+	  this.label.surface = new Surface({
+	    content: 'Most of our new members come with only a laptop and an idea',
 	    size: [450, true]
 	  });
 	
-	  this.content1.modifier = new StateModifier({
-	    origin: [0.5, 0.5],
+	  this.label.modifier = new StateModifier({
+	    origin: [1, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(-180, 100, 0)
+	    transform: Transform.translate(-70, 0, 0)
 	  });
+	
+	  /*!
+	   * list
+	   */
+	
+	  this.list = {};
+	  this.list.surface = new ViewList({
+	    direction: Utility.Direction.X,
+	    itemSpacing: 10
+	  });
+	
+	  this.list.surface.sequenceFrom(list.map(function(item) {
+	    return new ViewStat({
+	      container: {
+	        size: [160, 100],
+	        properties: {
+	          // background: 'green'
+	        }
+	      },
+	      number: {
+	        content: item.number,
+	        transform: Transform.translate(0, 0, 0)
+	      },
+	      sign: {
+	        content: '%',
+	        transform: Transform.translate(70, 0, 0)
+	      },
+	      label: {
+	        content: item.label,
+	        size: [160, true],
+	        transform: Transform.translate(0, 80, 0)
+	      }
+	    });
+	  }));
+	
+	    this.list.modifier = new StateModifier({
+	      origin: [1, 0.5],
+	      align: [0.5, 0.5],
+	      transform: Transform.translate(0, 100, 0)
+	    });
+	
+	  /*!
+	   * render tree
+	   */
 	
 	  this
 	    .add(this.groupImg.modifier)
 	    .add(this.groupImg.surface);
 	
 	  this
-	    .add(this.title1.modifier)
-	    .add(this.title1.surface);
+	    .add(this.title.modifier)
+	    .add(this.title.surface);
 	
 	  this
-	    .add(this.content1.modifier)
-	    .add(this.content1.surface);
+	    .add(this.label.modifier)
+	    .add(this.label.surface);
+	
+	  this
+	    .add(this.list.modifier)
+	    .add(this.list.surface);
+	}
+	
+	function _onEnter() {
+	  this.list.surface.open();
+	}
+	
+	function _onLeave() {
+	
 	}
 	
 	/**
-	 * Page5 Constructor
+	 * Slide Constructor
 	 */
 	
-	function Page5() {
+	function Slide() {
 	  View.apply(this, arguments);
 	  _createLayout.call(this);
+	  this._eventInput.on('enter', _onEnter.bind(this));
+	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Page5.prototype = Object.create(View.prototype);
-	Page5.prototype.constructor = Page5;
-	Page5.DEFAULT_OPTIONS = {
-	  size: [undefined, 750]
-	};
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
 	
 	/*!
 	 * module exports
 	 */
 	
-	module.exports = Page5;
+	module.exports = Slide;
 
 /***/ },
 /* 9 */
@@ -1886,60 +2070,25 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
+	var Surface = __webpack_require__(28),
 	    KeyCodes = __webpack_require__(20),
-	    Easing = __webpack_require__(27),
-	    ImageSurface = __webpack_require__(24),
-	    StateModifier = __webpack_require__(26),
+	    Easing = __webpack_require__(32),
+	    ImageSurface = __webpack_require__(29),
+	    StateModifier = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(25);
+	    View = __webpack_require__(30),
+	    ViewStat = __webpack_require__(34),
+	    ViewList = __webpack_require__(33);
 	
 	/*!
 	 * globals
 	 */
 	
-	var toRadian = Math.PI/180;
-	
-	/*!
-	 * templates
-	 */
-	
-	var title1 = ("<h1 class='title title--section title--yellow'>they want your money</h1>");
-	var content1 = ("\n  <div>\n    <div>\n      <div>\n        <span class='u-textHuge'>41</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <div>operate on seed funding</div>\n    </div>\n    <div>\n      <div>\n        <span class='u-textHuge'>41</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <div>are using personal funds</div>\n    </div>\n    <div>\n      <div>\n        <span class='u-textHuge'>13</span>\n        <span class='u-textLarge'>%</span>\n      </div>\n      <div>rely on funding from <br> family & friends</div>\n    </div>\n  </div>"
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	);
-	
-	var title2 = ("<h1 class='title title--section title--pink u-textRight'>and they are hiring</h1>");
-	var content2 = ("\n<div>\n  <div>\n    <span class='u-textHuge'>47</span>\n    <span class='u-textLarge'>%</span>\n  </div>\n  <div>say that talent acquisition is currently there biggest challenge</div>\n</div>"
-	
-	
-	
-	
-	
-	
-	);
-	
+	var list = [
+	  { number: 41, label: 'operate on seed funding' },
+	  { number: 41, label: 'are using personal funds' },
+	  { number: 13, label: 'rely on funding from <br> family & friends' }
+	];
 	
 	/**
 	 * create view layout
@@ -1951,7 +2100,10 @@
 	   * part 1
 	   */
 	
-	  // truck image
+	  /*!
+	   * truc
+	   */
+	
 	  this.truckImg = {};
 	  this.truckImg.surface = new ImageSurface({
 	    content: '/assets/images/13-truck.png',
@@ -1964,10 +2116,13 @@
 	    transform: Transform.translate(0, 0, 0)
 	  });
 	
-	  // title 1
+	  /*!
+	   * title 1
+	   */
+	
 	  this.title1 = {};
 	  this.title1.surface = new Surface({
-	    content: title1,
+	    content: ("<h1 class='title title--section title--yellow'>they want your money</h1>"),
 	    size: [300, true]
 	  });
 	
@@ -1977,119 +2132,153 @@
 	    transform: Transform.translate(50, -150, 0)
 	  });
 	
-	  // content 1
-	  this.content1 = {};
-	  this.content1.surface = new Surface({
-	    content: content1,
-	    size: [300, true]
+	  /*!
+	   * list
+	   */
+	
+	  this.list = {};
+	  this.list.surface = new ViewList({
+	    itemSpacing: 10
 	  });
 	
-	  this.content1.modifier = new StateModifier({
+	  this.list.surface.sequenceFrom(list.map(function(item) {
+	    return new ViewStat({
+	      container: {
+	        size: [260, 240],
+	        properties: {
+	          // background: 'green',
+	          zIndex: 2
+	        }
+	      },
+	      number: {
+	        content: item.number,
+	        transform: Transform.translate(0, 0, 0)
+	      },
+	      sign: {
+	        content: '%',
+	        transform: Transform.translate(70, 0, 0)
+	      },
+	      label: {
+	        content: item.label,
+	        size: [260, 80],
+	        transform: Transform.translate(0, 60, 0)
+	      }
+	    });
+	  }));
+	
+	  this.list.modifier = new StateModifier({
 	    origin: [0, 0.5],
 	    align: [0.5, 0.5],
-	    transform: Transform.translate(30, -100, 0)
+	    transform: Transform.translate(50, 0, 0)
 	  });
 	
 	  /*!
-	   * part 2
+	   * title
 	   */
 	
-	  // title 2
 	  this.title2 = {};
 	  this.title2.surface = new Surface({
-	    content: title2,
+	    content: ("<h1 class='title title--section title--pink'>and they are hiring</h1>"),
 	    size: [200, true]
 	  });
 	
 	  this.title2.modifier = new StateModifier({
 	    origin: [0.5, 0],
 	    align: [0.5, 0],
-	    transform: Transform.translate(-80, 80, 0)
+	    transform: Transform.translate(-80, -100, 0)
 	  });
 	
-	  // content 2
-	  this.content2 = {};
-	  this.content2.surface = new Surface({
-	    content: content2,
-	    size: [300, true],
-	    properties: {
-	      zIndex: 1
+	  /*!
+	   * stat2
+	   */
+	
+	  this.stat2 = {};
+	  this.stat2.surface = new ViewStat({
+	    container: {
+	      size: [260, 100],
+	      properties: {
+	        // background: 'green'
+	      }
+	    },
+	    number: {
+	      content: 47,
+	      transform: Transform.translate(0, 0, 0)
+	    },
+	    sign: {
+	      content: '%',
+	      transform: Transform.translate(70, 0, 0)
+	    },
+	    ticker: {
+	      size: [120, 90],
+	      transform: Transform.translate(-40, 40, 0)
+	    },
+	    label: {
+	      content: 'say that talent acquisition is currently there biggest challenge',
+	      size: [260, true],
+	      transform: Transform.translate(0, 60, 0)
 	    }
 	  });
 	
-	  this.content2.modifier = new StateModifier({
-	    origin: [1, 0],
-	    align: [1, 0],
-	    transform: Transform.translate(-100, 80, 0)
+	  this.stat2.modifier = new StateModifier({
+	    origin: [0, 0],
+	    align: [0.5, 0],
+	    transform: Transform.translate(20, 50, 0)
 	  });
 	
-	  // yellow ticker
-	  this.yellowTicker = {};
-	  this.yellowTicker.surface = new Surface({
-	    size: [140, 100],
-	    classes: ['ticker', 'ticker--yellow']
+	  /*!
+	   * steps
+	   */
+	
+	  this.step1 = new StateModifier({
+	    origin: [0.5, 0],
+	    align: [0.5, 0]
+	  });
+	  this.step2 = new StateModifier({
+	    opacity: 0,
+	    origin: [0.5, 0],
+	    align: [0.5, 0]
 	  });
 	
-	  this.yellowTicker.tickerModifier = new StateModifier({
-	    transform: Transform.skew(0, -39 * toRadian, 0)
-	  });
+	  /*!
+	   * node tree
+	   */
 	
-	  this.yellowTicker.modifier = new StateModifier({
-	    origin: [1, 0],
-	    align: [1, 0],
-	    transform: Transform.translate(-280, 0, 0)
-	  });
+	  var step1 = this.add(this.step1);
+	  var step2 = this.add(this.step2);
 	
-	
-	  this.part1Modifier = new StateModifier({
-	  });
-	
-	  this.part2Modifier = new StateModifier({
-	    opacity: 0
-	  });
-	
-	  var node = this.add(this.part1Modifier);
-	
-	  node
+	  step1
 	    .add(this.truckImg.modifier)
 	    .add(this.truckImg.surface);
 	
-	  node
+	  step1
 	    .add(this.title1.modifier)
 	    .add(this.title1.surface);
 	
-	  node
-	    .add(this.content1.modifier)
-	    .add(this.content1.surface);
+	  step1
+	    .add(this.list.modifier)
+	    .add(this.list.surface);
 	
-	
-	  node = this.add(this.part2Modifier);
-	
-	
-	  node
+	  step2
 	    .add(this.title2.modifier)
 	    .add(this.title2.surface);
 	
-	  node
-	    .add(this.content2.modifier)
-	    .add(this.content2.surface);
-	
-	  node
-	    .add(this.yellowTicker.modifier)
-	    .add(this.yellowTicker.tickerModifier)
-	    .add(this.yellowTicker.surface);
-	
+	  step2
+	    .add(this.stat2.modifier)
+	    .add(this.stat2.surface);
 	}
 	
 	function _onEnter() {
+	
+	  this.list.surface.open();
+	
 	  var step = function(e) {
 	    e.preventDefault();
 	    this._eventInput.removeListener('keydown', step);
 	
 	    if (e.which === KeyCodes.DOWN_ARROW) {
-	      this.part1Modifier.setTransform(Transform.translate(-100, -200, 0), { duration : 1000, curve: Easing.outBack });
+	      this.step1.setTransform(Transform.translate(-100, -200, 0), { duration : 1000, curve: Easing.outBack });
 	
-	      this.part2Modifier
+	      this.step2
 	        .setTransform(Transform.translate(0, 900, 0))
 	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
 	        .setTransform(Transform.translate(-100, 400, 0), { duration : 1000, curve: Easing.outBack });
@@ -2120,9 +2309,6 @@
 	
 	Slide.prototype = Object.create(View.prototype);
 	Slide.prototype.constructor = Slide;
-	Slide.DEFAULT_OPTIONS = {
-	  size: [undefined, 600]
-	};
 	
 	/*!
 	 * module exports
@@ -2138,11 +2324,11 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    ImageSurface = __webpack_require__(24),
+	var Surface = __webpack_require__(28),
+	    ImageSurface = __webpack_require__(29),
 	    Transform = __webpack_require__(18),
-	    StateModifier = __webpack_require__(26),
-	    View = __webpack_require__(25);
+	    StateModifier = __webpack_require__(31),
+	    View = __webpack_require__(30);
 	
 	/*!
 	 * templates
@@ -2218,10 +2404,10 @@
 	}
 	
 	/**
-	 * Page7 Constructor
+	 * Slide Constructor
 	 */
 	
-	function Page7() {
+	function Slide() {
 	  View.apply(this, arguments);
 	  _createLayout.call(this);
 	}
@@ -2230,15 +2416,14 @@
 	 * extend View
 	 */
 	
-	Page7.prototype = Object.create(View.prototype);
-	Page7.prototype.constructor = Page7;
-	Page7.DEFAULT_OPTIONS = {};
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
 	
 	/*!
 	 * module exports
 	 */
 	
-	module.exports = Page7;
+	module.exports = Slide;
 
 /***/ },
 /* 11 */
@@ -2248,11 +2433,13 @@
 	 * module deps
 	 */
 	
-	var Surface = __webpack_require__(23),
-	    StateModifier = __webpack_require__(26),
+	var Surface = __webpack_require__(28),
+	    ContainerSurface = __webpack_require__(22),
+	    StateModifier = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
-	    Easing = __webpack_require__(27),
-	    View = __webpack_require__(25);
+	    Easing = __webpack_require__(32),
+	    ImageSurface = __webpack_require__(29),
+	    View = __webpack_require__(30);
 	
 	/*!
 	 * module globals
@@ -2277,10 +2464,10 @@
 	];
 	
 	var translates = [
-	  [-100, 100, 0],
-	  [100, -64, 0],
-	  [-100, -228, 0],
-	  [100, 100, 0]
+	  [-70, 114, 0],
+	  [70, 0, 0],
+	  [-70, -114, 0],
+	  [70,  114, 0]
 	];
 	
 	/**
@@ -2289,51 +2476,71 @@
 	
 	function _createLayout(){
 	  var side;
-	  this.sides = [];
 	
-	  var curve = { duration : 1000, curve: Easing.outBack };
-	  // var curve = {
-	  //   method: 'spring',
-	  //   period: 5000,
-	  //   dampingRatio: 0.7
-	  // };
+	  this.modifier = new StateModifier({
+	    size: [800, 800],
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5]
+	  });
+	
+	  this.logo = { sides: [] };
+	  this.logo.modifier = new StateModifier({
+	    transform: Transform.translate(0, 50, 0),
+	    size: [284, 456],
+	    origin: [0.5, 0.5],
+	    align: [0.5, 0.5]
+	  });
+	
+	  var node = this.add(this.modifier);
+	  var logoNode = node.add(this.logo.modifier);
 	
 	  for (var i = 0; i < 4; i++) {
 	    side = {};
 	    side.surface = new Surface({
-	      size: [258, 126],
 	      // content: String(i),
+	      size: [180, 88],
 	      properties: {
+	        // fontSize: 30,
+	        // textAlign: 'center',
+	        // lineHeight: '100px',
 	        backgroundColor: colors[i],
-	        fontSize: 30,
-	        textAlign: 'center',
-	        lineHeight: '100px',
-	        zIndex: 2
+	        zIndex: 3
 	      }
 	    });
 	
-	    side.surface.addClass('backface');
-	
-	    side.translate = new StateModifier();
-	    side.translate.setTransform(
-	      Transform.translate(translates[i][0], translates[i][1], translates[i][2]),
-	      curve
-	    );
+	    side.translate = new StateModifier({
+	      align: [0.5, 0.5],
+	      origin: [0.5, 0.5]
+	    });
 	
 	    side.rotate = new StateModifier();
-	    side.rotate.setTransform(Transform.multiply(
-	      Transform.rotate(rotates[i][0] * convert, rotates[i][1] * convert, rotates[i][2] * convert),
-	      Transform.skew(skews[i][0] * convert, skews[i][1] * convert, skews[i][2] * convert)
-	    ), curve);
 	
-	    this
+	    logoNode
 	      .add(side.translate)
 	      .add(side.rotate)
 	      .add(side.surface);
 	
-	    this.sides.push(side);
-	
+	    this.logo.sides.push(side);
 	  }
+	
+	  this.brand = {};
+	  this.brand.surface = new ImageSurface({
+	    content: '/assets/brand.svg',
+	    properties: {
+	      zIndex: 3
+	    }
+	  });
+	
+	  this.brand.modifier = new StateModifier({
+	    size: [true, 40],
+	    align: [0.5, 0.5],
+	    origin: [0.5, 0.5],
+	    opacity: 0
+	  });
+	
+	  node
+	    .add(this.brand.modifier)
+	    .add(this.brand.surface);
 	}
 	
 	
@@ -2346,19 +2553,51 @@
 	  _createLayout.call(this);
 	}
 	
-	/**
-	 * animate Logo
-	 */
-	
-	Logo.prototype.animate = function() {
-	};
-	
 	/*!
 	 * extend View
 	 */
 	
 	Logo.prototype = Object.create(View.prototype);
 	Logo.prototype.constructor = Logo;
+	
+	/**
+	 * animate Logo
+	 */
+	
+	Logo.prototype.animate = function() {
+	  var side, curve = { duration : 1000, curve: Easing.outBack };
+	
+	  for (var i = 0; i < 4; i++) {
+	    side = this.logo.sides[i];
+	
+	    side.translate.setTransform(
+	      Transform.translate(translates[i][0], translates[i][1], translates[i][2]),
+	      curve
+	    );
+	
+	    side.rotate.setTransform(Transform.multiply(
+	      Transform.rotate(rotates[i][0] * convert, rotates[i][1] * convert, rotates[i][2] * convert),
+	      Transform.skew(skews[i][0] * convert, skews[i][1] * convert, skews[i][2] * convert)
+	    ), curve);
+	  }
+	
+	  this.logo.modifier
+	    .setTransform(this.logo.modifier.getTransform(), { duration : 1000 })
+	    .setTransform(Transform.multiply(
+	      Transform.translate(300, 300, 0),
+	      Transform.scale(0.2)
+	    ), { duration : 500, curve: Easing.outBack }
+	    );
+	
+	  this.brand.modifier
+	    .setTransform(Transform.translate(340, 316, 0));
+	
+	  this.brand.modifier
+	    .setOpacity(0, { duration : 1000 })
+	    .setOpacity(1, { duration : 500, curve: 'linear' });
+	
+	};
+	
 	
 	/*!
 	 * module exports
@@ -2393,8 +2632,8 @@
 /* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(28)();
-	exports.push([module.id, "/*! normalize.css v3.0.2 | MIT License | git.io/normalize */\n\n/**\n * 1. Set default font family to sans-serif.\n * 2. Prevent iOS text size adjust after orientation change, without disabling\n *    user zoom.\n */\n\nhtml {\n  font-family: sans-serif;\n  /* 1 */\n  -ms-text-size-adjust: 100%;\n  /* 2 */\n  -webkit-text-size-adjust: 100%;\n  /* 2 */\n}\n\n/**\n * Remove default margin.\n */\n\nbody {\n  margin: 0;\n}\n\n/* HTML5 display definitions\n   ========================================================================== */\n\n/**\n * Correct `block` display not defined for any HTML5 element in IE 8/9.\n * Correct `block` display not defined for `details` or `summary` in IE 10/11\n * and Firefox.\n * Correct `block` display not defined for `main` in IE 11.\n */\n\narticle,\naside,\ndetails,\nfigcaption,\nfigure,\nfooter,\nheader,\nhgroup,\nmain,\nmenu,\nnav,\nsection,\nsummary {\n  display: block;\n}\n\n/**\n * 1. Correct `inline-block` display not defined in IE 8/9.\n * 2. Normalize vertical alignment of `progress` in Chrome, Firefox, and Opera.\n */\n\naudio,\ncanvas,\nprogress,\nvideo {\n  display: inline-block;\n  /* 1 */\n  vertical-align: baseline;\n  /* 2 */\n}\n\n/**\n * Prevent modern browsers from displaying `audio` without controls.\n * Remove excess height in iOS 5 devices.\n */\n\naudio:not([controls]) {\n  display: none;\n  height: 0;\n}\n\n/**\n * Address `[hidden]` styling not present in IE 8/9/10.\n * Hide the `template` element in IE 8/9/11, Safari, and Firefox < 22.\n */\n\n[hidden],\ntemplate {\n  display: none;\n}\n\n/* Links\n   ========================================================================== */\n\n/**\n * Remove the gray background color from active links in IE 10.\n */\n\na {\n  background-color: transparent;\n}\n\n/**\n * Improve readability when focused and also mouse hovered in all browsers.\n */\n\na:active,\na:hover {\n  outline: 0;\n}\n\n/* Text-level semantics\n   ========================================================================== */\n\n/**\n * Address styling not present in IE 8/9/10/11, Safari, and Chrome.\n */\n\nabbr[title] {\n  border-bottom: 1px dotted;\n}\n\n/**\n * Address style set to `bolder` in Firefox 4+, Safari, and Chrome.\n */\n\nb,\nstrong {\n  font-weight: bold;\n}\n\n/**\n * Address styling not present in Safari and Chrome.\n */\n\ndfn {\n  font-style: italic;\n}\n\n/**\n * Address variable `h1` font-size and margin within `section` and `article`\n * contexts in Firefox 4+, Safari, and Chrome.\n */\n\nh1 {\n  font-size: 2em;\n  margin: 0.67em 0;\n}\n\n/**\n * Address styling not present in IE 8/9.\n */\n\nmark {\n  background: #ff0;\n  color: #000;\n}\n\n/**\n * Address inconsistent and variable font size in all browsers.\n */\n\nsmall {\n  font-size: 80%;\n}\n\n/**\n * Prevent `sub` and `sup` affecting `line-height` in all browsers.\n */\n\nsub,\nsup {\n  font-size: 75%;\n  line-height: 0;\n  position: relative;\n  vertical-align: baseline;\n}\n\nsup {\n  top: -0.5em;\n}\n\nsub {\n  bottom: -0.25em;\n}\n\n/* Embedded content\n   ========================================================================== */\n\n/**\n * Remove border when inside `a` element in IE 8/9/10.\n */\n\nimg {\n  border: 0;\n}\n\n/**\n * Correct overflow not hidden in IE 9/10/11.\n */\n\nsvg:not(:root) {\n  overflow: hidden;\n}\n\n/* Grouping content\n   ========================================================================== */\n\n/**\n * Address margin not present in IE 8/9 and Safari.\n */\n\nfigure {\n  margin: 1em 40px;\n}\n\n/**\n * Address differences between Firefox and other browsers.\n */\n\nhr {\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n  height: 0;\n}\n\n/**\n * Contain overflow in all browsers.\n */\n\npre {\n  overflow: auto;\n}\n\n/**\n * Address odd `em`-unit font size rendering in all browsers.\n */\n\ncode,\nkbd,\npre,\nsamp {\n  font-family: monospace, monospace;\n  font-size: 1em;\n}\n\n/* Forms\n   ========================================================================== */\n\n/**\n * Known limitation: by default, Chrome and Safari on OS X allow very limited\n * styling of `select`, unless a `border` property is set.\n */\n\n/**\n * 1. Correct color not being inherited.\n *    Known issue: affects color of disabled elements.\n * 2. Correct font properties not being inherited.\n * 3. Address margins set differently in Firefox 4+, Safari, and Chrome.\n */\n\nbutton,\ninput,\noptgroup,\nselect,\ntextarea {\n  color: inherit;\n  /* 1 */\n  font: inherit;\n  /* 2 */\n  margin: 0;\n  /* 3 */\n}\n\n/**\n * Address `overflow` set to `hidden` in IE 8/9/10/11.\n */\n\nbutton {\n  overflow: visible;\n}\n\n/**\n * Address inconsistent `text-transform` inheritance for `button` and `select`.\n * All other form control elements do not inherit `text-transform` values.\n * Correct `button` style inheritance in Firefox, IE 8/9/10/11, and Opera.\n * Correct `select` style inheritance in Firefox.\n */\n\nbutton,\nselect {\n  text-transform: none;\n}\n\n/**\n * 1. Avoid the WebKit bug in Android 4.0.* where (2) destroys native `audio`\n *    and `video` controls.\n * 2. Correct inability to style clickable `input` types in iOS.\n * 3. Improve usability and consistency of cursor style between image-type\n *    `input` and others.\n */\n\nbutton,\nhtml input[type=\"button\"],\ninput[type=\"reset\"],\ninput[type=\"submit\"] {\n  -webkit-appearance: button;\n  /* 2 */\n  cursor: pointer;\n  /* 3 */\n}\n\n/**\n * Re-set default cursor for disabled elements.\n */\n\nbutton[disabled],\nhtml input[disabled] {\n  cursor: default;\n}\n\n/**\n * Remove inner padding and border in Firefox 4+.\n */\n\nbutton::-moz-focus-inner,\ninput::-moz-focus-inner {\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Address Firefox 4+ setting `line-height` on `input` using `!important` in\n * the UA stylesheet.\n */\n\ninput {\n  line-height: normal;\n}\n\n/**\n * It's recommended that you don't attempt to style these elements.\n * Firefox's implementation doesn't respect box-sizing, padding, or width.\n *\n * 1. Address box sizing set to `content-box` in IE 8/9/10.\n * 2. Remove excess padding in IE 8/9/10.\n */\n\ninput[type=\"checkbox\"],\ninput[type=\"radio\"] {\n  box-sizing: border-box;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Fix the cursor style for Chrome's increment/decrement buttons. For certain\n * `font-size` values of the `input`, it causes the cursor style of the\n * decrement button to change from `default` to `text`.\n */\n\ninput[type=\"number\"]::-webkit-inner-spin-button,\ninput[type=\"number\"]::-webkit-outer-spin-button {\n  height: auto;\n}\n\n/**\n * 1. Address `appearance` set to `searchfield` in Safari and Chrome.\n * 2. Address `box-sizing` set to `border-box` in Safari and Chrome\n *    (include `-moz` to future-proof).\n */\n\ninput[type=\"search\"] {\n  -webkit-appearance: textfield;\n  /* 1 */\n  -moz-box-sizing: content-box;\n  -webkit-box-sizing: content-box;\n  /* 2 */\n  box-sizing: content-box;\n}\n\n/**\n * Remove inner padding and search cancel button in Safari and Chrome on OS X.\n * Safari (but not Chrome) clips the cancel button when the search input has\n * padding (and `textfield` appearance).\n */\n\ninput[type=\"search\"]::-webkit-search-cancel-button,\ninput[type=\"search\"]::-webkit-search-decoration {\n  -webkit-appearance: none;\n}\n\n/**\n * Define consistent border, margin, and padding.\n */\n\nfieldset {\n  border: 1px solid #c0c0c0;\n  margin: 0 2px;\n  padding: 0.35em 0.625em 0.75em;\n}\n\n/**\n * 1. Correct `color` not being inherited in IE 8/9/10/11.\n * 2. Remove padding so people aren't caught out if they zero out fieldsets.\n */\n\nlegend {\n  border: 0;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Remove default vertical scrollbar in IE 8/9/10/11.\n */\n\ntextarea {\n  overflow: auto;\n}\n\n/**\n * Don't inherit the `font-weight` (applied by a rule above).\n * NOTE: the default cannot safely be changed in Chrome and Safari on OS X.\n */\n\noptgroup {\n  font-weight: bold;\n}\n\n/* Tables\n   ========================================================================== */\n\n/**\n * Remove most spacing between table cells.\n */\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0;\n}\n\ntd,\nth {\n  padding: 0;\n}\n\n/**\n * A thin layer on top of normalize.css that provides a starting point more\n * suitable for web applications. Removes the default spacing and border for\n * appropriate elements.\n */\n\nblockquote,\ndl,\ndd,\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\nfigure,\np,\npre {\n  margin: 0;\n}\n\nbutton {\n  background: transparent;\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Work around a Firefox/IE bug where the transparent `button` background\n * results in a loss of the default `button` focus styles.\n */\n\nbutton:focus {\n  outline: 1px dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n}\n\nfieldset {\n  border: 0;\n  margin: 0;\n  padding: 0;\n}\n\niframe {\n  border: 0;\n}\n\nol,\nul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\n/**\n * Suppress the focus outline on links that cannot be accessed via keyboard.\n * This prevents an unwanted focus outline from appearing around elements that\n * might still respond to pointer events.\n */\n\n[tabindex=\"-1\"]:focus {\n  outline: none !important;\n}\n\n/**\n * Word breaking\n *\n * Break strings when their length exceeds the width of their container.\n */\n\n.u-textBreak {\n  word-wrap: break-word !important;\n}\n\n/**\n * Horizontal text alignment\n */\n\n.u-textCenter {\n  text-align: center !important;\n}\n\n.u-textLeft {\n  text-align: left !important;\n}\n\n.u-textRight {\n  text-align: right !important;\n}\n\n/**\n * Inherit the ancestor's text color.\n */\n\n.u-textInheritColor {\n  color: inherit !important;\n}\n\n/**\n * Enables font kerning in all browsers.\n * http://blog.typekit.com/2014/02/05/kerning-on-the-web/\n *\n * 1. Chrome (not Windows), Firefox, Safari 6+, iOS, Android\n * 2. Chrome (not Windows), Firefox, IE 10+\n * 3. Safari 7 and future browsers\n */\n\n.u-textKern {\n  text-rendering: optimizeLegibility;\n  /* 1 */\n  font-feature-settings: \"kern\" 1;\n  /* 2 */\n  font-kerning: normal;\n  /* 3 */\n}\n\n/**\n * Prevent whitespace wrapping\n */\n\n.u-textNoWrap {\n  white-space: nowrap !important;\n}\n\n/**\n * Text truncation\n *\n * Prevent text from wrapping onto multiple lines, and truncate with an\n * ellipsis.\n *\n * 1. Ensure that the node has a maximum width after which truncation can\n *    occur.\n * 2. Fix for IE 8/9 if `word-wrap: break-word` is in effect on ancestor\n *    nodes.\n */\n\n.u-textTruncate {\n  max-width: 100%;\n  /* 1 */\n  overflow: hidden !important;\n  text-overflow: ellipsis !important;\n  white-space: nowrap !important;\n  word-wrap: normal !important;\n  /* 2 */\n}\n\n/** @define Grid; use strict */\n\n\n\n/**\n * Core grid component\n *\n * DO NOT apply dimension or offset utilities to the `Grid` element. All cell\n * widths and offsets should be applied to child grid cells.\n */\n\n/* Grid container\n   ========================================================================== */\n\n/**\n * All content must be contained within child `Grid-cell` elements.\n *\n * 1. Account for browser defaults of elements that might be the root node of\n *    the component.\n * 2. Remove inter-cell whitespace that appears between `inline-block` child\n *    elements.\n * 3. Ensure consistent default alignment.\n */\n\n.Grid {\n  display: block;\n  /* 1 */\n  font-size: 0;\n  /* 2 */\n  margin: 0;\n  /* 1 */\n  padding: 0;\n  /* 1 */\n  text-align: left;\n  /* 3 */\n}\n\n/**\n * Modifier: center align all grid cells\n */\n\n.Grid--alignCenter {\n  text-align: center;\n}\n\n/**\n * Modifier: right align all grid cells\n */\n\n.Grid--alignRight {\n  text-align: right;\n}\n\n/**\n * Modifier: middle-align grid cells\n */\n\n.Grid--alignMiddle > .Grid-cell {\n  vertical-align: middle;\n}\n\n/**\n * Modifier: bottom-align grid cells\n */\n\n.Grid--alignBottom > .Grid-cell {\n  vertical-align: bottom;\n}\n\n/**\n * Modifier: gutters\n *\n * NOTE: this can trigger a horizontal scrollbar if the component is as wide as\n * the viewport. Use padding on a container, or `overflow-x:hidden` to protect\n * against it.\n */\n\n.Grid--withGutter {\n  margin: 0 -20px;\n}\n\n.Grid--withGutter > .Grid-cell {\n  padding: 0 20px;\n}\n\n/* Grid cell\n   ========================================================================== */\n\n/**\n * No explicit width by default. Rely on combining `Grid-cell` with a dimension\n * utility or a component class that extends 'grid'.\n *\n * 1. Fundamentals of the non-float grid layout.\n * 2. Reset font size change made in `Grid`.\n * 3. Keeps content correctly aligned with the grid direction.\n * 4. Controls vertical positioning of units.\n * 5. Make cells full-width by default.\n */\n\n.Grid-cell {\n  box-sizing: border-box;\n  display: inline-block;\n  /* 1 */\n  font-size: 1rem;\n  /* 2 */\n  margin: 0;\n  padding: 0;\n  text-align: left;\n  /* 3 */\n  vertical-align: top;\n  /* 4 */\n  width: 100%;\n  /* 5 */\n}\n\n/**\n * Modifier: horizontally center one unit\n * Set a specific unit to be horizontally centered. Doesn't affect\n * any other units. Can still contain a child `Grid` object.\n */\n\n.Grid-cell--center {\n  display: block;\n  margin: 0 auto;\n}\n\n/**\n * Sizing utilities\n */\n\n/* Intrinsic widths\n   ========================================================================== */\n\n/**\n * Make an element shrink wrap its content.\n */\n\n.u-sizeFit,\n.u-sizeFitAlt {\n  display: block !important;\n  float: left !important;\n  width: auto !important;\n}\n\n.u-sizeFitAlt {\n  float: right !important;\n}\n\n/**\n * Make an element fill the remaining space.\n * N.B. This will hide overflow.\n */\n\n.u-sizeFill {\n  display: block !important;\n  overflow: hidden !important;\n  width: auto !important;\n}\n\n/**\n * An alternative method to make an element fill the remaining space.\n * N.B. Do not use if child elements might be wider than the remaining space.\n * In Chrome, Safari, and Firefox it results in undesired layout.\n */\n\n.u-sizeFillAlt {\n  display: table-cell !important;\n  max-width: 100% !important;\n  width: 10000px !important;\n}\n\n/**\n * Make an element the width of its parent.\n */\n\n.u-sizeFull {\n  box-sizing: border-box !important;\n  display: block !important;\n  width: 100% !important;\n}\n\n/* Proportional widths\n   ========================================================================== */\n\n/**\n * Specify the proportional width of an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 part\n */\n\n.u-size1of12 {\n  width: 8.333333333333332% !important;\n}\n\n.u-size1of10 {\n  width: 10% !important;\n}\n\n.u-size1of8 {\n  width: 12.5% !important;\n}\n\n.u-size1of6,\n.u-size2of12 {\n  width: 16.666666666666664% !important;\n}\n\n.u-size1of5,\n.u-size2of10 {\n  width: 20% !important;\n}\n\n.u-size1of4,\n.u-size2of8,\n.u-size3of12 {\n  width: 25% !important;\n}\n\n.u-size3of10 {\n  width: 30% !important;\n}\n\n.u-size1of3,\n.u-size2of6,\n.u-size4of12 {\n  width: 33.33333333333333% !important;\n}\n\n.u-size3of8 {\n  width: 37.5% !important;\n}\n\n.u-size2of5,\n.u-size4of10 {\n  width: 40% !important;\n}\n\n.u-size5of12 {\n  width: 41.66666666666667% !important;\n}\n\n.u-size1of2,\n.u-size2of4,\n.u-size3of6,\n.u-size4of8,\n.u-size5of10,\n.u-size6of12 {\n  width: 50% !important;\n}\n\n.u-size7of12 {\n  width: 58.333333333333336% !important;\n}\n\n.u-size3of5,\n.u-size6of10 {\n  width: 60% !important;\n}\n\n.u-size5of8 {\n  width: 62.5% !important;\n}\n\n.u-size2of3,\n.u-size4of6,\n.u-size8of12 {\n  width: 66.66666666666666% !important;\n}\n\n.u-size7of10 {\n  width: 70% !important;\n}\n\n.u-size3of4,\n.u-size6of8,\n.u-size9of12 {\n  width: 75% !important;\n}\n\n.u-size4of5,\n.u-size8of10 {\n  width: 80% !important;\n}\n\n.u-size5of6,\n.u-size10of12 {\n  width: 83.33333333333334% !important;\n}\n\n.u-size7of8 {\n  width: 87.5% !important;\n}\n\n.u-size9of10 {\n  width: 90% !important;\n}\n\n.u-size11of12 {\n  width: 91.66666666666666% !important;\n}\n\n/**\n * Size: breakpoint 1 (small)\n */\n\n/**\n * Size: breakpoint 2 (medium)\n */\n\n/**\n * Size: breakpoint 3 (large)\n */\n\n/**\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-after1of12 {\n  margin-right: 8.333333333333332% !important;\n}\n\n.u-after1of10 {\n  margin-right: 10% !important;\n}\n\n.u-after1of8 {\n  margin-right: 12.5% !important;\n}\n\n.u-after1of6,\n.u-after2of12 {\n  margin-right: 16.666666666666664% !important;\n}\n\n.u-after1of5,\n.u-after2of10 {\n  margin-right: 20% !important;\n}\n\n.u-after1of4,\n.u-after2of8,\n.u-after3of12 {\n  margin-right: 25% !important;\n}\n\n.u-after3of10 {\n  margin-right: 30% !important;\n}\n\n.u-after1of3,\n.u-after2of6,\n.u-after4of12 {\n  margin-right: 33.33333333333333% !important;\n}\n\n.u-after3of8 {\n  margin-right: 37.5% !important;\n}\n\n.u-after2of5,\n.u-after4of10 {\n  margin-right: 40% !important;\n}\n\n.u-after5of12 {\n  margin-right: 41.66666666666667% !important;\n}\n\n.u-after1of2,\n.u-after2of4,\n.u-after3of6,\n.u-after4of8,\n.u-after5of10,\n.u-after6of12 {\n  margin-right: 50% !important;\n}\n\n.u-after7of12 {\n  margin-right: 58.333333333333336% !important;\n}\n\n.u-after3of5,\n.u-after6of10 {\n  margin-right: 60% !important;\n}\n\n.u-after5of8 {\n  margin-right: 62.5% !important;\n}\n\n.u-after2of3,\n.u-after4of6,\n.u-after8of12 {\n  margin-right: 66.66666666666666% !important;\n}\n\n.u-after7of10 {\n  margin-right: 70% !important;\n}\n\n.u-after3of4,\n.u-after6of8,\n.u-after9of12 {\n  margin-right: 75% !important;\n}\n\n.u-after4of5,\n.u-after8of10 {\n  margin-right: 80% !important;\n}\n\n.u-after5of6,\n.u-after10of12 {\n  margin-right: 83.33333333333334% !important;\n}\n\n.u-after7of8 {\n  margin-right: 87.5% !important;\n}\n\n.u-after9of10 {\n  margin-right: 90% !important;\n}\n\n.u-after11of12 {\n  margin-right: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Specify the proportional offset before an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-before1of12 {\n  margin-left: 8.333333333333332% !important;\n}\n\n.u-before1of10 {\n  margin-left: 10% !important;\n}\n\n.u-before1of8 {\n  margin-left: 12.5% !important;\n}\n\n.u-before1of6,\n.u-before2of12 {\n  margin-left: 16.666666666666664% !important;\n}\n\n.u-before1of5,\n.u-before2of10 {\n  margin-left: 20% !important;\n}\n\n.u-before1of4,\n.u-before2of8,\n.u-before3of12 {\n  margin-left: 25% !important;\n}\n\n.u-before3of10 {\n  margin-left: 30% !important;\n}\n\n.u-before1of3,\n.u-before2of6,\n.u-before4of12 {\n  margin-left: 33.33333333333333% !important;\n}\n\n.u-before3of8 {\n  margin-left: 37.5% !important;\n}\n\n.u-before2of5,\n.u-before4of10 {\n  margin-left: 40% !important;\n}\n\n.u-before5of12 {\n  margin-left: 41.66666666666667% !important;\n}\n\n.u-before1of2,\n.u-before2of4,\n.u-before3of6,\n.u-before4of8,\n.u-before5of10,\n.u-before6of12 {\n  margin-left: 50% !important;\n}\n\n.u-before7of12 {\n  margin-left: 58.333333333333336% !important;\n}\n\n.u-before3of5,\n.u-before6of10 {\n  margin-left: 60% !important;\n}\n\n.u-before5of8 {\n  margin-left: 62.5% !important;\n}\n\n.u-before2of3,\n.u-before4of6,\n.u-before8of12 {\n  margin-left: 66.66666666666666% !important;\n}\n\n.u-before7of10 {\n  margin-left: 70% !important;\n}\n\n.u-before3of4,\n.u-before6of8,\n.u-before9of12 {\n  margin-left: 75% !important;\n}\n\n.u-before4of5,\n.u-before8of10 {\n  margin-left: 80% !important;\n}\n\n.u-before5of6,\n.u-before10of12 {\n  margin-left: 83.33333333333334% !important;\n}\n\n.u-before7of8 {\n  margin-left: 87.5% !important;\n}\n\n.u-before9of10 {\n  margin-left: 90% !important;\n}\n\n.u-before11of12 {\n  margin-left: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/* comment\n-------------------------------------------------- */\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 300;\n  src: url('/assets/fonts/Open_Sans_300.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_300.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_300.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_300.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 400;\n  src: url('/assets/fonts/Open_Sans_400.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_400.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_400.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_400.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 600;\n  src: url('/assets/fonts/Open_Sans_600.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_600.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_600.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_600.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 700;\n  src: url('/assets/fonts/Open_Sans_700.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_700.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_700.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_700.svg#OpenSans') format('svg');\n}\n\n\n\n.u-backface {\n  backface-visibility: visible;\n}\n\n.u-textHuge {\n  font-size: 60px;\n}\n\n.u-textUnderscore:before {\n  content: '_';\n}\n\n.u-textLarge {\n  font-size: 40px;\n}\n\n.u-textBold {\n  font-weight: bold;\n}\n\n.u-pad-top-5 {\n  padding-top: 5px;\n}\n\n.u-pad-top-10 {\n  padding-top: 10px;\n}\n\n.u-pad-top-20 {\n  padding-top: 20px;\n}\n\n.u-pad-left-20 {\n  padding-left: 20px;\n}\n\n.u-pad-bottom-10 {\n  padding-bottom: 10px;\n}\n\n.u-pad-bottom-20 {\n  padding-bottom: 20px;\n}\n\n\n\nhtml,\nbody {\n  font-family: 'Open Sans', sans-serif;\n  font-size: 22px;\n  color: rgb(0, 0, 0);\n  font-weight: 100;\n}\n\n/* title\n-------------------------------------------------- */\n\n.title {\n  font-family: 'Andale Mono';\n  font-weight: 100;\n}\n\n.title:before {\n  content: '_';\n}\n\n.title--intro {\n  font-size: 50px;\n}\n\n.title--section {\n  font-size: 40px;\n}\n\n.title--white {\n  color: rgb(255, 255, 255);\n}\n\n.title--yellow {\n  color: rgb(255, 255, 0);\n}\n\n.title--pink {\n  color: rgb(255, 31, 171);\n}\n\n/* note\n-------------------------------------------------- */\n\n.note {\n  font-size: 18px;\n}\n\n.note--gray {\n  color: rgb(162, 169, 162);\n}\n\n/* ticker\n-------------------------------------------------- */\n\n.ticker--pink {\n  background-color: rgb(255, 31, 171);\n}\n\n.ticker--yellow {\n  background-color: rgb(255, 255, 0);\n}\n\n/* misc\n-------------------------------------------------- */\n\n.text--white {\n  color: rgb(255, 255, 255);\n}\n\n.text--big {\n  font-size: 28px;\n}\n\n.Grid-cell--withBorder {\n  border-left: 1px solid rgba(162, 169, 162, 0.5);\n  border-right: 1px solid rgba(162, 169, 162, 0.5);\n}", ""]);
+	exports = module.exports = __webpack_require__(35)();
+	exports.push([module.id, "/*! normalize.css v3.0.2 | MIT License | git.io/normalize */\n\n/**\n * 1. Set default font family to sans-serif.\n * 2. Prevent iOS text size adjust after orientation change, without disabling\n *    user zoom.\n */\n\nhtml {\n  font-family: sans-serif;\n  /* 1 */\n  -ms-text-size-adjust: 100%;\n  /* 2 */\n  -webkit-text-size-adjust: 100%;\n  /* 2 */\n}\n\n/**\n * Remove default margin.\n */\n\nbody {\n  margin: 0;\n}\n\n/* HTML5 display definitions\n   ========================================================================== */\n\n/**\n * Correct `block` display not defined for any HTML5 element in IE 8/9.\n * Correct `block` display not defined for `details` or `summary` in IE 10/11\n * and Firefox.\n * Correct `block` display not defined for `main` in IE 11.\n */\n\narticle,\naside,\ndetails,\nfigcaption,\nfigure,\nfooter,\nheader,\nhgroup,\nmain,\nmenu,\nnav,\nsection,\nsummary {\n  display: block;\n}\n\n/**\n * 1. Correct `inline-block` display not defined in IE 8/9.\n * 2. Normalize vertical alignment of `progress` in Chrome, Firefox, and Opera.\n */\n\naudio,\ncanvas,\nprogress,\nvideo {\n  display: inline-block;\n  /* 1 */\n  vertical-align: baseline;\n  /* 2 */\n}\n\n/**\n * Prevent modern browsers from displaying `audio` without controls.\n * Remove excess height in iOS 5 devices.\n */\n\naudio:not([controls]) {\n  display: none;\n  height: 0;\n}\n\n/**\n * Address `[hidden]` styling not present in IE 8/9/10.\n * Hide the `template` element in IE 8/9/11, Safari, and Firefox < 22.\n */\n\n[hidden],\ntemplate {\n  display: none;\n}\n\n/* Links\n   ========================================================================== */\n\n/**\n * Remove the gray background color from active links in IE 10.\n */\n\na {\n  background-color: transparent;\n}\n\n/**\n * Improve readability when focused and also mouse hovered in all browsers.\n */\n\na:active,\na:hover {\n  outline: 0;\n}\n\n/* Text-level semantics\n   ========================================================================== */\n\n/**\n * Address styling not present in IE 8/9/10/11, Safari, and Chrome.\n */\n\nabbr[title] {\n  border-bottom: 1px dotted;\n}\n\n/**\n * Address style set to `bolder` in Firefox 4+, Safari, and Chrome.\n */\n\nb,\nstrong {\n  font-weight: bold;\n}\n\n/**\n * Address styling not present in Safari and Chrome.\n */\n\ndfn {\n  font-style: italic;\n}\n\n/**\n * Address variable `h1` font-size and margin within `section` and `article`\n * contexts in Firefox 4+, Safari, and Chrome.\n */\n\nh1 {\n  font-size: 2em;\n  margin: 0.67em 0;\n}\n\n/**\n * Address styling not present in IE 8/9.\n */\n\nmark {\n  background: #ff0;\n  color: #000;\n}\n\n/**\n * Address inconsistent and variable font size in all browsers.\n */\n\nsmall {\n  font-size: 80%;\n}\n\n/**\n * Prevent `sub` and `sup` affecting `line-height` in all browsers.\n */\n\nsub,\nsup {\n  font-size: 75%;\n  line-height: 0;\n  position: relative;\n  vertical-align: baseline;\n}\n\nsup {\n  top: -0.5em;\n}\n\nsub {\n  bottom: -0.25em;\n}\n\n/* Embedded content\n   ========================================================================== */\n\n/**\n * Remove border when inside `a` element in IE 8/9/10.\n */\n\nimg {\n  border: 0;\n}\n\n/**\n * Correct overflow not hidden in IE 9/10/11.\n */\n\nsvg:not(:root) {\n  overflow: hidden;\n}\n\n/* Grouping content\n   ========================================================================== */\n\n/**\n * Address margin not present in IE 8/9 and Safari.\n */\n\nfigure {\n  margin: 1em 40px;\n}\n\n/**\n * Address differences between Firefox and other browsers.\n */\n\nhr {\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n  height: 0;\n}\n\n/**\n * Contain overflow in all browsers.\n */\n\npre {\n  overflow: auto;\n}\n\n/**\n * Address odd `em`-unit font size rendering in all browsers.\n */\n\ncode,\nkbd,\npre,\nsamp {\n  font-family: monospace, monospace;\n  font-size: 1em;\n}\n\n/* Forms\n   ========================================================================== */\n\n/**\n * Known limitation: by default, Chrome and Safari on OS X allow very limited\n * styling of `select`, unless a `border` property is set.\n */\n\n/**\n * 1. Correct color not being inherited.\n *    Known issue: affects color of disabled elements.\n * 2. Correct font properties not being inherited.\n * 3. Address margins set differently in Firefox 4+, Safari, and Chrome.\n */\n\nbutton,\ninput,\noptgroup,\nselect,\ntextarea {\n  color: inherit;\n  /* 1 */\n  font: inherit;\n  /* 2 */\n  margin: 0;\n  /* 3 */\n}\n\n/**\n * Address `overflow` set to `hidden` in IE 8/9/10/11.\n */\n\nbutton {\n  overflow: visible;\n}\n\n/**\n * Address inconsistent `text-transform` inheritance for `button` and `select`.\n * All other form control elements do not inherit `text-transform` values.\n * Correct `button` style inheritance in Firefox, IE 8/9/10/11, and Opera.\n * Correct `select` style inheritance in Firefox.\n */\n\nbutton,\nselect {\n  text-transform: none;\n}\n\n/**\n * 1. Avoid the WebKit bug in Android 4.0.* where (2) destroys native `audio`\n *    and `video` controls.\n * 2. Correct inability to style clickable `input` types in iOS.\n * 3. Improve usability and consistency of cursor style between image-type\n *    `input` and others.\n */\n\nbutton,\nhtml input[type=\"button\"],\ninput[type=\"reset\"],\ninput[type=\"submit\"] {\n  -webkit-appearance: button;\n  /* 2 */\n  cursor: pointer;\n  /* 3 */\n}\n\n/**\n * Re-set default cursor for disabled elements.\n */\n\nbutton[disabled],\nhtml input[disabled] {\n  cursor: default;\n}\n\n/**\n * Remove inner padding and border in Firefox 4+.\n */\n\nbutton::-moz-focus-inner,\ninput::-moz-focus-inner {\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Address Firefox 4+ setting `line-height` on `input` using `!important` in\n * the UA stylesheet.\n */\n\ninput {\n  line-height: normal;\n}\n\n/**\n * It's recommended that you don't attempt to style these elements.\n * Firefox's implementation doesn't respect box-sizing, padding, or width.\n *\n * 1. Address box sizing set to `content-box` in IE 8/9/10.\n * 2. Remove excess padding in IE 8/9/10.\n */\n\ninput[type=\"checkbox\"],\ninput[type=\"radio\"] {\n  box-sizing: border-box;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Fix the cursor style for Chrome's increment/decrement buttons. For certain\n * `font-size` values of the `input`, it causes the cursor style of the\n * decrement button to change from `default` to `text`.\n */\n\ninput[type=\"number\"]::-webkit-inner-spin-button,\ninput[type=\"number\"]::-webkit-outer-spin-button {\n  height: auto;\n}\n\n/**\n * 1. Address `appearance` set to `searchfield` in Safari and Chrome.\n * 2. Address `box-sizing` set to `border-box` in Safari and Chrome\n *    (include `-moz` to future-proof).\n */\n\ninput[type=\"search\"] {\n  -webkit-appearance: textfield;\n  /* 1 */\n  -moz-box-sizing: content-box;\n  -webkit-box-sizing: content-box;\n  /* 2 */\n  box-sizing: content-box;\n}\n\n/**\n * Remove inner padding and search cancel button in Safari and Chrome on OS X.\n * Safari (but not Chrome) clips the cancel button when the search input has\n * padding (and `textfield` appearance).\n */\n\ninput[type=\"search\"]::-webkit-search-cancel-button,\ninput[type=\"search\"]::-webkit-search-decoration {\n  -webkit-appearance: none;\n}\n\n/**\n * Define consistent border, margin, and padding.\n */\n\nfieldset {\n  border: 1px solid #c0c0c0;\n  margin: 0 2px;\n  padding: 0.35em 0.625em 0.75em;\n}\n\n/**\n * 1. Correct `color` not being inherited in IE 8/9/10/11.\n * 2. Remove padding so people aren't caught out if they zero out fieldsets.\n */\n\nlegend {\n  border: 0;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Remove default vertical scrollbar in IE 8/9/10/11.\n */\n\ntextarea {\n  overflow: auto;\n}\n\n/**\n * Don't inherit the `font-weight` (applied by a rule above).\n * NOTE: the default cannot safely be changed in Chrome and Safari on OS X.\n */\n\noptgroup {\n  font-weight: bold;\n}\n\n/* Tables\n   ========================================================================== */\n\n/**\n * Remove most spacing between table cells.\n */\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0;\n}\n\ntd,\nth {\n  padding: 0;\n}\n\n/**\n * A thin layer on top of normalize.css that provides a starting point more\n * suitable for web applications. Removes the default spacing and border for\n * appropriate elements.\n */\n\nblockquote,\ndl,\ndd,\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\nfigure,\np,\npre {\n  margin: 0;\n}\n\nbutton {\n  background: transparent;\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Work around a Firefox/IE bug where the transparent `button` background\n * results in a loss of the default `button` focus styles.\n */\n\nbutton:focus {\n  outline: 1px dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n}\n\nfieldset {\n  border: 0;\n  margin: 0;\n  padding: 0;\n}\n\niframe {\n  border: 0;\n}\n\nol,\nul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\n/**\n * Suppress the focus outline on links that cannot be accessed via keyboard.\n * This prevents an unwanted focus outline from appearing around elements that\n * might still respond to pointer events.\n */\n\n[tabindex=\"-1\"]:focus {\n  outline: none !important;\n}\n\n/**\n * Word breaking\n *\n * Break strings when their length exceeds the width of their container.\n */\n\n.u-textBreak {\n  word-wrap: break-word !important;\n}\n\n/**\n * Horizontal text alignment\n */\n\n.u-textCenter {\n  text-align: center !important;\n}\n\n.u-textLeft {\n  text-align: left !important;\n}\n\n.u-textRight {\n  text-align: right !important;\n}\n\n/**\n * Inherit the ancestor's text color.\n */\n\n.u-textInheritColor {\n  color: inherit !important;\n}\n\n/**\n * Enables font kerning in all browsers.\n * http://blog.typekit.com/2014/02/05/kerning-on-the-web/\n *\n * 1. Chrome (not Windows), Firefox, Safari 6+, iOS, Android\n * 2. Chrome (not Windows), Firefox, IE 10+\n * 3. Safari 7 and future browsers\n */\n\n.u-textKern {\n  text-rendering: optimizeLegibility;\n  /* 1 */\n  font-feature-settings: \"kern\" 1;\n  /* 2 */\n  font-kerning: normal;\n  /* 3 */\n}\n\n/**\n * Prevent whitespace wrapping\n */\n\n.u-textNoWrap {\n  white-space: nowrap !important;\n}\n\n/**\n * Text truncation\n *\n * Prevent text from wrapping onto multiple lines, and truncate with an\n * ellipsis.\n *\n * 1. Ensure that the node has a maximum width after which truncation can\n *    occur.\n * 2. Fix for IE 8/9 if `word-wrap: break-word` is in effect on ancestor\n *    nodes.\n */\n\n.u-textTruncate {\n  max-width: 100%;\n  /* 1 */\n  overflow: hidden !important;\n  text-overflow: ellipsis !important;\n  white-space: nowrap !important;\n  word-wrap: normal !important;\n  /* 2 */\n}\n\n/** @define Grid; use strict */\n\n\n\n/**\n * Core grid component\n *\n * DO NOT apply dimension or offset utilities to the `Grid` element. All cell\n * widths and offsets should be applied to child grid cells.\n */\n\n/* Grid container\n   ========================================================================== */\n\n/**\n * All content must be contained within child `Grid-cell` elements.\n *\n * 1. Account for browser defaults of elements that might be the root node of\n *    the component.\n * 2. Remove inter-cell whitespace that appears between `inline-block` child\n *    elements.\n * 3. Ensure consistent default alignment.\n */\n\n.Grid {\n  display: block;\n  /* 1 */\n  font-size: 0;\n  /* 2 */\n  margin: 0;\n  /* 1 */\n  padding: 0;\n  /* 1 */\n  text-align: left;\n  /* 3 */\n}\n\n/**\n * Modifier: center align all grid cells\n */\n\n.Grid--alignCenter {\n  text-align: center;\n}\n\n/**\n * Modifier: right align all grid cells\n */\n\n.Grid--alignRight {\n  text-align: right;\n}\n\n/**\n * Modifier: middle-align grid cells\n */\n\n.Grid--alignMiddle > .Grid-cell {\n  vertical-align: middle;\n}\n\n/**\n * Modifier: bottom-align grid cells\n */\n\n.Grid--alignBottom > .Grid-cell {\n  vertical-align: bottom;\n}\n\n/**\n * Modifier: gutters\n *\n * NOTE: this can trigger a horizontal scrollbar if the component is as wide as\n * the viewport. Use padding on a container, or `overflow-x:hidden` to protect\n * against it.\n */\n\n.Grid--withGutter {\n  margin: 0 -20px;\n}\n\n.Grid--withGutter > .Grid-cell {\n  padding: 0 20px;\n}\n\n/* Grid cell\n   ========================================================================== */\n\n/**\n * No explicit width by default. Rely on combining `Grid-cell` with a dimension\n * utility or a component class that extends 'grid'.\n *\n * 1. Fundamentals of the non-float grid layout.\n * 2. Reset font size change made in `Grid`.\n * 3. Keeps content correctly aligned with the grid direction.\n * 4. Controls vertical positioning of units.\n * 5. Make cells full-width by default.\n */\n\n.Grid-cell {\n  box-sizing: border-box;\n  display: inline-block;\n  /* 1 */\n  font-size: 1rem;\n  /* 2 */\n  margin: 0;\n  padding: 0;\n  text-align: left;\n  /* 3 */\n  vertical-align: top;\n  /* 4 */\n  width: 100%;\n  /* 5 */\n}\n\n/**\n * Modifier: horizontally center one unit\n * Set a specific unit to be horizontally centered. Doesn't affect\n * any other units. Can still contain a child `Grid` object.\n */\n\n.Grid-cell--center {\n  display: block;\n  margin: 0 auto;\n}\n\n/**\n * Sizing utilities\n */\n\n/* Intrinsic widths\n   ========================================================================== */\n\n/**\n * Make an element shrink wrap its content.\n */\n\n.u-sizeFit,\n.u-sizeFitAlt {\n  display: block !important;\n  float: left !important;\n  width: auto !important;\n}\n\n.u-sizeFitAlt {\n  float: right !important;\n}\n\n/**\n * Make an element fill the remaining space.\n * N.B. This will hide overflow.\n */\n\n.u-sizeFill {\n  display: block !important;\n  overflow: hidden !important;\n  width: auto !important;\n}\n\n/**\n * An alternative method to make an element fill the remaining space.\n * N.B. Do not use if child elements might be wider than the remaining space.\n * In Chrome, Safari, and Firefox it results in undesired layout.\n */\n\n.u-sizeFillAlt {\n  display: table-cell !important;\n  max-width: 100% !important;\n  width: 10000px !important;\n}\n\n/**\n * Make an element the width of its parent.\n */\n\n.u-sizeFull {\n  box-sizing: border-box !important;\n  display: block !important;\n  width: 100% !important;\n}\n\n/* Proportional widths\n   ========================================================================== */\n\n/**\n * Specify the proportional width of an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 part\n */\n\n.u-size1of12 {\n  width: 8.333333333333332% !important;\n}\n\n.u-size1of10 {\n  width: 10% !important;\n}\n\n.u-size1of8 {\n  width: 12.5% !important;\n}\n\n.u-size1of6,\n.u-size2of12 {\n  width: 16.666666666666664% !important;\n}\n\n.u-size1of5,\n.u-size2of10 {\n  width: 20% !important;\n}\n\n.u-size1of4,\n.u-size2of8,\n.u-size3of12 {\n  width: 25% !important;\n}\n\n.u-size3of10 {\n  width: 30% !important;\n}\n\n.u-size1of3,\n.u-size2of6,\n.u-size4of12 {\n  width: 33.33333333333333% !important;\n}\n\n.u-size3of8 {\n  width: 37.5% !important;\n}\n\n.u-size2of5,\n.u-size4of10 {\n  width: 40% !important;\n}\n\n.u-size5of12 {\n  width: 41.66666666666667% !important;\n}\n\n.u-size1of2,\n.u-size2of4,\n.u-size3of6,\n.u-size4of8,\n.u-size5of10,\n.u-size6of12 {\n  width: 50% !important;\n}\n\n.u-size7of12 {\n  width: 58.333333333333336% !important;\n}\n\n.u-size3of5,\n.u-size6of10 {\n  width: 60% !important;\n}\n\n.u-size5of8 {\n  width: 62.5% !important;\n}\n\n.u-size2of3,\n.u-size4of6,\n.u-size8of12 {\n  width: 66.66666666666666% !important;\n}\n\n.u-size7of10 {\n  width: 70% !important;\n}\n\n.u-size3of4,\n.u-size6of8,\n.u-size9of12 {\n  width: 75% !important;\n}\n\n.u-size4of5,\n.u-size8of10 {\n  width: 80% !important;\n}\n\n.u-size5of6,\n.u-size10of12 {\n  width: 83.33333333333334% !important;\n}\n\n.u-size7of8 {\n  width: 87.5% !important;\n}\n\n.u-size9of10 {\n  width: 90% !important;\n}\n\n.u-size11of12 {\n  width: 91.66666666666666% !important;\n}\n\n/**\n * Size: breakpoint 1 (small)\n */\n\n/**\n * Size: breakpoint 2 (medium)\n */\n\n/**\n * Size: breakpoint 3 (large)\n */\n\n/**\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-after1of12 {\n  margin-right: 8.333333333333332% !important;\n}\n\n.u-after1of10 {\n  margin-right: 10% !important;\n}\n\n.u-after1of8 {\n  margin-right: 12.5% !important;\n}\n\n.u-after1of6,\n.u-after2of12 {\n  margin-right: 16.666666666666664% !important;\n}\n\n.u-after1of5,\n.u-after2of10 {\n  margin-right: 20% !important;\n}\n\n.u-after1of4,\n.u-after2of8,\n.u-after3of12 {\n  margin-right: 25% !important;\n}\n\n.u-after3of10 {\n  margin-right: 30% !important;\n}\n\n.u-after1of3,\n.u-after2of6,\n.u-after4of12 {\n  margin-right: 33.33333333333333% !important;\n}\n\n.u-after3of8 {\n  margin-right: 37.5% !important;\n}\n\n.u-after2of5,\n.u-after4of10 {\n  margin-right: 40% !important;\n}\n\n.u-after5of12 {\n  margin-right: 41.66666666666667% !important;\n}\n\n.u-after1of2,\n.u-after2of4,\n.u-after3of6,\n.u-after4of8,\n.u-after5of10,\n.u-after6of12 {\n  margin-right: 50% !important;\n}\n\n.u-after7of12 {\n  margin-right: 58.333333333333336% !important;\n}\n\n.u-after3of5,\n.u-after6of10 {\n  margin-right: 60% !important;\n}\n\n.u-after5of8 {\n  margin-right: 62.5% !important;\n}\n\n.u-after2of3,\n.u-after4of6,\n.u-after8of12 {\n  margin-right: 66.66666666666666% !important;\n}\n\n.u-after7of10 {\n  margin-right: 70% !important;\n}\n\n.u-after3of4,\n.u-after6of8,\n.u-after9of12 {\n  margin-right: 75% !important;\n}\n\n.u-after4of5,\n.u-after8of10 {\n  margin-right: 80% !important;\n}\n\n.u-after5of6,\n.u-after10of12 {\n  margin-right: 83.33333333333334% !important;\n}\n\n.u-after7of8 {\n  margin-right: 87.5% !important;\n}\n\n.u-after9of10 {\n  margin-right: 90% !important;\n}\n\n.u-after11of12 {\n  margin-right: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset after an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Specify the proportional offset before an object.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n.u-before1of12 {\n  margin-left: 8.333333333333332% !important;\n}\n\n.u-before1of10 {\n  margin-left: 10% !important;\n}\n\n.u-before1of8 {\n  margin-left: 12.5% !important;\n}\n\n.u-before1of6,\n.u-before2of12 {\n  margin-left: 16.666666666666664% !important;\n}\n\n.u-before1of5,\n.u-before2of10 {\n  margin-left: 20% !important;\n}\n\n.u-before1of4,\n.u-before2of8,\n.u-before3of12 {\n  margin-left: 25% !important;\n}\n\n.u-before3of10 {\n  margin-left: 30% !important;\n}\n\n.u-before1of3,\n.u-before2of6,\n.u-before4of12 {\n  margin-left: 33.33333333333333% !important;\n}\n\n.u-before3of8 {\n  margin-left: 37.5% !important;\n}\n\n.u-before2of5,\n.u-before4of10 {\n  margin-left: 40% !important;\n}\n\n.u-before5of12 {\n  margin-left: 41.66666666666667% !important;\n}\n\n.u-before1of2,\n.u-before2of4,\n.u-before3of6,\n.u-before4of8,\n.u-before5of10,\n.u-before6of12 {\n  margin-left: 50% !important;\n}\n\n.u-before7of12 {\n  margin-left: 58.333333333333336% !important;\n}\n\n.u-before3of5,\n.u-before6of10 {\n  margin-left: 60% !important;\n}\n\n.u-before5of8 {\n  margin-left: 62.5% !important;\n}\n\n.u-before2of3,\n.u-before4of6,\n.u-before8of12 {\n  margin-left: 66.66666666666666% !important;\n}\n\n.u-before7of10 {\n  margin-left: 70% !important;\n}\n\n.u-before3of4,\n.u-before6of8,\n.u-before9of12 {\n  margin-left: 75% !important;\n}\n\n.u-before4of5,\n.u-before8of10 {\n  margin-left: 80% !important;\n}\n\n.u-before5of6,\n.u-before10of12 {\n  margin-left: 83.33333333333334% !important;\n}\n\n.u-before7of8 {\n  margin-left: 87.5% !important;\n}\n\n.u-before9of10 {\n  margin-left: 90% !important;\n}\n\n.u-before11of12 {\n  margin-left: 91.66666666666666% !important;\n}\n\n/**\n * Offset: breakpoint 1 (small)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 2 (medium)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/**\n * Offset: breakpoint 3 (large)\n *\n * Specify the proportional offset before an element.\n * Intentional redundancy build into each set of unit classes.\n * Supports: 2, 3, 4, 5, 6, 8, 10, 12 section\n */\n\n/* comment\n-------------------------------------------------- */\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 300;\n  src: url('/assets/fonts/Open_Sans_300.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_300.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_300.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_300.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 400;\n  src: url('/assets/fonts/Open_Sans_400.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_400.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_400.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_400.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 600;\n  src: url('/assets/fonts/Open_Sans_600.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_600.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_600.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_600.svg#OpenSans') format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 700;\n  src: url('/assets/fonts/Open_Sans_700.eot?#iefix') format('embedded-opentype'),\n    url('/assets/fonts/Open_Sans_700.woff') format('woff'),\n    url('/assets/fonts/Open_Sans_700.ttf') format('truetype'),\n    url('/assets/fonts/Open_Sans_700.svg#OpenSans') format('svg');\n}\n\n\n\n.u-backface {\n  backface-visibility: visible;\n}\n\n.u-textHuge {\n  font-size: 60px;\n}\n\n.u-textUnderscore:before {\n  content: '_';\n}\n\n.u-textLarge {\n  font-size: 40px;\n}\n\n.u-textBold {\n  font-weight: bold;\n}\n\n.u-pad-top-5 {\n  padding-top: 5px;\n}\n\n.u-pad-top-10 {\n  padding-top: 10px;\n}\n\n.u-pad-top-20 {\n  padding-top: 20px;\n}\n\n.u-pad-left-20 {\n  padding-left: 20px;\n}\n\n.u-pad-bottom-10 {\n  padding-bottom: 10px;\n}\n\n.u-pad-bottom-20 {\n  padding-bottom: 20px;\n}\n\n\n\nhtml,\nbody {\n  font-family: 'Open Sans', sans-serif;\n  font-size: 22px;\n  color: rgb(0, 0, 0);\n  font-weight: 100;\n}\n\n/* title\n-------------------------------------------------- */\n\n.title {\n  font-family: 'Andale Mono';\n  font-weight: 100;\n}\n\n.title:before {\n  content: '_';\n}\n\n.title--intro {\n  font-size: 50px;\n}\n\n.title--section {\n  font-size: 40px;\n}\n\n.title--white {\n  color: rgb(255, 255, 255);\n}\n\n.title--yellow {\n  color: rgb(255, 255, 0);\n}\n\n.title--pink {\n  color: rgb(255, 31, 171);\n}\n\n/* stat\n-------------------------------------------------- */\n\n.stat-number {\n  font-size: 60px;\n  line-height: 60px;\n}\n\n.stat-sign {\n  font-size: 40px;\n  padding-top: 8px;\n}\n\n/* note\n-------------------------------------------------- */\n\n.note {\n  font-size: 18px;\n}\n\n.note--gray {\n  color: rgb(162, 169, 162);\n}\n\n/* ticker\n-------------------------------------------------- */\n\n.ticker--pink {\n  background-color: rgb(255, 31, 171);\n}\n\n.ticker--yellow {\n  background-color: rgb(255, 255, 0);\n}\n\n/* misc\n-------------------------------------------------- */\n\n.text--white {\n  color: rgb(255, 255, 255);\n}\n\n.text--gray {\n  color: rgb(162, 169, 162);\n}\n\n.text--big {\n  font-size: 28px;\n}\n\n.Grid-cell--withBorder {\n  border-left: 1px solid rgba(162, 169, 162, 0.5);\n  border-right: 1px solid rgba(162, 169, 162, 0.5);\n}", ""]);
 
 /***/ },
 /* 14 */
@@ -2545,7 +2784,7 @@
 /* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(28)();
+	exports = module.exports = __webpack_require__(35)();
 	exports.push([module.id, "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\n *\n * Owner: mark@famo.us\n * @license MPL 2.0\n * @copyright Famous Industries, Inc. 2014\n */\n\n.famous-root {\n  width: 100%;\n  height: 100%;\n  margin: 0px;\n  padding: 0px;\n  overflow: hidden;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n}\n\n.famous-container,\n.famous-group {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  bottom: 0px;\n  right: 0px;\n  overflow: visible;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n  -webkit-backface-visibility: visible;\n  backface-visibility: visible;\n  pointer-events: none;\n}\n\n.famous-group {\n  width: 0px;\n  height: 0px;\n  margin: 0px;\n  padding: 0px;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n}\n\n.famous-surface {\n  position: absolute;\n  -webkit-transform-origin: center center;\n  transform-origin: center center;\n  -webkit-backface-visibility: hidden;\n  backface-visibility: hidden;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n  -webkit-box-sizing: border-box;\n  -moz-box-sizing: border-box;\n  box-sizing: border-box;\n  -webkit-tap-highlight-color: transparent;\n  pointer-events: auto;\n}\n\n.famous-container-group {\n  position: relative;\n  width: 100%;\n  height: 100%;\n}", ""]);
 
 /***/ },
@@ -2578,9 +2817,9 @@
 	     * @static
 	     * @class Engine
 	     */
-	    var Context = __webpack_require__(31);
-	    var EventHandler = __webpack_require__(32);
-	    var OptionsManager = __webpack_require__(33);
+	    var Context = __webpack_require__(36);
+	    var EventHandler = __webpack_require__(37);
+	    var OptionsManager = __webpack_require__(38);
 	
 	    var Engine = {};
 	
@@ -3639,8 +3878,8 @@
 	    var Transform = __webpack_require__(18);
 	
 	    /* TODO: remove these dependencies when deprecation complete */
-	    var Transitionable = __webpack_require__(29);
-	    var TransitionableTransform = __webpack_require__(30);
+	    var Transitionable = __webpack_require__(39);
+	    var TransitionableTransform = __webpack_require__(40);
 	
 	    /**
 	     *
@@ -4168,101 +4407,122 @@
 	 * License, v. 2.0. If a copy of the MPL was not distributed with this
 	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	 *
-	 * Owner: felix@famo.us
+	 * Owner: mark@famo.us
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var ContainerSurface = __webpack_require__(22);
-	    var EventHandler = __webpack_require__(32);
-	    var Scrollview = __webpack_require__(34);
-	    var Utility = __webpack_require__(35);
-	    var OptionsManager = __webpack_require__(33);
-	
 	    /**
-	     * A Container surface with a scrollview automatically added. The convenience of ScrollContainer lies in
-	     * being able to clip out portions of the associated scrollview that lie outside the bounding surface,
-	     * and in being able to move the scrollview more easily by applying modifiers to the parent container
-	     * surface.
-	     * @class ScrollContainer
-	     * @constructor
-	     * @param {Options} [options] An object of configurable options.
-	     * @param {Options} [options.container=undefined] Options for the ScrollContainer instance's surface.
-	     * @param {Options} [options.scrollview={direction:Utility.Direction.X}]  Options for the ScrollContainer instance's scrollview.
-	     */
-	    function ScrollContainer(options) {
-	        this.options = Object.create(ScrollContainer.DEFAULT_OPTIONS);
-	        this._optionsManager = new OptionsManager(this.options);
-	
-	        if (options) this.setOptions(options);
-	
-	        this.container = new ContainerSurface(this.options.container);
-	        this.scrollview = new Scrollview(this.options.scrollview);
-	
-	        this.container.add(this.scrollview);
-	
-	        this._eventInput = new EventHandler();
-	        EventHandler.setInputHandler(this, this._eventInput);
-	
-	        this._eventInput.pipe(this.scrollview);
-	
-	        this._eventOutput = new EventHandler();
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	
-	        this.container.pipe(this._eventOutput);
-	        this.scrollview.pipe(this._eventOutput);
-	    }
-	
-	    ScrollContainer.DEFAULT_OPTIONS = {
-	        container: {
-	            properties: {overflow : 'hidden'}
-	        },
-	        scrollview: {}
-	    };
-	
-	    /**
-	     * Patches the ScrollContainer instance's options with the passed-in ones.
+	     * This namespace holds standalone functionality.
+	     *  Currently includes name mapping for transition curves,
+	     *  name mapping for origin pairs, and the after() function.
 	     *
-	     * @method setOptions
-	     * @param {Options} options An object of configurable options for the ScrollContainer instance.
+	     * @class Utility
+	     * @static
 	     */
-	    ScrollContainer.prototype.setOptions = function setOptions(options) {
-	        return this._optionsManager.setOptions(options);
+	    var Utility = {};
+	
+	    /**
+	     * Table of direction array positions
+	     *
+	     * @property {object} Direction
+	     * @final
+	     */
+	    Utility.Direction = {
+	        X: 0,
+	        Y: 1,
+	        Z: 2
 	    };
 	
 	    /**
-	     * Sets the collection of renderables under the ScrollContainer instance scrollview's control.
+	     * Return wrapper around callback function. Once the wrapper is called N
+	     *   times, invoke the callback function. Arguments and scope preserved.
 	     *
-	     * @method sequenceFrom
-	     * @param {Array|ViewSequence} sequence Either an array of renderables or a Famous ViewSequence.
+	     * @method after
+	     *
+	     * @param {number} count number of calls before callback function invoked
+	     * @param {Function} callback wrapped callback function
+	     *
+	     * @return {function} wrapped callback with coundown feature
 	     */
-	    ScrollContainer.prototype.sequenceFrom = function sequenceFrom() {
-	        return this.scrollview.sequenceFrom.apply(this.scrollview, arguments);
+	    Utility.after = function after(count, callback) {
+	        var counter = count;
+	        return function() {
+	            counter--;
+	            if (counter === 0) callback.apply(this, arguments);
+	        };
 	    };
 	
 	    /**
-	     * Returns the width and the height of the ScrollContainer instance.
+	     * Load a URL and return its contents in a callback
 	     *
-	     * @method getSize
-	     * @return {Array} A two value array of the ScrollContainer instance's current width and height (in that order).
+	     * @method loadURL
+	     *
+	     * @param {string} url URL of object
+	     * @param {function} callback callback to dispatch with content
 	     */
-	    ScrollContainer.prototype.getSize = function getSize() {
-	        return this.container.getSize.apply(this.container, arguments);
+	    Utility.loadURL = function loadURL(url, callback) {
+	        var xhr = new XMLHttpRequest();
+	        xhr.onreadystatechange = function onreadystatechange() {
+	            if (this.readyState === 4) {
+	                if (callback) callback(this.responseText);
+	            }
+	        };
+	        xhr.open('GET', url);
+	        xhr.send();
 	    };
 	
 	    /**
-	     * Generate a render spec from the contents of this component.
+	     * Create a document fragment from a string of HTML
 	     *
-	     * @private
-	     * @method render
-	     * @return {number} Render spec for this component
+	     * @method createDocumentFragmentFromHTML
+	     *
+	     * @param {string} html HTML to convert to DocumentFragment
+	     *
+	     * @return {DocumentFragment} DocumentFragment representing input HTML
 	     */
-	    ScrollContainer.prototype.render = function render() {
-	        return this.container.render();
+	    Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
+	        var element = document.createElement('div');
+	        element.innerHTML = html;
+	        var result = document.createDocumentFragment();
+	        while (element.hasChildNodes()) result.appendChild(element.firstChild);
+	        return result;
 	    };
 	
-	    module.exports = ScrollContainer;
+	    /*
+	     *  Deep clone an object.
+	     *  @param b {Object} Object to clone
+	     *  @return a {Object} Cloned object.
+	     */
+	    Utility.clone = function clone(b) {
+	        var a;
+	        if (typeof b === 'object') {
+	            a = (b instanceof Array) ? [] : {};
+	            for (var key in b) {
+	                if (typeof b[key] === 'object' && b[key] !== null) {
+	                    if (b[key] instanceof Array) {
+	                        a[key] = new Array(b[key].length);
+	                        for (var i = 0; i < b[key].length; i++) {
+	                            a[key][i] = Utility.clone(b[key][i]);
+	                        }
+	                    }
+	                    else {
+	                      a[key] = Utility.clone(b[key]);
+	                    }
+	                }
+	                else {
+	                    a[key] = b[key];
+	                }
+	            }
+	        }
+	        else {
+	            a = b;
+	        }
+	        return a;
+	    };
+	
+	    module.exports = Utility;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
@@ -4281,8 +4541,8 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Surface = __webpack_require__(23);
-	    var Context = __webpack_require__(31);
+	    var Surface = __webpack_require__(28);
+	    var Context = __webpack_require__(36);
 	
 	    /**
 	     * ContainerSurface is an object designed to contain surfaces and
@@ -4395,13 +4655,1169 @@
 	 * License, v. 2.0. If a copy of the MPL was not distributed with this
 	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	 *
+	 * Owner: felix@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Modifier = __webpack_require__(19);
+	    var RenderNode = __webpack_require__(41);
+	    var Transform = __webpack_require__(18);
+	    var Transitionable = __webpack_require__(39);
+	    var View = __webpack_require__(30);
+	
+	    /**
+	     * A dynamic view that can show or hide different renerables with transitions.
+	     * @class RenderController
+	     * @constructor
+	     * @param {Options} [options] An object of configurable options.
+	     * @param {Transition} [inTransition=true] The transition in charge of showing a renderable.
+	     * @param {Transition} [outTransition=true]  The transition in charge of removing your previous renderable when
+	     * you show a new one, or hiding your current renderable.
+	     * @param {Boolean} [overlap=true] When showing a new renderable, overlap determines if the
+	      out transition of the old one executes concurrently with the in transition of the new one,
+	       or synchronously beforehand.
+	     */
+	    function RenderController(options) {
+	        View.apply(this, arguments);
+	
+	        this._showing = -1;
+	        this._outgoingRenderables = [];
+	        this._nextRenderable = null;
+	
+	        this._renderables = [];
+	        this._nodes = [];
+	        this._modifiers = [];
+	        this._states = [];
+	
+	        this.inTransformMap = RenderController.DefaultMap.transform;
+	        this.inOpacityMap = RenderController.DefaultMap.opacity;
+	        this.inOriginMap = RenderController.DefaultMap.origin;
+	        this.outTransformMap = RenderController.DefaultMap.transform;
+	        this.outOpacityMap = RenderController.DefaultMap.opacity;
+	        this.outOriginMap = RenderController.DefaultMap.origin;
+	
+	        this._output = [];
+	    }
+	    RenderController.prototype = Object.create(View.prototype);
+	    RenderController.prototype.constructor = RenderController;
+	
+	    RenderController.DEFAULT_OPTIONS = {
+	        inTransition: true,
+	        outTransition: true,
+	        overlap: true
+	    };
+	
+	    RenderController.DefaultMap = {
+	        transform: function() {
+	            return Transform.identity;
+	        },
+	        opacity: function(progress) {
+	            return progress;
+	        },
+	        origin: null
+	    };
+	
+	    function _mappedState(map, state) {
+	        return map(state.get());
+	    }
+	
+	    /**
+	     * As your RenderController shows a new renderable, it executes a transition in. This transition in
+	     *  will affect a default interior state and modify it as you bring renderables in and out. However, if you want to control
+	     *  the transform, opacity, and origin state yourself, you may call certain methods (such as inTransformFrom) to obtain state from an outside source,
+	     *  that may either be a function or a Famous transitionable. inTransformFrom sets the accessor for the state of
+	     *  the transform used in transitioning in renderables.
+	     *
+	     * @method inTransformFrom
+	     * @param {Function|Transitionable} transform  A function that returns a transform from outside closure, or a
+	     * a transitionable that manages a full transform (a sixteen value array).
+	     * @chainable
+	     */
+	    RenderController.prototype.inTransformFrom = function inTransformFrom(transform) {
+	        if (transform instanceof Function) this.inTransformMap = transform;
+	        else if (transform && transform.get) this.inTransformMap = transform.get.bind(transform);
+	        else throw new Error('inTransformFrom takes only function or getter object');
+	        //TODO: tween transition
+	        return this;
+	    };
+	
+	    /**
+	     * inOpacityFrom sets the accessor for the state of the opacity used in transitioning in renderables.
+	     * @method inOpacityFrom
+	     * @param {Function|Transitionable} opacity  A function that returns an opacity from outside closure, or a
+	     * a transitionable that manages opacity (a number between zero and one).
+	     * @chainable
+	     */
+	    RenderController.prototype.inOpacityFrom = function inOpacityFrom(opacity) {
+	        if (opacity instanceof Function) this.inOpacityMap = opacity;
+	        else if (opacity && opacity.get) this.inOpacityMap = opacity.get.bind(opacity);
+	        else throw new Error('inOpacityFrom takes only function or getter object');
+	        //TODO: tween opacity
+	        return this;
+	    };
+	
+	    /**
+	     * inOriginFrom sets the accessor for the state of the origin used in transitioning in renderables.
+	     * @method inOriginFrom
+	     * @param {Function|Transitionable} origin A function that returns an origin from outside closure, or a
+	     * a transitionable that manages origin (a two value array of numbers between zero and one).
+	     * @chainable
+	     */
+	    RenderController.prototype.inOriginFrom = function inOriginFrom(origin) {
+	        if (origin instanceof Function) this.inOriginMap = origin;
+	        else if (origin && origin.get) this.inOriginMap = origin.get.bind(origin);
+	        else throw new Error('inOriginFrom takes only function or getter object');
+	        //TODO: tween origin
+	        return this;
+	    };
+	
+	    /**
+	     * outTransformFrom sets the accessor for the state of the transform used in transitioning out renderables.
+	     * @method outTransformFrom
+	     * @param {Function|Transitionable} transform  A function that returns a transform from outside closure, or a
+	     * a transitionable that manages a full transform (a sixteen value array).
+	     * @chainable
+	     */
+	    RenderController.prototype.outTransformFrom = function outTransformFrom(transform) {
+	        if (transform instanceof Function) this.outTransformMap = transform;
+	        else if (transform && transform.get) this.outTransformMap = transform.get.bind(transform);
+	        else throw new Error('outTransformFrom takes only function or getter object');
+	        //TODO: tween transition
+	        return this;
+	    };
+	
+	    /**
+	     * outOpacityFrom sets the accessor for the state of the opacity used in transitioning out renderables.
+	     * @method outOpacityFrom
+	     * @param {Function|Transitionable} opacity  A function that returns an opacity from outside closure, or a
+	     * a transitionable that manages opacity (a number between zero and one).
+	     * @chainable
+	     */
+	    RenderController.prototype.outOpacityFrom = function outOpacityFrom(opacity) {
+	        if (opacity instanceof Function) this.outOpacityMap = opacity;
+	        else if (opacity && opacity.get) this.outOpacityMap = opacity.get.bind(opacity);
+	        else throw new Error('outOpacityFrom takes only function or getter object');
+	        //TODO: tween opacity
+	        return this;
+	    };
+	
+	    /**
+	     * outOriginFrom sets the accessor for the state of the origin used in transitioning out renderables.
+	     * @method outOriginFrom
+	     * @param {Function|Transitionable} origin A function that returns an origin from outside closure, or a
+	     * a transitionable that manages origin (a two value array of numbers between zero and one).
+	     * @chainable
+	     */
+	    RenderController.prototype.outOriginFrom = function outOriginFrom(origin) {
+	        if (origin instanceof Function) this.outOriginMap = origin;
+	        else if (origin && origin.get) this.outOriginMap = origin.get.bind(origin);
+	        else throw new Error('outOriginFrom takes only function or getter object');
+	        //TODO: tween origin
+	        return this;
+	    };
+	
+	    /**
+	     * Show displays the targeted renderable with a transition and an optional callback to
+	     * execute afterwards.
+	     * @method show
+	     * @param {Object} renderable The renderable you want to show.
+	     * @param {Transition} [transition] Overwrites the default transition in to display the
+	     * passed-in renderable.
+	     * @param {function} [callback] Executes after transitioning in the renderable.
+	     * @chainable
+	     */
+	    RenderController.prototype.show = function show(renderable, transition, callback) {
+	        if (!renderable) {
+	            return this.hide(callback);
+	        }
+	
+	        if (transition instanceof Function) {
+	            callback = transition;
+	            transition = null;
+	        }
+	
+	        if (this._showing >= 0) {
+	            if (this.options.overlap) this.hide();
+	            else {
+	                if (this._nextRenderable) {
+	                    this._nextRenderable = renderable;
+	                }
+	                else {
+	                    this._nextRenderable = renderable;
+	                    this.hide(function() {
+	                        if (this._nextRenderable === renderable) this.show(this._nextRenderable, callback);
+	                        this._nextRenderable = null;
+	                    });
+	                }
+	                return undefined;
+	            }
+	        }
+	
+	        var state = null;
+	
+	        // check to see if we should restore
+	        var renderableIndex = this._renderables.indexOf(renderable);
+	        if (renderableIndex >= 0) {
+	            this._showing = renderableIndex;
+	            state = this._states[renderableIndex];
+	            state.halt();
+	
+	            var outgoingIndex = this._outgoingRenderables.indexOf(renderable);
+	            if (outgoingIndex >= 0) this._outgoingRenderables.splice(outgoingIndex, 1);
+	        }
+	        else {
+	            state = new Transitionable(0);
+	
+	            var modifier = new Modifier({
+	                transform: this.inTransformMap ? _mappedState.bind(this, this.inTransformMap, state) : null,
+	                opacity: this.inOpacityMap ? _mappedState.bind(this, this.inOpacityMap, state) : null,
+	                origin: this.inOriginMap ? _mappedState.bind(this, this.inOriginMap, state) : null
+	            });
+	            var node = new RenderNode();
+	            node.add(modifier).add(renderable);
+	
+	            this._showing = this._nodes.length;
+	            this._nodes.push(node);
+	            this._modifiers.push(modifier);
+	            this._states.push(state);
+	            this._renderables.push(renderable);
+	        }
+	
+	        if (!transition) transition = this.options.inTransition;
+	        state.set(1, transition, callback);
+	    };
+	
+	    /**
+	     * Hide hides the currently displayed renderable with an out transition.
+	     * @method hide
+	     * @param {Transition} [transition] Overwrites the default transition in to hide the
+	     * currently controlled renderable.
+	     * @param {function} [callback] Executes after transitioning out the renderable.
+	     * @chainable
+	     */
+	    RenderController.prototype.hide = function hide(transition, callback) {
+	        if (this._showing < 0) return;
+	        var index = this._showing;
+	        this._showing = -1;
+	
+	        if (transition instanceof Function) {
+	            callback = transition;
+	            transition = undefined;
+	        }
+	
+	        var node = this._nodes[index];
+	        var modifier = this._modifiers[index];
+	        var state = this._states[index];
+	        var renderable = this._renderables[index];
+	
+	        modifier.transformFrom(this.outTransformMap ? _mappedState.bind(this, this.outTransformMap, state) : null);
+	        modifier.opacityFrom(this.outOpacityMap ? _mappedState.bind(this, this.outOpacityMap, state) : null);
+	        modifier.originFrom(this.outOriginMap ? _mappedState.bind(this, this.outOriginMap, state) : null);
+	
+	        if (this._outgoingRenderables.indexOf(renderable) < 0) this._outgoingRenderables.push(renderable);
+	
+	        if (!transition) transition = this.options.outTransition;
+	        state.halt();
+	        state.set(0, transition, function(node, modifier, state, renderable) {
+	            if (this._outgoingRenderables.indexOf(renderable) >= 0) {
+	                var index = this._nodes.indexOf(node);
+	                this._nodes.splice(index, 1);
+	                this._modifiers.splice(index, 1);
+	                this._states.splice(index, 1);
+	                this._renderables.splice(index, 1);
+	                this._outgoingRenderables.splice(this._outgoingRenderables.indexOf(renderable), 1);
+	
+	                if (this._showing >= index) this._showing--;
+	            }
+	            if (callback) callback.call(this);
+	        }.bind(this, node, modifier, state, renderable));
+	    };
+	
+	    /**
+	     * Generate a render spec from the contents of this component.
+	     *
+	     * @private
+	     * @method render
+	     * @return {number} Render spec for this component
+	     */
+	    RenderController.prototype.render = function render() {
+	        var result = this._output;
+	        if (result.length > this._nodes.length) result.splice(this._nodes.length);
+	        for (var i = 0; i < this._nodes.length; i++) {
+	            result[i] = this._nodes[i].render();
+	        }
+	        return result;
+	    };
+	
+	    module.exports = RenderController;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 24 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    var EventHandler = __webpack_require__(37);
+	
+	    /**
+	     * Combines multiple types of sync classes (e.g. mouse, touch,
+	     *  scrolling) into one standardized interface for inclusion in widgets.
+	     *
+	     *  Sync classes are first registered with a key, and then can be accessed
+	     *  globally by key.
+	     *
+	     *  Emits 'start', 'update' and 'end' events as a union of the sync class
+	     *  providers.
+	     *
+	     * @class GenericSync
+	     * @constructor
+	     * @param syncs {Object|Array} object with fields {sync key : sync options}
+	     *    or an array of registered sync keys
+	     * @param [options] {Object|Array} options object to set on all syncs
+	     */
+	    function GenericSync(syncs, options) {
+	        this._eventInput = new EventHandler();
+	        this._eventOutput = new EventHandler();
+	
+	        EventHandler.setInputHandler(this, this._eventInput);
+	        EventHandler.setOutputHandler(this, this._eventOutput);
+	
+	        this._syncs = {};
+	        if (syncs) this.addSync(syncs);
+	        if (options) this.setOptions(options);
+	    }
+	
+	    GenericSync.DIRECTION_X = 0;
+	    GenericSync.DIRECTION_Y = 1;
+	    GenericSync.DIRECTION_Z = 2;
+	
+	    // Global registry of sync classes. Append only.
+	    var registry = {};
+	
+	    /**
+	     * Register a global sync class with an identifying key
+	     *
+	     * @static
+	     * @method register
+	     *
+	     * @param syncObject {Object} an object of {sync key : sync options} fields
+	     */
+	    GenericSync.register = function register(syncObject) {
+	        for (var key in syncObject){
+	            if (registry[key]){
+	                if (registry[key] === syncObject[key]) return; // redundant registration
+	                else throw new Error('this key is registered to a different sync class');
+	            }
+	            else registry[key] = syncObject[key];
+	        }
+	    };
+	
+	    /**
+	     * Helper to set options on all sync instances
+	     *
+	     * @method setOptions
+	     * @param options {Object} options object
+	     */
+	    GenericSync.prototype.setOptions = function(options) {
+	        for (var key in this._syncs){
+	            this._syncs[key].setOptions(options);
+	        }
+	    };
+	
+	    /**
+	     * Pipe events to a sync class
+	     *
+	     * @method pipeSync
+	     * @param key {String} identifier for sync class
+	     */
+	    GenericSync.prototype.pipeSync = function pipeToSync(key) {
+	        var sync = this._syncs[key];
+	        this._eventInput.pipe(sync);
+	        sync.pipe(this._eventOutput);
+	    };
+	
+	    /**
+	     * Unpipe events from a sync class
+	     *
+	     * @method unpipeSync
+	     * @param key {String} identifier for sync class
+	     */
+	    GenericSync.prototype.unpipeSync = function unpipeFromSync(key) {
+	        var sync = this._syncs[key];
+	        this._eventInput.unpipe(sync);
+	        sync.unpipe(this._eventOutput);
+	    };
+	
+	    function _addSingleSync(key, options) {
+	        if (!registry[key]) return;
+	        this._syncs[key] = new (registry[key])(options);
+	        this.pipeSync(key);
+	    }
+	
+	    /**
+	     * Add a sync class to from the registered classes
+	     *
+	     * @method addSync
+	     * @param syncs {Object|Array.String} an array of registered sync keys
+	     *    or an object with fields {sync key : sync options}
+	     */
+	    GenericSync.prototype.addSync = function addSync(syncs) {
+	        if (syncs instanceof Array)
+	            for (var i = 0; i < syncs.length; i++)
+	                _addSingleSync.call(this, syncs[i]);
+	        else if (syncs instanceof Object)
+	            for (var key in syncs)
+	                _addSingleSync.call(this, key, syncs[key]);
+	    };
+	
+	    module.exports = GenericSync;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 25 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var EventHandler = __webpack_require__(37);
+	    var OptionsManager = __webpack_require__(38);
+	
+	    /**
+	     * Handles piped in mouse drag events. Outputs an object with the position delta from last frame, position from start,
+	     * current velocity averaged out over the velocitySampleLength (set via options), clientX, clientY, offsetX, and offsetY.
+	     *
+	     * Emits 'start', 'update' and 'end' events. Designed to be used either as a standalone MouseSync, or as part of a
+	     * GenericSync.
+	     *
+	     * @class MouseSync
+	     * @constructor
+	     *
+	     * @example
+	     *   var Surface = require('../core/Surface');
+	     *   var MouseSync = require('../inputs/MouseSync');
+	     *
+	     *   var surface = new Surface({ size: [100, 100] });
+	     *   var mouseSync = new MouseSync();
+	     *   surface.pipe(mouseSync);
+	     *
+	     *   mouseSync.on('start', function (e) { // react to start });
+	     *   mouseSync.on('update', function (e) { // react to update });
+	     *   mouseSync.on('end', function (e) { // react to end });
+	     *
+	     * @param [options] {Object}                An object of the following configurable options.
+	     * @param [options.direction] {Number}      Read from a particular axis. Valid options are: undefined, 0 or 1. 0 corresponds to x, and 1 to y. Default is undefined, which allows both x and y.
+	     * @param [options.rails] {Boolean}         Read from axis with the greatest differential.
+	     * @param [options.velocitySampleLength] {Number}  Number of previous frames to check velocity against.
+	     * @param [options.propogate] {Boolean}     Add a listener to document on mouseleave. This allows drag events to continue across the entire page.
+	     */
+	    function MouseSync(options) {
+	        this.options =  Object.create(MouseSync.DEFAULT_OPTIONS);
+	        this._optionsManager = new OptionsManager(this.options);
+	
+	        if (options) this.setOptions(options);
+	
+	        this._eventInput = new EventHandler();
+	        this._eventOutput = new EventHandler();
+	
+	        EventHandler.setInputHandler(this, this._eventInput);
+	        EventHandler.setOutputHandler(this, this._eventOutput);
+	
+	        this._eventInput.on('mousedown', _handleStart.bind(this));
+	        this._eventInput.on('mousemove', _handleMove.bind(this));
+	        this._eventInput.on('mouseup', _handleEnd.bind(this));
+	
+	        if (this.options.propogate) this._eventInput.on('mouseleave', _handleLeave.bind(this));
+	        else this._eventInput.on('mouseleave', _handleEnd.bind(this));
+	
+	        this._payload = {
+	            delta    : null,
+	            position : null,
+	            velocity : null,
+	            clientX  : 0,
+	            clientY  : 0,
+	            offsetX  : 0,
+	            offsetY  : 0
+	        };
+	
+	        this._positionHistory = [];
+	        this._position = null;      // to be deprecated
+	        this._prevCoord = undefined;
+	        this._prevTime = undefined;
+	        this._down = false;
+	        this._moved = false;
+	        this._documentActive = false;
+	    }
+	
+	    MouseSync.DEFAULT_OPTIONS = {
+	        direction: undefined,
+	        rails: false,
+	        scale: 1,
+	        propogate: true,  // events piped to document on mouseleave
+	        velocitySampleLength: 10,
+	        preventDefault: true
+	    };
+	
+	    MouseSync.DIRECTION_X = 0;
+	    MouseSync.DIRECTION_Y = 1;
+	
+	    var MINIMUM_TICK_TIME = 8;
+	
+	    /**
+	     *  Triggered by mousedown.
+	     *
+	     *  @method _handleStart
+	     *  @private
+	     */
+	    function _handleStart(event) {
+	        var delta;
+	        var velocity;
+	        if (this.options.preventDefault) event.preventDefault(); // prevent drag
+	
+	        var x = event.clientX;
+	        var y = event.clientY;
+	
+	        this._prevCoord = [x, y];
+	        this._prevTime = Date.now();
+	        this._down = true;
+	        this._move = false;
+	
+	        if (this.options.direction !== undefined) {
+	            this._position = 0;
+	            delta = 0;
+	            velocity = 0;
+	        }
+	        else {
+	            this._position = [0, 0];
+	            delta = [0, 0];
+	            velocity = [0, 0];
+	        }
+	
+	        var payload = this._payload;
+	        payload.delta = delta;
+	        payload.position = this._position;
+	        payload.velocity = velocity;
+	        payload.clientX = x;
+	        payload.clientY = y;
+	        payload.offsetX = event.offsetX;
+	        payload.offsetY = event.offsetY;
+	
+	        this._positionHistory.push({
+	            position: payload.position.slice ? payload.position.slice(0) : payload.position,
+	            time: this._prevTime
+	        });
+	
+	        this._eventOutput.emit('start', payload);
+	        this._documentActive = false;
+	    }
+	
+	    /**
+	     *  Triggered by mousemove.
+	     *
+	     *  @method _handleMove
+	     *  @private
+	     */
+	    function _handleMove(event) {
+	        if (!this._prevCoord) return;
+	
+	        var prevCoord = this._prevCoord;
+	        var prevTime = this._prevTime;
+	
+	        var x = event.clientX;
+	        var y = event.clientY;
+	
+	        var currTime = Date.now();
+	
+	        var diffX = x - prevCoord[0];
+	        var diffY = y - prevCoord[1];
+	
+	        if (this.options.rails) {
+	            if (Math.abs(diffX) > Math.abs(diffY)) diffY = 0;
+	            else diffX = 0;
+	        }
+	
+	        var diffTime = Math.max(currTime - this._positionHistory[0].time, MINIMUM_TICK_TIME); // minimum tick time
+	
+	        var scale = this.options.scale;
+	        var nextVel;
+	        var nextDelta;
+	
+	        if (this.options.direction === MouseSync.DIRECTION_X) {
+	            nextDelta = scale * diffX;
+	            this._position += nextDelta;
+	            nextVel = scale * (this._position - this._positionHistory[0].position) / diffTime;
+	        }
+	        else if (this.options.direction === MouseSync.DIRECTION_Y) {
+	            nextDelta = scale * diffY;
+	            this._position += nextDelta;
+	            nextVel = scale * (this._position - this._positionHistory[0].position) / diffTime;
+	        }
+	        else {
+	            nextDelta = [scale * diffX, scale * diffY];
+	            nextVel = [
+	                scale * (this._position[0] - this._positionHistory[0].position[0]) / diffTime,
+	                scale * (this._position[1] - this._positionHistory[0].position[1]) / diffTime
+	            ];
+	            this._position[0] += nextDelta[0];
+	            this._position[1] += nextDelta[1];
+	        }
+	
+	        var payload = this._payload;
+	        payload.delta    = nextDelta;
+	        payload.position = this._position;
+	        payload.velocity = nextVel;
+	        payload.clientX  = x;
+	        payload.clientY  = y;
+	        payload.offsetX  = event.offsetX;
+	        payload.offsetY  = event.offsetY;
+	
+	        if (this._positionHistory.length === this.options.velocitySampleLength) {
+	          this._positionHistory.shift();
+	        }
+	
+	        this._positionHistory.push({
+	          position: payload.position.slice ? payload.position.slice(0) : payload.position,
+	          time: currTime
+	        });
+	
+	        this._eventOutput.emit('update', payload);
+	
+	        this._prevCoord = [x, y];
+	        this._prevTime = currTime;
+	        this._move = true;
+	    }
+	
+	    /**
+	     *  Triggered by mouseup on the element or document body if propagation is enabled, or
+	     *  mouseleave if propagation is off.
+	     *
+	     *  @method _handleEnd
+	     *  @private
+	     */
+	    function _handleEnd(event) {
+	        if (!this._down) return;
+	
+	        this._eventOutput.emit('end', this._payload);
+	        this._prevCoord = undefined;
+	        this._prevTime = undefined;
+	        this._down = false;
+	        this._move = false;
+	        this._positionHistory = [];
+	    }
+	
+	    /**
+	     *  Switches the mousemove listener to the document body, if propagation is enabled.
+	     *  @method _handleLeave
+	     *  @private
+	     */
+	    function _handleLeave(event) {
+	        if (!this._down || !this._move) return;
+	
+	        if (!this._documentActive) {
+	          var boundMove = _handleMove.bind(this);
+	          var boundEnd = function(event) {
+	              _handleEnd.call(this, event);
+	              document.removeEventListener('mousemove', boundMove);
+	              document.removeEventListener('mouseup', boundEnd);
+	          }.bind(this, event);
+	          document.addEventListener('mousemove', boundMove);
+	          document.addEventListener('mouseup', boundEnd);
+	          this._documentActive = true;
+	        }
+	    }
+	
+	    /**
+	     * Return entire options dictionary, including defaults.
+	     *
+	     * @method getOptions
+	     * @return {Object} configuration options
+	     */
+	    MouseSync.prototype.getOptions = function getOptions() {
+	        return this.options;
+	    };
+	
+	    /**
+	     * Set internal options, overriding any default options
+	     *
+	     * @method setOptions
+	     *
+	     * @param [options] {Object}             default options overrides
+	     * @param [options.direction] {Number}   read from a particular axis
+	     * @param [options.rails] {Boolean}      read from axis with greatest differential
+	     * @param [options.propogate] {Boolean}  add listened to document on mouseleave
+	     */
+	    MouseSync.prototype.setOptions = function setOptions(options) {
+	        return this._optionsManager.setOptions(options);
+	    };
+	
+	    module.exports = MouseSync;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var TouchTracker = __webpack_require__(42);
+	    var EventHandler = __webpack_require__(37);
+	    var OptionsManager = __webpack_require__(38);
+	
+	    /**
+	     * Handles piped in touch events. Emits 'start', 'update', and 'events'
+	     *   events with delta, position, velocity, acceleration, clientX, clientY, count, and touch id.
+	     *   Useful for dealing with inputs on touch devices. Designed to be used either as standalone, or
+	     *   included in a GenericSync.
+	     *
+	     * @class TouchSync
+	     * @constructor
+	     *
+	     * @example
+	     *   var Surface = require('../core/Surface');
+	     *   var TouchSync = require('../inputs/TouchSync');
+	     *
+	     *   var surface = new Surface({ size: [100, 100] });
+	     *   var touchSync = new TouchSync();
+	     *   surface.pipe(touchSync);
+	     *
+	     *   touchSync.on('start', function (e) { // react to start });
+	     *   touchSync.on('update', function (e) { // react to update });
+	     *   touchSync.on('end', function (e) { // react to end });*
+	     *
+	     * @param [options] {Object}             default options overrides
+	     * @param [options.direction] {Number}   read from a particular axis
+	     * @param [options.rails] {Boolean}      read from axis with greatest differential
+	     * @param [options.velocitySampleLength] {Number}  Number of previous frames to check velocity against.
+	     * @param [options.scale] {Number}       constant factor to scale velocity output
+	     * @param [options.touchLimit] {Number}  touchLimit upper bound for emitting events based on number of touches
+	     */
+	    function TouchSync(options) {
+	        this.options =  Object.create(TouchSync.DEFAULT_OPTIONS);
+	        this._optionsManager = new OptionsManager(this.options);
+	        if (options) this.setOptions(options);
+	
+	        this._eventOutput = new EventHandler();
+	        this._touchTracker = new TouchTracker({
+	            touchLimit: this.options.touchLimit
+	        });
+	
+	        EventHandler.setOutputHandler(this, this._eventOutput);
+	        EventHandler.setInputHandler(this, this._touchTracker);
+	
+	        this._touchTracker.on('trackstart', _handleStart.bind(this));
+	        this._touchTracker.on('trackmove', _handleMove.bind(this));
+	        this._touchTracker.on('trackend', _handleEnd.bind(this));
+	
+	        this._payload = {
+	            delta    : null,
+	            position : null,
+	            velocity : null,
+	            clientX  : undefined,
+	            clientY  : undefined,
+	            count    : 0,
+	            touch    : undefined
+	        };
+	
+	        this._position = null; // to be deprecated
+	    }
+	
+	    TouchSync.DEFAULT_OPTIONS = {
+	        direction: undefined,
+	        rails: false,
+	        touchLimit: 1,
+	        velocitySampleLength: 10,
+	        scale: 1
+	    };
+	
+	    TouchSync.DIRECTION_X = 0;
+	    TouchSync.DIRECTION_Y = 1;
+	
+	    var MINIMUM_TICK_TIME = 8;
+	
+	    /**
+	     *  Triggered by trackstart.
+	     *  @method _handleStart
+	     *  @private
+	     */
+	    function _handleStart(data) {
+	        var velocity;
+	        var delta;
+	        if (this.options.direction !== undefined){
+	            this._position = 0;
+	            velocity = 0;
+	            delta = 0;
+	        }
+	        else {
+	            this._position = [0, 0];
+	            velocity = [0, 0];
+	            delta = [0, 0];
+	        }
+	
+	        var payload = this._payload;
+	        payload.delta = delta;
+	        payload.position = this._position;
+	        payload.velocity = velocity;
+	        payload.clientX = data.x;
+	        payload.clientY = data.y;
+	        payload.count = data.count;
+	        payload.touch = data.identifier;
+	
+	        this._eventOutput.emit('start', payload);
+	    }
+	
+	    /**
+	     *  Triggered by trackmove.
+	     *  @method _handleMove
+	     *  @private
+	     */
+	    function _handleMove(data) {
+	        var history = data.history;
+	
+	        var currHistory = history[history.length - 1];
+	        var prevHistory = history[history.length - 2];
+	
+	        var distantHistory = history[history.length - this.options.velocitySampleLength] ?
+	          history[history.length - this.options.velocitySampleLength] :
+	          history[history.length - 2];
+	
+	        var distantTime = distantHistory.timestamp;
+	        var currTime = currHistory.timestamp;
+	
+	        var diffX = currHistory.x - prevHistory.x;
+	        var diffY = currHistory.y - prevHistory.y;
+	
+	        var velDiffX = currHistory.x - distantHistory.x;
+	        var velDiffY = currHistory.y - distantHistory.y;
+	
+	        if (this.options.rails) {
+	            if (Math.abs(diffX) > Math.abs(diffY)) diffY = 0;
+	            else diffX = 0;
+	
+	            if (Math.abs(velDiffX) > Math.abs(velDiffY)) velDiffY = 0;
+	            else velDiffX = 0;
+	        }
+	
+	        var diffTime = Math.max(currTime - distantTime, MINIMUM_TICK_TIME);
+	
+	        var velX = velDiffX / diffTime;
+	        var velY = velDiffY / diffTime;
+	
+	        var scale = this.options.scale;
+	        var nextVel;
+	        var nextDelta;
+	
+	        if (this.options.direction === TouchSync.DIRECTION_X) {
+	            nextDelta = scale * diffX;
+	            nextVel = scale * velX;
+	            this._position += nextDelta;
+	        }
+	        else if (this.options.direction === TouchSync.DIRECTION_Y) {
+	            nextDelta = scale * diffY;
+	            nextVel = scale * velY;
+	            this._position += nextDelta;
+	        }
+	        else {
+	            nextDelta = [scale * diffX, scale * diffY];
+	            nextVel = [scale * velX, scale * velY];
+	            this._position[0] += nextDelta[0];
+	            this._position[1] += nextDelta[1];
+	        }
+	
+	        var payload = this._payload;
+	        payload.delta    = nextDelta;
+	        payload.velocity = nextVel;
+	        payload.position = this._position;
+	        payload.clientX  = data.x;
+	        payload.clientY  = data.y;
+	        payload.count    = data.count;
+	        payload.touch    = data.identifier;
+	
+	        this._eventOutput.emit('update', payload);
+	    }
+	
+	    /**
+	     *  Triggered by trackend.
+	     *  @method _handleEnd
+	     *  @private
+	     */
+	    function _handleEnd(data) {
+	        this._payload.count = data.count;
+	        this._eventOutput.emit('end', this._payload);
+	    }
+	
+	    /**
+	     * Set internal options, overriding any default options
+	     *
+	     * @method setOptions
+	     *
+	     * @param [options] {Object}             default options overrides
+	     * @param [options.direction] {Number}   read from a particular axis
+	     * @param [options.rails] {Boolean}      read from axis with greatest differential
+	     * @param [options.scale] {Number}       constant factor to scale velocity output
+	     */
+	    TouchSync.prototype.setOptions = function setOptions(options) {
+	        return this._optionsManager.setOptions(options);
+	    };
+	
+	    /**
+	     * Return entire options dictionary, including defaults.
+	     *
+	     * @method getOptions
+	     * @return {Object} configuration options
+	     */
+	    TouchSync.prototype.getOptions = function getOptions() {
+	        return this.options;
+	    };
+	
+	    module.exports = TouchSync;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var EventHandler = __webpack_require__(37);
+	    var Engine = __webpack_require__(17);
+	    var OptionsManager = __webpack_require__(38);
+	
+	    /**
+	     * Handles piped in mousewheel events.
+	     *   Emits 'start', 'update', and 'end' events with payloads including:
+	     *   delta: change since last position,
+	     *   position: accumulated deltas,
+	     *   velocity: speed of change in pixels per ms,
+	     *   slip: true (unused).
+	     *
+	     *   Can be used as delegate of GenericSync.
+	     *
+	     * @class ScrollSync
+	     * @constructor
+	     * @param {Object} [options] overrides of default options
+	     * @param {Number} [options.direction] Pay attention to x changes (ScrollSync.DIRECTION_X),
+	     *   y changes (ScrollSync.DIRECTION_Y) or both (undefined)
+	     * @param {Number} [options.minimumEndSpeed] End speed calculation floors at this number, in pixels per ms
+	     * @param {boolean} [options.rails] whether to snap position calculations to nearest axis
+	     * @param {Number | Array.Number} [options.scale] scale outputs in by scalar or pair of scalars
+	     * @param {Number} [options.stallTime] reset time for velocity calculation in ms
+	     */
+	    function ScrollSync(options) {
+	        this.options = Object.create(ScrollSync.DEFAULT_OPTIONS);
+	        this._optionsManager = new OptionsManager(this.options);
+	        if (options) this.setOptions(options);
+	
+	        this._payload = {
+	            delta    : null,
+	            position : null,
+	            velocity : null,
+	            slip     : true
+	        };
+	
+	        this._eventInput = new EventHandler();
+	        this._eventOutput = new EventHandler();
+	
+	        EventHandler.setInputHandler(this, this._eventInput);
+	        EventHandler.setOutputHandler(this, this._eventOutput);
+	
+	        this._position = (this.options.direction === undefined) ? [0,0] : 0;
+	        this._prevTime = undefined;
+	        this._prevVel = undefined;
+	        this._eventInput.on('mousewheel', _handleMove.bind(this));
+	        this._eventInput.on('wheel', _handleMove.bind(this));
+	        this._inProgress = false;
+	        this._loopBound = false;
+	    }
+	
+	    ScrollSync.DEFAULT_OPTIONS = {
+	        direction: undefined,
+	        minimumEndSpeed: Infinity,
+	        rails: false,
+	        scale: 1,
+	        stallTime: 50,
+	        lineHeight: 40,
+	        preventDefault: true
+	    };
+	
+	    ScrollSync.DIRECTION_X = 0;
+	    ScrollSync.DIRECTION_Y = 1;
+	
+	    var MINIMUM_TICK_TIME = 8;
+	
+	    var _now = Date.now;
+	
+	    function _newFrame() {
+	        if (this._inProgress && (_now() - this._prevTime) > this.options.stallTime) {
+	            this._inProgress = false;
+	
+	            var finalVel = (Math.abs(this._prevVel) >= this.options.minimumEndSpeed)
+	                ? this._prevVel
+	                : 0;
+	
+	            var payload = this._payload;
+	            payload.position = this._position;
+	            payload.velocity = finalVel;
+	            payload.slip = true;
+	
+	            this._eventOutput.emit('end', payload);
+	        }
+	    }
+	
+	    function _handleMove(event) {
+	        if (this.options.preventDefault) event.preventDefault();
+	
+	        if (!this._inProgress) {
+	            this._inProgress = true;
+	            this._position = (this.options.direction === undefined) ? [0,0] : 0;
+	            payload = this._payload;
+	            payload.slip = true;
+	            payload.position = this._position;
+	            payload.clientX = event.clientX;
+	            payload.clientY = event.clientY;
+	            payload.offsetX = event.offsetX;
+	            payload.offsetY = event.offsetY;
+	            this._eventOutput.emit('start', payload);
+	            if (!this._loopBound) {
+	                Engine.on('prerender', _newFrame.bind(this));
+	                this._loopBound = true;
+	            }
+	        }
+	
+	        var currTime = _now();
+	        var prevTime = this._prevTime || currTime;
+	
+	        var diffX = (event.wheelDeltaX !== undefined) ? event.wheelDeltaX : -event.deltaX;
+	        var diffY = (event.wheelDeltaY !== undefined) ? event.wheelDeltaY : -event.deltaY;
+	
+	        if (event.deltaMode === 1) { // units in lines, not pixels
+	            diffX *= this.options.lineHeight;
+	            diffY *= this.options.lineHeight;
+	        }
+	
+	        if (this.options.rails) {
+	            if (Math.abs(diffX) > Math.abs(diffY)) diffY = 0;
+	            else diffX = 0;
+	        }
+	
+	        var diffTime = Math.max(currTime - prevTime, MINIMUM_TICK_TIME); // minimum tick time
+	
+	        var velX = diffX / diffTime;
+	        var velY = diffY / diffTime;
+	
+	        var scale = this.options.scale;
+	        var nextVel;
+	        var nextDelta;
+	
+	        if (this.options.direction === ScrollSync.DIRECTION_X) {
+	            nextDelta = scale * diffX;
+	            nextVel = scale * velX;
+	            this._position += nextDelta;
+	        }
+	        else if (this.options.direction === ScrollSync.DIRECTION_Y) {
+	            nextDelta = scale * diffY;
+	            nextVel = scale * velY;
+	            this._position += nextDelta;
+	        }
+	        else {
+	            nextDelta = [scale * diffX, scale * diffY];
+	            nextVel = [scale * velX, scale * velY];
+	            this._position[0] += nextDelta[0];
+	            this._position[1] += nextDelta[1];
+	        }
+	
+	        var payload = this._payload;
+	        payload.delta    = nextDelta;
+	        payload.velocity = nextVel;
+	        payload.position = this._position;
+	        payload.slip     = true;
+	
+	        this._eventOutput.emit('update', payload);
+	
+	        this._prevTime = currTime;
+	        this._prevVel = nextVel;
+	    }
+	
+	    /**
+	     * Return entire options dictionary, including defaults.
+	     *
+	     * @method getOptions
+	     * @return {Object} configuration options
+	     */
+	    ScrollSync.prototype.getOptions = function getOptions() {
+	        return this.options;
+	    };
+	
+	    /**
+	     * Set internal options, overriding any default options
+	     *
+	     * @method setOptions
+	     *
+	     * @param {Object} [options] overrides of default options
+	     * @param {Number} [options.minimimEndSpeed] If final velocity smaller than this, round down to 0.
+	     * @param {Number} [options.stallTime] ms of non-motion before 'end' emitted
+	     * @param {Number} [options.rails] whether to constrain to nearest axis.
+	     * @param {Number} [options.direction] ScrollSync.DIRECTION_X, DIRECTION_Y -
+	     *    pay attention to one specific direction.
+	     * @param {Number} [options.scale] constant factor to scale velocity output
+	     */
+	    ScrollSync.prototype.setOptions = function setOptions(options) {
+	        return this._optionsManager.setOptions(options);
+	    };
+	
+	    module.exports = ScrollSync;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
 	 * Owner: mark@famo.us
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var ElementOutput = __webpack_require__(36);
+	    var ElementOutput = __webpack_require__(43);
 	
 	    /**
 	     * A base class for viewable content and event
@@ -4885,7 +6301,7 @@
 
 
 /***/ },
-/* 24 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;
@@ -4899,7 +6315,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Surface = __webpack_require__(23);
+	    var Surface = __webpack_require__(28);
 	
 	    /**
 	     * A surface containing image content.
@@ -5013,7 +6429,7 @@
 
 
 /***/ },
-/* 25 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -5026,10 +6442,10 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(32);
-	    var OptionsManager = __webpack_require__(33);
-	    var RenderNode = __webpack_require__(37);
-	    var Utility = __webpack_require__(35);
+	    var EventHandler = __webpack_require__(37);
+	    var OptionsManager = __webpack_require__(38);
+	    var RenderNode = __webpack_require__(41);
+	    var Utility = __webpack_require__(21);
 	
 	    /**
 	     * Useful for quickly creating elements within applications
@@ -5129,7 +6545,7 @@
 
 
 /***/ },
-/* 26 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -5144,8 +6560,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	    var Modifier = __webpack_require__(19);
 	    var Transform = __webpack_require__(18);
-	    var Transitionable = __webpack_require__(29);
-	    var TransitionableTransform = __webpack_require__(30);
+	    var Transitionable = __webpack_require__(39);
+	    var TransitionableTransform = __webpack_require__(40);
 	
 	    /**
 	     *  A collection of visual changes to be
@@ -5453,7 +6869,7 @@
 
 
 /***/ },
-/* 27 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -5751,7 +7167,324 @@
 
 
 /***/ },
-/* 28 */
+/* 33 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var SequentialLayout = __webpack_require__(44);
+	var Transitionable = __webpack_require__(39);
+	var OptionsManager = __webpack_require__(38);
+	var Transform = __webpack_require__(18);
+	var Utility = __webpack_require__(21);
+	
+	/*!
+	 * private
+	 */
+	
+	function _getState(returnFinal) {
+	  if (returnFinal) return this._isOpen ? 1 : 0;
+	  else return this.state.get();
+	}
+	
+	function _setState(pos, transition, callback) {
+	  this.state.halt();
+	  this.state.set(pos, transition, callback);
+	}
+	
+	/**
+	 * List Constructor
+	 */
+	
+	function List() {
+	  SequentialLayout.apply(this, arguments);
+	  this.state = new Transitionable(0);
+	  this._isOpen = false;
+	
+	  this.setOutputFunction(function(input, offset) {
+	    var state = _getState.call(this),
+	        transform = this.options.direction === Utility.Direction.Y
+	          ? Transform.translate(0, state * offset)
+	          : Transform.translate(state * offset, 0);
+	
+	    return {
+	        opacity: state < 0.5 ? 0: state,
+	        transform: transform,
+	        size: input.getSize(),
+	        target: input.render()
+	    };
+	  });
+	}
+	
+	/*!
+	 * extend SequentialLayout
+	 */
+	
+	List.prototype = Object.create(SequentialLayout.prototype);
+	List.prototype.constructor = List;
+	
+	/*!
+	 * defaults
+	 */
+	
+	List.DEFAULT_OPTIONS = OptionsManager.patch(SequentialLayout.DEFAULT_OPTIONS, {
+	  direction: Utility.Direction.Y,
+	  transition: {
+	    curve: 'easeInOut',
+	    duration: 500
+	  }
+	});
+	
+	
+	/**
+	 * open list
+	 */
+	
+	List.prototype.open = function(callback) {
+	    this._isOpen = true;
+	   _setState.call(this, 1, this.options.transition, callback);
+	};
+	
+	/**
+	 * for list
+	 */
+	
+	List.prototype.forEach = function(callback) {
+	  this._items._.array.forEach(callback);
+	};
+	
+	/**
+	 * close list
+	 */
+	
+	List.prototype.close = function(callback) {
+	    this._isOpen = false;
+	   _setState.call(this, 0, this.options.transition, callback);
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = List;
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var Surface = __webpack_require__(28),
+	    Easing = __webpack_require__(32),
+	    ContainerSurface = __webpack_require__(22),
+	    Modifier = __webpack_require__(19),
+	    StateModifier = __webpack_require__(31),
+	    Transitionable = __webpack_require__(39),
+	    Transform = __webpack_require__(18),
+	    View = __webpack_require__(30);
+	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
+	
+	/**
+	 * create view layout
+	 */
+	
+	function _createLayout(){
+	
+	  /*!
+	   * container
+	   */
+	
+	  this.container = {};
+	  this.container.surface = new ContainerSurface(this.options.container);
+	  this.container.modifier = new StateModifier();
+	
+	  /*!
+	   * number
+	   */
+	
+	  this.number = {};
+	  this.number.surface = new Surface({
+	    content: this.options.number.content,
+	    size: [true, true],
+	    classes: ['stat-number'],
+	  });
+	
+	  this.number.countModifier = new Modifier();
+	  this.number.modifier = new StateModifier({
+	    transform: this.options.number.transform
+	  });
+	
+	  /*!
+	   * sign
+	   */
+	
+	  if (this.options.sign) {
+	    this.sign = {};
+	    this.sign.surface = new Surface({
+	      content: this.options.sign.content,
+	      size: [true, true],
+	      classes: ['stat-sign']
+	    });
+	    this.sign.modifier = new StateModifier({
+	      transform: this.options.sign.transform
+	    });
+	  }
+	
+	  /*!
+	   * ticker
+	   */
+	
+	  if (this.options.ticker) {
+	    this.ticker = {};
+	    this.ticker.surface = new Surface({
+	      size: this.options.ticker.size,
+	      classes: ['ticker', 'ticker--yellow'],
+	      properties: {
+	        zIndex: -1
+	      }
+	    });
+	
+	    this.ticker.tickerModifier = new StateModifier({
+	      transform: Transform.skew(0, -39 * toRadian, 0)
+	    });
+	
+	    this.ticker.modifier = new StateModifier({
+	      transform: this.options.ticker.transform
+	    });
+	  }
+	
+	  /*!
+	   * label
+	   */
+	
+	  this.label = {};
+	  this.label.surface = new Surface({
+	    size: this.options.label.size,
+	    content: this.options.label.content,
+	    classes: ['stat-label']
+	  });
+	
+	  this.label.modifier = new StateModifier({
+	    transform: this.options.label.transform
+	  });
+	
+	  this
+	    .add(this.container.modifier)
+	    .add(this.container.surface);
+	
+	  this.container.surface
+	    .add(this.number.countModifier)
+	    .add(this.number.modifier)
+	    .add(this.number.surface);
+	
+	  if (this.sign) {
+	    this.container.surface
+	      .add(this.sign.modifier)
+	      .add(this.sign.surface);
+	  }
+	
+	  if (this.ticker) {
+	    this.container.surface
+	      .add(this.ticker.modifier)
+	      .add(this.ticker.tickerModifier)
+	      .add(this.ticker.surface);
+	  }
+	
+	  this.container.surface
+	    .add(this.label.modifier)
+	    .add(this.label.surface);
+	}
+	
+	/**
+	 * Stat Constructor
+	 */
+	
+	function Stat() {
+	  View.apply(this, arguments);
+	  _createLayout.call(this);
+	  // this.bump();
+	  // this.count();
+	}
+	
+	/*!
+	 * extend View
+	 */
+	
+	Stat.prototype = Object.create(View.prototype);
+	Stat.prototype.constructor = Stat;
+	
+	/**
+	 * animate number
+	 */
+	
+	Stat.prototype.bump = function() {
+	  this.number.modifier
+	    .setTransform(Transform.scale(1.1), this.options.bumpTransition)
+	    .setTransform(Transform.scale(1), this.options.countTransition
+	  );
+	};
+	
+	/**
+	 * animate number
+	 */
+	
+	Stat.prototype.count = function() {
+	  var transitionable = new Transitionable(0);
+	  transitionable.set(+this.options.number.content, this.options.countTransition);
+	
+	  this.number.countModifier.transformFrom(function() {
+	    this.number.surface.setContent(Math.floor(transitionable.get()));
+	  }.bind(this));
+	};
+	
+	Stat.prototype.getSize = function getSize() {
+	  return this.label.surface.getSize();
+	};
+	
+	
+	/**
+	 * animate ticker
+	 */
+	
+	Stat.prototype.tick = function() {
+	  // this.number.modifier
+	  //   .setTransform(Transform.scale(1.1), this.options.bumpTransition)
+	  //   .setTransform(Transform.scale(1), this.options.countTransition
+	  // );
+	};
+	
+	/*!
+	 * defaults
+	 */
+	
+	Stat.DEFAULT_OPTIONS = {
+	  countTransition: {
+	    curve: 'easeInOut',
+	    duration: 1000
+	  },
+	  bumpTransition: {
+	    curve: 'easeOutBounce',
+	    duration: 300
+	  }
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = Stat;
+
+/***/ },
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function() {
@@ -5772,471 +7505,7 @@
 	}
 
 /***/ },
-/* 29 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var MultipleTransition = __webpack_require__(38);
-	    var TweenTransition = __webpack_require__(39);
-	
-	    /**
-	     * A state maintainer for a smooth transition between
-	     *    numerically-specified states. Example numeric states include floats or
-	     *    Transform objects.
-	     *
-	     * An initial state is set with the constructor or set(startState). A
-	     *    corresponding end state and transition are set with set(endState,
-	     *    transition). Subsequent calls to set(endState, transition) begin at
-	     *    the last state. Calls to get(timestamp) provide the interpolated state
-	     *    along the way.
-	     *
-	     * Note that there is no event loop here - calls to get() are the only way
-	     *    to find state projected to the current (or provided) time and are
-	     *    the only way to trigger callbacks. Usually this kind of object would
-	     *    be part of the render() path of a visible component.
-	     *
-	     * @class Transitionable
-	     * @constructor
-	     * @param {number|Array.Number|Object.<number|string, number>} start
-	     *    beginning state
-	     */
-	    function Transitionable(start) {
-	        this.currentAction = null;
-	        this.actionQueue = [];
-	        this.callbackQueue = [];
-	
-	        this.state = 0;
-	        this.velocity = undefined;
-	        this._callback = undefined;
-	        this._engineInstance = null;
-	        this._currentMethod = null;
-	
-	        this.set(start);
-	    }
-	
-	    var transitionMethods = {};
-	
-	    Transitionable.register = function register(methods) {
-	        var success = true;
-	        for (var method in methods) {
-	            if (!Transitionable.registerMethod(method, methods[method]))
-	                success = false;
-	        }
-	        return success;
-	    };
-	
-	    Transitionable.registerMethod = function registerMethod(name, engineClass) {
-	        if (!(name in transitionMethods)) {
-	            transitionMethods[name] = engineClass;
-	            return true;
-	        }
-	        else return false;
-	    };
-	
-	    Transitionable.unregisterMethod = function unregisterMethod(name) {
-	        if (name in transitionMethods) {
-	            delete transitionMethods[name];
-	            return true;
-	        }
-	        else return false;
-	    };
-	
-	    function _loadNext() {
-	        if (this._callback) {
-	            var callback = this._callback;
-	            this._callback = undefined;
-	            callback();
-	        }
-	        if (this.actionQueue.length <= 0) {
-	            this.set(this.get()); // no update required
-	            return;
-	        }
-	        this.currentAction = this.actionQueue.shift();
-	        this._callback = this.callbackQueue.shift();
-	
-	        var method = null;
-	        var endValue = this.currentAction[0];
-	        var transition = this.currentAction[1];
-	        if (transition instanceof Object && transition.method) {
-	            method = transition.method;
-	            if (typeof method === 'string') method = transitionMethods[method];
-	        }
-	        else {
-	            method = TweenTransition;
-	        }
-	
-	        if (this._currentMethod !== method) {
-	            if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
-	                this._engineInstance = new method();
-	            }
-	            else {
-	                this._engineInstance = new MultipleTransition(method);
-	            }
-	            this._currentMethod = method;
-	        }
-	
-	        this._engineInstance.reset(this.state, this.velocity);
-	        if (this.velocity !== undefined) transition.velocity = this.velocity;
-	        this._engineInstance.set(endValue, transition, _loadNext.bind(this));
-	    }
-	
-	    /**
-	     * Add transition to end state to the queue of pending transitions. Special
-	     *    Use: calling without a transition resets the object to that state with
-	     *    no pending actions
-	     *
-	     * @method set
-	     *
-	     * @param {number|FamousMatrix|Array.Number|Object.<number, number>} endState
-	     *    end state to which we interpolate
-	     * @param {transition=} transition object of type {duration: number, curve:
-	     *    f[0,1] -> [0,1] or name}. If transition is omitted, change will be
-	     *    instantaneous.
-	     * @param {function()=} callback Zero-argument function to call on observed
-	     *    completion (t=1)
-	     */
-	    Transitionable.prototype.set = function set(endState, transition, callback) {
-	        if (!transition) {
-	            this.reset(endState);
-	            if (callback) callback();
-	            return this;
-	        }
-	
-	        var action = [endState, transition];
-	        this.actionQueue.push(action);
-	        this.callbackQueue.push(callback);
-	        if (!this.currentAction) _loadNext.call(this);
-	        return this;
-	    };
-	
-	    /**
-	     * Cancel all transitions and reset to a stable state
-	     *
-	     * @method reset
-	     *
-	     * @param {number|Array.Number|Object.<number, number>} startState
-	     *    stable state to set to
-	     */
-	    Transitionable.prototype.reset = function reset(startState, startVelocity) {
-	        this._currentMethod = null;
-	        this._engineInstance = null;
-	        this._callback = undefined;
-	        this.state = startState;
-	        this.velocity = startVelocity;
-	        this.currentAction = null;
-	        this.actionQueue = [];
-	        this.callbackQueue = [];
-	    };
-	
-	    /**
-	     * Add delay action to the pending action queue queue.
-	     *
-	     * @method delay
-	     *
-	     * @param {number} duration delay time (ms)
-	     * @param {function} callback Zero-argument function to call on observed
-	     *    completion (t=1)
-	     */
-	    Transitionable.prototype.delay = function delay(duration, callback) {
-	        this.set(this.get(), {duration: duration,
-	            curve: function() {
-	                return 0;
-	            }},
-	            callback
-	        );
-	    };
-	
-	    /**
-	     * Get interpolated state of current action at provided time. If the last
-	     *    action has completed, invoke its callback.
-	     *
-	     * @method get
-	     *
-	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
-	     *    time. If omitted, use current time. (Unix epoch time)
-	     * @return {number|Object.<number|string, number>} beginning state
-	     *    interpolated to this point in time.
-	     */
-	    Transitionable.prototype.get = function get(timestamp) {
-	        if (this._engineInstance) {
-	            if (this._engineInstance.getVelocity)
-	                this.velocity = this._engineInstance.getVelocity();
-	            this.state = this._engineInstance.get(timestamp);
-	        }
-	        return this.state;
-	    };
-	
-	    /**
-	     * Is there at least one action pending completion?
-	     *
-	     * @method isActive
-	     *
-	     * @return {boolean}
-	     */
-	    Transitionable.prototype.isActive = function isActive() {
-	        return !!this.currentAction;
-	    };
-	
-	    /**
-	     * Halt transition at current state and erase all pending actions.
-	     *
-	     * @method halt
-	     */
-	    Transitionable.prototype.halt = function halt() {
-	        return this.set(this.get());
-	    };
-	
-	    module.exports = Transitionable;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 30 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Transitionable = __webpack_require__(29);
-	    var Transform = __webpack_require__(18);
-	    var Utility = __webpack_require__(35);
-	
-	    /**
-	     * A class for transitioning the state of a Transform by transitioning
-	     * its translate, scale, skew and rotate components independently.
-	     *
-	     * @class TransitionableTransform
-	     * @constructor
-	     *
-	     * @param [transform=Transform.identity] {Transform} The initial transform state
-	     */
-	    function TransitionableTransform(transform) {
-	        this._final = Transform.identity.slice();
-	
-	        this._finalTranslate = [0, 0, 0];
-	        this._finalRotate = [0, 0, 0];
-	        this._finalSkew = [0, 0, 0];
-	        this._finalScale = [1, 1, 1];
-	
-	        this.translate = new Transitionable(this._finalTranslate);
-	        this.rotate = new Transitionable(this._finalRotate);
-	        this.skew = new Transitionable(this._finalSkew);
-	        this.scale = new Transitionable(this._finalScale);
-	
-	        if (transform) this.set(transform);
-	    }
-	
-	    function _build() {
-	        return Transform.build({
-	            translate: this.translate.get(),
-	            rotate: this.rotate.get(),
-	            skew: this.skew.get(),
-	            scale: this.scale.get()
-	        });
-	    }
-	
-	    function _buildFinal() {
-	        return Transform.build({
-	            translate: this._finalTranslate,
-	            rotate: this._finalRotate,
-	            skew: this._finalSkew,
-	            scale: this._finalScale
-	        });
-	    }
-	
-	    /**
-	     * An optimized way of setting only the translation component of a Transform
-	     *
-	     * @method setTranslate
-	     * @chainable
-	     *
-	     * @param translate {Array}     New translation state
-	     * @param [transition] {Object} Transition definition
-	     * @param [callback] {Function} Callback
-	     * @return {TransitionableTransform}
-	     */
-	    TransitionableTransform.prototype.setTranslate = function setTranslate(translate, transition, callback) {
-	        this._finalTranslate = translate;
-	        this._final = _buildFinal.call(this);
-	        this.translate.set(translate, transition, callback);
-	        return this;
-	    };
-	
-	    /**
-	     * An optimized way of setting only the scale component of a Transform
-	     *
-	     * @method setScale
-	     * @chainable
-	     *
-	     * @param scale {Array}         New scale state
-	     * @param [transition] {Object} Transition definition
-	     * @param [callback] {Function} Callback
-	     * @return {TransitionableTransform}
-	     */
-	    TransitionableTransform.prototype.setScale = function setScale(scale, transition, callback) {
-	        this._finalScale = scale;
-	        this._final = _buildFinal.call(this);
-	        this.scale.set(scale, transition, callback);
-	        return this;
-	    };
-	
-	    /**
-	     * An optimized way of setting only the rotational component of a Transform
-	     *
-	     * @method setRotate
-	     * @chainable
-	     *
-	     * @param eulerAngles {Array}   Euler angles for new rotation state
-	     * @param [transition] {Object} Transition definition
-	     * @param [callback] {Function} Callback
-	     * @return {TransitionableTransform}
-	     */
-	    TransitionableTransform.prototype.setRotate = function setRotate(eulerAngles, transition, callback) {
-	        this._finalRotate = eulerAngles;
-	        this._final = _buildFinal.call(this);
-	        this.rotate.set(eulerAngles, transition, callback);
-	        return this;
-	    };
-	
-	    /**
-	     * An optimized way of setting only the skew component of a Transform
-	     *
-	     * @method setSkew
-	     * @chainable
-	     *
-	     * @param skewAngles {Array}    New skew state
-	     * @param [transition] {Object} Transition definition
-	     * @param [callback] {Function} Callback
-	     * @return {TransitionableTransform}
-	     */
-	    TransitionableTransform.prototype.setSkew = function setSkew(skewAngles, transition, callback) {
-	        this._finalSkew = skewAngles;
-	        this._final = _buildFinal.call(this);
-	        this.skew.set(skewAngles, transition, callback);
-	        return this;
-	    };
-	
-	    /**
-	     * Setter for a TransitionableTransform with optional parameters to transition
-	     * between Transforms
-	     *
-	     * @method set
-	     * @chainable
-	     *
-	     * @param transform {Array}     New transform state
-	     * @param [transition] {Object} Transition definition
-	     * @param [callback] {Function} Callback
-	     * @return {TransitionableTransform}
-	     */
-	    TransitionableTransform.prototype.set = function set(transform, transition, callback) {
-	        var components = Transform.interpret(transform);
-	
-	        this._finalTranslate = components.translate;
-	        this._finalRotate = components.rotate;
-	        this._finalSkew = components.skew;
-	        this._finalScale = components.scale;
-	        this._final = transform;
-	
-	        var _callback = callback ? Utility.after(4, callback) : null;
-	        this.translate.set(components.translate, transition, _callback);
-	        this.rotate.set(components.rotate, transition, _callback);
-	        this.skew.set(components.skew, transition, _callback);
-	        this.scale.set(components.scale, transition, _callback);
-	        return this;
-	    };
-	
-	    /**
-	     * Sets the default transition to use for transitioning betwen Transform states
-	     *
-	     * @method setDefaultTransition
-	     *
-	     * @param transition {Object} Transition definition
-	     */
-	    TransitionableTransform.prototype.setDefaultTransition = function setDefaultTransition(transition) {
-	        this.translate.setDefault(transition);
-	        this.rotate.setDefault(transition);
-	        this.skew.setDefault(transition);
-	        this.scale.setDefault(transition);
-	    };
-	
-	    /**
-	     * Getter. Returns the current state of the Transform
-	     *
-	     * @method get
-	     *
-	     * @return {Transform}
-	     */
-	    TransitionableTransform.prototype.get = function get() {
-	        if (this.isActive()) {
-	            return _build.call(this);
-	        }
-	        else return this._final;
-	    };
-	
-	    /**
-	     * Get the destination state of the Transform
-	     *
-	     * @method getFinal
-	     *
-	     * @return Transform {Transform}
-	     */
-	    TransitionableTransform.prototype.getFinal = function getFinal() {
-	        return this._final;
-	    };
-	
-	    /**
-	     * Determine if the TransitionalTransform is currently transitioning
-	     *
-	     * @method isActive
-	     *
-	     * @return {Boolean}
-	     */
-	    TransitionableTransform.prototype.isActive = function isActive() {
-	        return this.translate.isActive() || this.rotate.isActive() || this.scale.isActive() || this.skew.isActive();
-	    };
-	
-	    /**
-	     * Halts the transition
-	     *
-	     * @method halt
-	     */
-	    TransitionableTransform.prototype.halt = function halt() {
-	        this.translate.halt();
-	        this.rotate.halt();
-	        this.skew.halt();
-	        this.scale.halt();
-	
-	        this._final = this.get();
-	        this._finalTranslate = this.translate.get();
-	        this._finalRotate = this.rotate.get();
-	        this._finalSkew = this.skew.get();
-	        this._finalScale = this.scale.get();
-	
-	        return this;
-	    };
-	
-	    module.exports = TransitionableTransform;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 31 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -6249,11 +7518,11 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var RenderNode = __webpack_require__(37);
-	    var EventHandler = __webpack_require__(32);
-	    var ElementAllocator = __webpack_require__(40);
+	    var RenderNode = __webpack_require__(41);
+	    var EventHandler = __webpack_require__(37);
+	    var ElementAllocator = __webpack_require__(46);
 	    var Transform = __webpack_require__(18);
-	    var Transitionable = __webpack_require__(29);
+	    var Transitionable = __webpack_require__(39);
 	
 	    var _zeroZero = [0, 0];
 	    var usePrefix = !('perspective' in document.documentElement.style);
@@ -6475,7 +7744,7 @@
 
 
 /***/ },
-/* 32 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -6488,7 +7757,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventEmitter = __webpack_require__(41);
+	    var EventEmitter = __webpack_require__(45);
 	
 	    /**
 	     * EventHandler forwards received events to a set of provided callback functions.
@@ -6687,7 +7956,7 @@
 
 
 /***/ },
-/* 33 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -6700,7 +7969,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(32);
+	    var EventHandler = __webpack_require__(37);
 	
 	    /**
 	     *  A collection of methods for setting options which can be extended
@@ -6894,671 +8163,471 @@
 
 
 /***/ },
-/* 34 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
 	 * License, v. 2.0. If a copy of the MPL was not distributed with this
 	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	 *
-	 * Owner: felix@famo.us
+	 * Owner: david@famo.us
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var PhysicsEngine = __webpack_require__(46);
-	    var Particle = __webpack_require__(47);
-	    var Drag = __webpack_require__(48);
-	    var Spring = __webpack_require__(49);
-	
-	    var EventHandler = __webpack_require__(32);
-	    var OptionsManager = __webpack_require__(33);
-	    var ViewSequence = __webpack_require__(42);
-	    var Scroller = __webpack_require__(43);
-	    var Utility = __webpack_require__(35);
-	
-	    var GenericSync = __webpack_require__(50);
-	    var ScrollSync = __webpack_require__(51);
-	    var TouchSync = __webpack_require__(52);
-	    GenericSync.register({scroll : ScrollSync, touch : TouchSync});
-	
-	    /** @const */
-	    var TOLERANCE = 0.5;
-	
-	    /** @enum */
-	    var SpringStates = {
-	        NONE: 0,
-	        EDGE: 1,
-	        PAGE: 2
-	    };
-	
-	    /** @enum */
-	    var EdgeStates = {
-	        TOP:   -1,
-	        NONE:   0,
-	        BOTTOM: 1
-	    };
+	    var MultipleTransition = __webpack_require__(47);
+	    var TweenTransition = __webpack_require__(48);
 	
 	    /**
-	     * Scrollview will lay out a collection of renderables sequentially in the specified direction, and will
-	     * allow you to scroll through them with mousewheel or touch events.
-	     * @class Scrollview
+	     * A state maintainer for a smooth transition between
+	     *    numerically-specified states. Example numeric states include floats or
+	     *    Transform objects.
+	     *
+	     * An initial state is set with the constructor or set(startState). A
+	     *    corresponding end state and transition are set with set(endState,
+	     *    transition). Subsequent calls to set(endState, transition) begin at
+	     *    the last state. Calls to get(timestamp) provide the interpolated state
+	     *    along the way.
+	     *
+	     * Note that there is no event loop here - calls to get() are the only way
+	     *    to find state projected to the current (or provided) time and are
+	     *    the only way to trigger callbacks. Usually this kind of object would
+	     *    be part of the render() path of a visible component.
+	     *
+	     * @class Transitionable
 	     * @constructor
-	     * @param {Options} [options] An object of configurable options.
-	     * @param {Number} [options.direction=Utility.Direction.Y] Using the direction helper found in the famous Utility
-	     * module, this option will lay out the Scrollview instance's renderables either horizontally
-	     * (x) or vertically (y). Utility's direction is essentially either zero (X) or one (Y), so feel free
-	     * to just use integers as well.
-	     * @param {Boolean} [options.rails=true] When true, Scrollview's genericSync will only process input in it's primary access.
-	     * @param {Number} [clipSize=undefined] The size of the area (in pixels) that Scrollview will display content in.
-	     * @param {Number} [margin=undefined] The size of the area (in pixels) that Scrollview will process renderables' associated calculations in.
-	     * @param {Number} [friction=0.001] Input resistance proportional to the velocity of the input.
-	     * Controls the feel of the Scrollview instance at low velocities.
-	     * @param {Number} [drag=0.0001] Input resistance proportional to the square of the velocity of the input.
-	     * Affects Scrollview instance more prominently at high velocities.
-	     * @param {Number} [edgeGrip=0.5] A coefficient for resistance against after-touch momentum.
-	     * @param {Number} [egePeriod=300] Sets the period on the spring that handles the physics associated
-	     * with hitting the end of a scrollview.
-	     * @param {Number} [edgeDamp=1] Sets the damping on the spring that handles the physics associated
-	     * with hitting the end of a scrollview.
-	     * @param {Boolean} [paginated=false] A paginated scrollview will scroll through items discretely
-	     * rather than continously.
-	     * @param {Number} [pagePeriod=500] Sets the period on the spring that handles the physics associated
-	     * with pagination.
-	     * @param {Number} [pageDamp=0.8] Sets the damping on the spring that handles the physics associated
-	     * with pagination.
-	     * @param {Number} [pageStopSpeed=Infinity] The threshold for determining the amount of velocity
-	     * required to trigger pagination. The lower the threshold, the easier it is to scroll continuosly.
-	     * @param {Number} [pageSwitchSpeed=1] The threshold for momentum-based velocity pagination.
-	     * @param {Number} [speedLimit=10] The highest scrolling speed you can reach.
+	     * @param {number|Array.Number|Object.<number|string, number>} start
+	     *    beginning state
 	     */
-	    function Scrollview(options) {
-	        // patch options with defaults
-	        this.options = Object.create(Scrollview.DEFAULT_OPTIONS);
-	        this._optionsManager = new OptionsManager(this.options);
+	    function Transitionable(start) {
+	        this.currentAction = null;
+	        this.actionQueue = [];
+	        this.callbackQueue = [];
 	
-	        // create sub-components
-	        this._scroller = new Scroller(this.options);
+	        this.state = 0;
+	        this.velocity = undefined;
+	        this._callback = undefined;
+	        this._engineInstance = null;
+	        this._currentMethod = null;
 	
-	        this.sync = new GenericSync(
-	            ['scroll', 'touch'],
-	            {
-	                direction : this.options.direction,
-	                scale : this.options.syncScale,
-	                rails: this.options.rails,
-	                preventDefault: this.options.preventDefault !== undefined
-	                    ? this.options.preventDefault
-	                    : this.options.direction !== Utility.Direction.Y
+	        this.set(start);
+	    }
+	
+	    var transitionMethods = {};
+	
+	    Transitionable.register = function register(methods) {
+	        var success = true;
+	        for (var method in methods) {
+	            if (!Transitionable.registerMethod(method, methods[method]))
+	                success = false;
+	        }
+	        return success;
+	    };
+	
+	    Transitionable.registerMethod = function registerMethod(name, engineClass) {
+	        if (!(name in transitionMethods)) {
+	            transitionMethods[name] = engineClass;
+	            return true;
+	        }
+	        else return false;
+	    };
+	
+	    Transitionable.unregisterMethod = function unregisterMethod(name) {
+	        if (name in transitionMethods) {
+	            delete transitionMethods[name];
+	            return true;
+	        }
+	        else return false;
+	    };
+	
+	    function _loadNext() {
+	        if (this._callback) {
+	            var callback = this._callback;
+	            this._callback = undefined;
+	            callback();
+	        }
+	        if (this.actionQueue.length <= 0) {
+	            this.set(this.get()); // no update required
+	            return;
+	        }
+	        this.currentAction = this.actionQueue.shift();
+	        this._callback = this.callbackQueue.shift();
+	
+	        var method = null;
+	        var endValue = this.currentAction[0];
+	        var transition = this.currentAction[1];
+	        if (transition instanceof Object && transition.method) {
+	            method = transition.method;
+	            if (typeof method === 'string') method = transitionMethods[method];
+	        }
+	        else {
+	            method = TweenTransition;
+	        }
+	
+	        if (this._currentMethod !== method) {
+	            if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
+	                this._engineInstance = new method();
 	            }
+	            else {
+	                this._engineInstance = new MultipleTransition(method);
+	            }
+	            this._currentMethod = method;
+	        }
+	
+	        this._engineInstance.reset(this.state, this.velocity);
+	        if (this.velocity !== undefined) transition.velocity = this.velocity;
+	        this._engineInstance.set(endValue, transition, _loadNext.bind(this));
+	    }
+	
+	    /**
+	     * Add transition to end state to the queue of pending transitions. Special
+	     *    Use: calling without a transition resets the object to that state with
+	     *    no pending actions
+	     *
+	     * @method set
+	     *
+	     * @param {number|FamousMatrix|Array.Number|Object.<number, number>} endState
+	     *    end state to which we interpolate
+	     * @param {transition=} transition object of type {duration: number, curve:
+	     *    f[0,1] -> [0,1] or name}. If transition is omitted, change will be
+	     *    instantaneous.
+	     * @param {function()=} callback Zero-argument function to call on observed
+	     *    completion (t=1)
+	     */
+	    Transitionable.prototype.set = function set(endState, transition, callback) {
+	        if (!transition) {
+	            this.reset(endState);
+	            if (callback) callback();
+	            return this;
+	        }
+	
+	        var action = [endState, transition];
+	        this.actionQueue.push(action);
+	        this.callbackQueue.push(callback);
+	        if (!this.currentAction) _loadNext.call(this);
+	        return this;
+	    };
+	
+	    /**
+	     * Cancel all transitions and reset to a stable state
+	     *
+	     * @method reset
+	     *
+	     * @param {number|Array.Number|Object.<number, number>} startState
+	     *    stable state to set to
+	     */
+	    Transitionable.prototype.reset = function reset(startState, startVelocity) {
+	        this._currentMethod = null;
+	        this._engineInstance = null;
+	        this._callback = undefined;
+	        this.state = startState;
+	        this.velocity = startVelocity;
+	        this.currentAction = null;
+	        this.actionQueue = [];
+	        this.callbackQueue = [];
+	    };
+	
+	    /**
+	     * Add delay action to the pending action queue queue.
+	     *
+	     * @method delay
+	     *
+	     * @param {number} duration delay time (ms)
+	     * @param {function} callback Zero-argument function to call on observed
+	     *    completion (t=1)
+	     */
+	    Transitionable.prototype.delay = function delay(duration, callback) {
+	        this.set(this.get(), {duration: duration,
+	            curve: function() {
+	                return 0;
+	            }},
+	            callback
 	        );
-	
-	        this._physicsEngine = new PhysicsEngine();
-	        this._particle = new Particle();
-	        this._physicsEngine.addBody(this._particle);
-	
-	        this.spring = new Spring({
-	            anchor: [0, 0, 0],
-	            period: this.options.edgePeriod,
-	            dampingRatio: this.options.edgeDamp
-	        });
-	        this.drag = new Drag({
-	            forceFunction: Drag.FORCE_FUNCTIONS.QUADRATIC,
-	            strength: this.options.drag
-	        });
-	        this.friction = new Drag({
-	            forceFunction: Drag.FORCE_FUNCTIONS.LINEAR,
-	            strength: this.options.friction
-	        });
-	
-	        // state
-	        this._node = null;
-	        this._touchCount = 0;
-	        this._springState = SpringStates.NONE;
-	        this._onEdge = EdgeStates.NONE;
-	        this._pageSpringPosition = 0;
-	        this._edgeSpringPosition = 0;
-	        this._touchVelocity = 0;
-	        this._earlyEnd = false;
-	        this._needsPaginationCheck = false;
-	        this._displacement = 0;
-	        this._totalShift = 0;
-	        this._cachedIndex = 0;
-	
-	        // subcomponent logic
-	        this._scroller.positionFrom(this.getPosition.bind(this));
-	
-	        // eventing
-	        this._eventInput = new EventHandler();
-	        this._eventOutput = new EventHandler();
-	
-	        this._eventInput.pipe(this.sync);
-	        this.sync.pipe(this._eventInput);
-	
-	        EventHandler.setInputHandler(this, this._eventInput);
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	
-	        _bindEvents.call(this);
-	
-	        // override default options with passed-in custom options
-	        if (options) this.setOptions(options);
-	    }
-	
-	    Scrollview.DEFAULT_OPTIONS = {
-	        direction: Utility.Direction.Y,
-	        rails: true,
-	        friction: 0.005,
-	        drag: 0.0001,
-	        edgeGrip: 0.2,
-	        edgePeriod: 300,
-	        edgeDamp: 1,
-	        margin: 1000,       // mostly safe
-	        paginated: false,
-	        pagePeriod: 500,
-	        pageDamp: 0.8,
-	        pageStopSpeed: 10,
-	        pageSwitchSpeed: 0.5,
-	        speedLimit: 5,
-	        groupScroll: false,
-	        syncScale: 1
-	    };
-	
-	    function _handleStart(event) {
-	        this._touchCount = event.count;
-	        if (event.count === undefined) this._touchCount = 1;
-	
-	        _detachAgents.call(this);
-	
-	        this.setVelocity(0);
-	        this._touchVelocity = 0;
-	        this._earlyEnd = false;
-	    }
-	
-	    function _handleMove(event) {
-	        var velocity = -event.velocity;
-	        var delta = -event.delta;
-	
-	        if (this._onEdge !== EdgeStates.NONE && event.slip) {
-	            if ((velocity < 0 && this._onEdge === EdgeStates.TOP) || (velocity > 0 && this._onEdge === EdgeStates.BOTTOM)) {
-	                if (!this._earlyEnd) {
-	                    _handleEnd.call(this, event);
-	                    this._earlyEnd = true;
-	                }
-	            }
-	            else if (this._earlyEnd && (Math.abs(velocity) > Math.abs(this.getVelocity()))) {
-	                _handleStart.call(this, event);
-	            }
-	        }
-	        if (this._earlyEnd) return;
-	        this._touchVelocity = velocity;
-	
-	        if (event.slip) {
-	            var speedLimit = this.options.speedLimit;
-	            if (velocity < -speedLimit) velocity = -speedLimit;
-	            else if (velocity > speedLimit) velocity = speedLimit;
-	
-	            this.setVelocity(velocity);
-	
-	            var deltaLimit = speedLimit * 16;
-	            if (delta > deltaLimit) delta = deltaLimit;
-	            else if (delta < -deltaLimit) delta = -deltaLimit;
-	        }
-	
-	        this.setPosition(this.getPosition() + delta);
-	        this._displacement += delta;
-	
-	        if (this._springState === SpringStates.NONE) _normalizeState.call(this);
-	    }
-	
-	    function _handleEnd(event) {
-	        this._touchCount = event.count || 0;
-	        if (!this._touchCount) {
-	            _detachAgents.call(this);
-	            if (this._onEdge !== EdgeStates.NONE) _setSpring.call(this, this._edgeSpringPosition, SpringStates.EDGE);
-	            _attachAgents.call(this);
-	            var velocity = -event.velocity;
-	            var speedLimit = this.options.speedLimit;
-	            if (event.slip) speedLimit *= this.options.edgeGrip;
-	            if (velocity < -speedLimit) velocity = -speedLimit;
-	            else if (velocity > speedLimit) velocity = speedLimit;
-	            this.setVelocity(velocity);
-	            this._touchVelocity = 0;
-	            this._needsPaginationCheck = true;
-	        }
-	    }
-	
-	    function _bindEvents() {
-	        this._eventInput.bindThis(this);
-	        this._eventInput.on('start', _handleStart);
-	        this._eventInput.on('update', _handleMove);
-	        this._eventInput.on('end', _handleEnd);
-	
-	        this._eventInput.on('resize', function() {
-	            this._node._.calculateSize();
-	        }.bind(this));
-	
-	        this._scroller.on('onEdge', function(data) {
-	            this._edgeSpringPosition = data.position;
-	            _handleEdge.call(this, this._scroller.onEdge());
-	            this._eventOutput.emit('onEdge');
-	        }.bind(this));
-	
-	        this._scroller.on('offEdge', function() {
-	            this.sync.setOptions({scale: this.options.syncScale});
-	            this._onEdge = this._scroller.onEdge();
-	            this._eventOutput.emit('offEdge');
-	        }.bind(this));
-	
-	        this._particle.on('update', function(particle) {
-	            if (this._springState === SpringStates.NONE) _normalizeState.call(this);
-	            this._displacement = particle.position.x - this._totalShift;
-	        }.bind(this));
-	
-	        this._particle.on('end', function() {
-	            if (!this.options.paginated || (this.options.paginated && this._springState !== SpringStates.NONE))
-	                this._eventOutput.emit('settle');
-	        }.bind(this));
-	    }
-	
-	    function _attachAgents() {
-	        if (this._springState) this._physicsEngine.attach([this.spring], this._particle);
-	        else this._physicsEngine.attach([this.drag, this.friction], this._particle);
-	    }
-	
-	    function _detachAgents() {
-	        this._springState = SpringStates.NONE;
-	        this._physicsEngine.detachAll();
-	    }
-	
-	    function _nodeSizeForDirection(node) {
-	        var direction = this.options.direction;
-	        var nodeSize = node.getSize();
-	        return (!nodeSize) ? this._scroller.getSize()[direction] : nodeSize[direction];
-	    }
-	
-	    function _handleEdge(edge) {
-	        this.sync.setOptions({scale: this.options.edgeGrip});
-	        this._onEdge = edge;
-	
-	        if (!this._touchCount && this._springState !== SpringStates.EDGE) {
-	            _setSpring.call(this, this._edgeSpringPosition, SpringStates.EDGE);
-	        }
-	
-	        if (this._springState && Math.abs(this.getVelocity()) < 0.001) {
-	            // reset agents, detaching the spring
-	            _detachAgents.call(this);
-	            _attachAgents.call(this);
-	        }
-	    }
-	
-	    function _handlePagination() {
-	        if (this._touchCount) return;
-	        if (this._springState === SpringStates.EDGE) return;
-	
-	        var velocity = this.getVelocity();
-	        if (Math.abs(velocity) >= this.options.pageStopSpeed) return;
-	
-	        var position = this.getPosition();
-	        var velocitySwitch = Math.abs(velocity) > this.options.pageSwitchSpeed;
-	
-	        // parameters to determine when to switch
-	        var nodeSize = _nodeSizeForDirection.call(this, this._node);
-	        var positionNext = position > 0.5 * nodeSize;
-	        var positionPrev = position < 0.5 * nodeSize;
-	
-	        var velocityNext = velocity > 0;
-	        var velocityPrev = velocity < 0;
-	
-	        this._needsPaginationCheck = false;
-	
-	        if ((positionNext && !velocitySwitch) || (velocitySwitch && velocityNext)) {
-	            this.goToNextPage();
-	        }
-	        else if (velocitySwitch && velocityPrev) {
-	            this.goToPreviousPage();
-	        }
-	        else _setSpring.call(this, 0, SpringStates.PAGE);
-	    }
-	
-	    function _setSpring(position, springState) {
-	        var springOptions;
-	        if (springState === SpringStates.EDGE) {
-	            this._edgeSpringPosition = position;
-	            springOptions = {
-	                anchor: [this._edgeSpringPosition, 0, 0],
-	                period: this.options.edgePeriod,
-	                dampingRatio: this.options.edgeDamp
-	            };
-	        }
-	        else if (springState === SpringStates.PAGE) {
-	            this._pageSpringPosition = position;
-	            springOptions = {
-	                anchor: [this._pageSpringPosition, 0, 0],
-	                period: this.options.pagePeriod,
-	                dampingRatio: this.options.pageDamp
-	            };
-	        }
-	
-	        this.spring.setOptions(springOptions);
-	        if (springState && !this._springState) {
-	            _detachAgents.call(this);
-	            this._springState = springState;
-	            _attachAgents.call(this);
-	        }
-	        this._springState = springState;
-	    }
-	
-	    function _normalizeState() {
-	        var offset = 0;
-	
-	        var position = this.getPosition();
-	        position += (position < 0 ? -0.5 : 0.5) >> 0;
-	
-	        var nodeSize = _nodeSizeForDirection.call(this, this._node);
-	        var nextNode = this._node.getNext();
-	
-	        while (offset + position >= nodeSize && nextNode) {
-	            offset -= nodeSize;
-	            this._scroller.sequenceFrom(nextNode);
-	            this._node = nextNode;
-	            nextNode = this._node.getNext();
-	            nodeSize = _nodeSizeForDirection.call(this, this._node);
-	        }
-	
-	        var previousNode = this._node.getPrevious();
-	        var previousNodeSize;
-	
-	        while (offset + position <= 0 && previousNode) {
-	            previousNodeSize = _nodeSizeForDirection.call(this, previousNode);
-	            this._scroller.sequenceFrom(previousNode);
-	            this._node = previousNode;
-	            offset += previousNodeSize;
-	            previousNode = this._node.getPrevious();
-	        }
-	
-	        if (offset) _shiftOrigin.call(this, offset);
-	
-	        if (this._node) {
-	            if (this._node.index !== this._cachedIndex) {
-	                if (this.getPosition() < 0.5 * nodeSize) {
-	                    this._cachedIndex = this._node.index;
-	                    this._eventOutput.emit('pageChange', {direction: -1, index: this._cachedIndex});
-	                }
-	            } else {
-	                if (this.getPosition() > 0.5 * nodeSize) {
-	                    this._cachedIndex = this._node.index + 1;
-	                    this._eventOutput.emit('pageChange', {direction: 1, index: this._cachedIndex});
-	                }
-	            }
-	        }
-	    }
-	
-	    function _shiftOrigin(amount) {
-	        this._edgeSpringPosition += amount;
-	        this._pageSpringPosition += amount;
-	        this.setPosition(this.getPosition() + amount);
-	        this._totalShift += amount;
-	
-	        if (this._springState === SpringStates.EDGE) {
-	            this.spring.setOptions({anchor: [this._edgeSpringPosition, 0, 0]});
-	        }
-	        else if (this._springState === SpringStates.PAGE) {
-	            this.spring.setOptions({anchor: [this._pageSpringPosition, 0, 0]});
-	        }
-	    }
-	
-	    /**
-	     * Returns the index of the first visible renderable
-	     *
-	     * @method getCurrentIndex
-	     * @return {Number} The current index of the ViewSequence
-	     */
-	    Scrollview.prototype.getCurrentIndex = function getCurrentIndex() {
-	        return this._node.index;
 	    };
 	
 	    /**
-	     * goToPreviousPage paginates your Scrollview instance backwards by one item.
+	     * Get interpolated state of current action at provided time. If the last
+	     *    action has completed, invoke its callback.
 	     *
-	     * @method goToPreviousPage
-	     * @return {ViewSequence} The previous node.
+	     * @method get
+	     *
+	     * @param {number=} timestamp Evaluate the curve at a normalized version of this
+	     *    time. If omitted, use current time. (Unix epoch time)
+	     * @return {number|Object.<number|string, number>} beginning state
+	     *    interpolated to this point in time.
 	     */
-	    Scrollview.prototype.goToPreviousPage = function goToPreviousPage() {
-	        if (!this._node || this._onEdge === EdgeStates.TOP) return null;
-	
-	        // if moving back to the current node
-	        if (this.getPosition() > 1 && this._springState === SpringStates.NONE) {
-	            _setSpring.call(this, 0, SpringStates.PAGE);
-	            return this._node;
+	    Transitionable.prototype.get = function get(timestamp) {
+	        if (this._engineInstance) {
+	            if (this._engineInstance.getVelocity)
+	                this.velocity = this._engineInstance.getVelocity();
+	            this.state = this._engineInstance.get(timestamp);
 	        }
-	
-	        // if moving to the previous node
-	        var previousNode = this._node.getPrevious();
-	        if (previousNode) {
-	            var previousNodeSize = _nodeSizeForDirection.call(this, previousNode);
-	            this._scroller.sequenceFrom(previousNode);
-	            this._node = previousNode;
-	            _shiftOrigin.call(this, previousNodeSize);
-	            _setSpring.call(this, 0, SpringStates.PAGE);
-	        }
-	        return previousNode;
+	        return this.state;
 	    };
 	
 	    /**
-	     * goToNextPage paginates your Scrollview instance forwards by one item.
+	     * Is there at least one action pending completion?
 	     *
-	     * @method goToNextPage
-	     * @return {ViewSequence} The next node.
+	     * @method isActive
+	     *
+	     * @return {boolean}
 	     */
-	    Scrollview.prototype.goToNextPage = function goToNextPage() {
-	        if (!this._node || this._onEdge === EdgeStates.BOTTOM) return null;
-	        var nextNode = this._node.getNext();
-	        if (nextNode) {
-	            var currentNodeSize = _nodeSizeForDirection.call(this, this._node);
-	            this._scroller.sequenceFrom(nextNode);
-	            this._node = nextNode;
-	            _shiftOrigin.call(this, -currentNodeSize);
-	            _setSpring.call(this, 0, SpringStates.PAGE);
-	        }
-	        return nextNode;
+	    Transitionable.prototype.isActive = function isActive() {
+	        return !!this.currentAction;
 	    };
 	
 	    /**
-	     * Paginates the Scrollview to an absolute page index.
+	     * Halt transition at current state and erase all pending actions.
 	     *
-	     * @method goToPage
+	     * @method halt
 	     */
-	    Scrollview.prototype.goToPage = function goToPage(index) {
-	        var currentIndex = this.getCurrentIndex();
-	        var i;
-	
-	        if (currentIndex > index) {
-	            for (i = 0; i < currentIndex - index; i++)
-	                this.goToPreviousPage();
-	        }
-	
-	        if (currentIndex < index) {
-	            for (i = 0; i < index - currentIndex; i++)
-	                this.goToNextPage();
-	        }
+	    Transitionable.prototype.halt = function halt() {
+	        return this.set(this.get());
 	    };
 	
-	    Scrollview.prototype.outputFrom = function outputFrom() {
-	        return this._scroller.outputFrom.apply(this._scroller, arguments);
-	    };
-	
-	    /**
-	     * Returns the position associated with the Scrollview instance's current node
-	     *  (generally the node currently at the top).
-	     *
-	     * @deprecated
-	     * @method getPosition
-	     * @param {number} [node] If specified, returns the position of the node at that index in the
-	     * Scrollview instance's currently managed collection.
-	     * @return {number} The position of either the specified node, or the Scrollview's current Node,
-	     * in pixels translated.
-	     */
-	    Scrollview.prototype.getPosition = function getPosition() {
-	        return this._particle.getPosition1D();
-	    };
-	
-	    /**
-	     * Returns the absolute position associated with the Scrollview instance
-	     *
-	     * @method getAbsolutePosition
-	     * @return {number} The position of the Scrollview's current Node,
-	     * in pixels translated.
-	     */
-	    Scrollview.prototype.getAbsolutePosition = function getAbsolutePosition() {
-	        return this._scroller.getCumulativeSize(this.getCurrentIndex())[this.options.direction] + this.getPosition();
-	    };
-	
-	    /**
-	     * Returns the offset associated with the Scrollview instance's current node
-	     *  (generally the node currently at the top).
-	     *
-	     * @method getOffset
-	     * @param {number} [node] If specified, returns the position of the node at that index in the
-	     * Scrollview instance's currently managed collection.
-	     * @return {number} The position of either the specified node, or the Scrollview's current Node,
-	     * in pixels translated.
-	     */
-	    Scrollview.prototype.getOffset = Scrollview.prototype.getPosition;
-	
-	    /**
-	     * Sets the position of the physics particle that controls Scrollview instance's "position"
-	     *
-	     * @deprecated
-	     * @method setPosition
-	     * @param {number} x The amount of pixels you want your scrollview to progress by.
-	     */
-	    Scrollview.prototype.setPosition = function setPosition(x) {
-	        this._particle.setPosition1D(x);
-	    };
-	
-	    /**
-	     * Sets the offset of the physics particle that controls Scrollview instance's "position"
-	     *
-	     * @method setPosition
-	     * @param {number} x The amount of pixels you want your scrollview to progress by.
-	     */
-	    Scrollview.prototype.setOffset = Scrollview.prototype.setPosition;
-	
-	    /**
-	     * Returns the Scrollview instance's velocity.
-	     *
-	     * @method getVelocity
-	     * @return {Number} The velocity.
-	     */
-	
-	    Scrollview.prototype.getVelocity = function getVelocity() {
-	        return this._touchCount ? this._touchVelocity : this._particle.getVelocity1D();
-	    };
-	
-	    /**
-	     * Sets the Scrollview instance's velocity. Until affected by input or another call of setVelocity
-	     *  the Scrollview instance will scroll at the passed-in velocity.
-	     *
-	     * @method setVelocity
-	     * @param {number} v The magnitude of the velocity.
-	     */
-	    Scrollview.prototype.setVelocity = function setVelocity(v) {
-	        this._particle.setVelocity1D(v);
-	    };
-	
-	    /**
-	     * Patches the Scrollview instance's options with the passed-in ones.
-	     *
-	     * @method setOptions
-	     * @param {Options} options An object of configurable options for the Scrollview instance.
-	     */
-	    Scrollview.prototype.setOptions = function setOptions(options) {
-	        // preprocess custom options
-	        if (options.direction !== undefined) {
-	            if (options.direction === 'x') options.direction = Utility.Direction.X;
-	            else if (options.direction === 'y') options.direction = Utility.Direction.Y;
-	        }
-	
-	        if (options.groupScroll !== this.options.groupScroll) {
-	            if (options.groupScroll)
-	                this.subscribe(this._scroller);
-	            else
-	                this.unsubscribe(this._scroller);
-	        }
-	
-	        // patch custom options
-	        this._optionsManager.setOptions(options);
-	
-	        // propagate options to sub-components
-	
-	        // scroller sub-component
-	        this._scroller.setOptions(options);
-	
-	        // physics sub-components
-	        if (options.drag !== undefined) this.drag.setOptions({strength: this.options.drag});
-	        if (options.friction !== undefined) this.friction.setOptions({strength: this.options.friction});
-	        if (options.edgePeriod !== undefined || options.edgeDamp !== undefined) {
-	            this.spring.setOptions({
-	                period: this.options.edgePeriod,
-	                dampingRatio: this.options.edgeDamp
-	            });
-	        }
-	
-	        // sync sub-component
-	        if (options.rails || options.direction !== undefined || options.syncScale !== undefined || options.preventDefault) {
-	            this.sync.setOptions({
-	                rails: this.options.rails,
-	                direction: (this.options.direction === Utility.Direction.X) ? GenericSync.DIRECTION_X : GenericSync.DIRECTION_Y,
-	                scale: this.options.syncScale,
-	                preventDefault: this.options.preventDefault
-	            });
-	        }
-	    };
-	
-	    /**
-	     * Sets the collection of renderables under the Scrollview instance's control, by
-	     *  setting its current node to the passed in ViewSequence. If you
-	     *  pass in an array, the Scrollview instance will set its node as a ViewSequence instantiated with
-	     *  the passed-in array.
-	     *
-	     * @method sequenceFrom
-	     * @param {Array|ViewSequence} node Either an array of renderables or a Famous viewSequence.
-	     */
-	    Scrollview.prototype.sequenceFrom = function sequenceFrom(node) {
-	        if (node instanceof Array) node = new ViewSequence({array: node, trackSize: true});
-	        this._node = node;
-	        return this._scroller.sequenceFrom(node);
-	    };
-	
-	    /**
-	     * Returns the width and the height of the Scrollview instance.
-	     *
-	     * @method getSize
-	     * @return {Array} A two value array of the Scrollview instance's current width and height (in that order).
-	     */
-	    Scrollview.prototype.getSize = function getSize() {
-	        return this._scroller.getSize.apply(this._scroller, arguments);
-	    };
-	
-	    /**
-	     * Generate a render spec from the contents of this component.
-	     *
-	     * @private
-	     * @method render
-	     * @return {number} Render spec for this component
-	     */
-	    Scrollview.prototype.render = function render() {
-	        if (this.options.paginated && this._needsPaginationCheck) _handlePagination.call(this);
-	
-	        return this._scroller.render();
-	    };
-	
-	    module.exports = Scrollview;
+	    module.exports = Transitionable;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
-/* 35 */
+/* 40 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: david@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Transitionable = __webpack_require__(39);
+	    var Transform = __webpack_require__(18);
+	    var Utility = __webpack_require__(21);
+	
+	    /**
+	     * A class for transitioning the state of a Transform by transitioning
+	     * its translate, scale, skew and rotate components independently.
+	     *
+	     * @class TransitionableTransform
+	     * @constructor
+	     *
+	     * @param [transform=Transform.identity] {Transform} The initial transform state
+	     */
+	    function TransitionableTransform(transform) {
+	        this._final = Transform.identity.slice();
+	
+	        this._finalTranslate = [0, 0, 0];
+	        this._finalRotate = [0, 0, 0];
+	        this._finalSkew = [0, 0, 0];
+	        this._finalScale = [1, 1, 1];
+	
+	        this.translate = new Transitionable(this._finalTranslate);
+	        this.rotate = new Transitionable(this._finalRotate);
+	        this.skew = new Transitionable(this._finalSkew);
+	        this.scale = new Transitionable(this._finalScale);
+	
+	        if (transform) this.set(transform);
+	    }
+	
+	    function _build() {
+	        return Transform.build({
+	            translate: this.translate.get(),
+	            rotate: this.rotate.get(),
+	            skew: this.skew.get(),
+	            scale: this.scale.get()
+	        });
+	    }
+	
+	    function _buildFinal() {
+	        return Transform.build({
+	            translate: this._finalTranslate,
+	            rotate: this._finalRotate,
+	            skew: this._finalSkew,
+	            scale: this._finalScale
+	        });
+	    }
+	
+	    /**
+	     * An optimized way of setting only the translation component of a Transform
+	     *
+	     * @method setTranslate
+	     * @chainable
+	     *
+	     * @param translate {Array}     New translation state
+	     * @param [transition] {Object} Transition definition
+	     * @param [callback] {Function} Callback
+	     * @return {TransitionableTransform}
+	     */
+	    TransitionableTransform.prototype.setTranslate = function setTranslate(translate, transition, callback) {
+	        this._finalTranslate = translate;
+	        this._final = _buildFinal.call(this);
+	        this.translate.set(translate, transition, callback);
+	        return this;
+	    };
+	
+	    /**
+	     * An optimized way of setting only the scale component of a Transform
+	     *
+	     * @method setScale
+	     * @chainable
+	     *
+	     * @param scale {Array}         New scale state
+	     * @param [transition] {Object} Transition definition
+	     * @param [callback] {Function} Callback
+	     * @return {TransitionableTransform}
+	     */
+	    TransitionableTransform.prototype.setScale = function setScale(scale, transition, callback) {
+	        this._finalScale = scale;
+	        this._final = _buildFinal.call(this);
+	        this.scale.set(scale, transition, callback);
+	        return this;
+	    };
+	
+	    /**
+	     * An optimized way of setting only the rotational component of a Transform
+	     *
+	     * @method setRotate
+	     * @chainable
+	     *
+	     * @param eulerAngles {Array}   Euler angles for new rotation state
+	     * @param [transition] {Object} Transition definition
+	     * @param [callback] {Function} Callback
+	     * @return {TransitionableTransform}
+	     */
+	    TransitionableTransform.prototype.setRotate = function setRotate(eulerAngles, transition, callback) {
+	        this._finalRotate = eulerAngles;
+	        this._final = _buildFinal.call(this);
+	        this.rotate.set(eulerAngles, transition, callback);
+	        return this;
+	    };
+	
+	    /**
+	     * An optimized way of setting only the skew component of a Transform
+	     *
+	     * @method setSkew
+	     * @chainable
+	     *
+	     * @param skewAngles {Array}    New skew state
+	     * @param [transition] {Object} Transition definition
+	     * @param [callback] {Function} Callback
+	     * @return {TransitionableTransform}
+	     */
+	    TransitionableTransform.prototype.setSkew = function setSkew(skewAngles, transition, callback) {
+	        this._finalSkew = skewAngles;
+	        this._final = _buildFinal.call(this);
+	        this.skew.set(skewAngles, transition, callback);
+	        return this;
+	    };
+	
+	    /**
+	     * Setter for a TransitionableTransform with optional parameters to transition
+	     * between Transforms
+	     *
+	     * @method set
+	     * @chainable
+	     *
+	     * @param transform {Array}     New transform state
+	     * @param [transition] {Object} Transition definition
+	     * @param [callback] {Function} Callback
+	     * @return {TransitionableTransform}
+	     */
+	    TransitionableTransform.prototype.set = function set(transform, transition, callback) {
+	        var components = Transform.interpret(transform);
+	
+	        this._finalTranslate = components.translate;
+	        this._finalRotate = components.rotate;
+	        this._finalSkew = components.skew;
+	        this._finalScale = components.scale;
+	        this._final = transform;
+	
+	        var _callback = callback ? Utility.after(4, callback) : null;
+	        this.translate.set(components.translate, transition, _callback);
+	        this.rotate.set(components.rotate, transition, _callback);
+	        this.skew.set(components.skew, transition, _callback);
+	        this.scale.set(components.scale, transition, _callback);
+	        return this;
+	    };
+	
+	    /**
+	     * Sets the default transition to use for transitioning betwen Transform states
+	     *
+	     * @method setDefaultTransition
+	     *
+	     * @param transition {Object} Transition definition
+	     */
+	    TransitionableTransform.prototype.setDefaultTransition = function setDefaultTransition(transition) {
+	        this.translate.setDefault(transition);
+	        this.rotate.setDefault(transition);
+	        this.skew.setDefault(transition);
+	        this.scale.setDefault(transition);
+	    };
+	
+	    /**
+	     * Getter. Returns the current state of the Transform
+	     *
+	     * @method get
+	     *
+	     * @return {Transform}
+	     */
+	    TransitionableTransform.prototype.get = function get() {
+	        if (this.isActive()) {
+	            return _build.call(this);
+	        }
+	        else return this._final;
+	    };
+	
+	    /**
+	     * Get the destination state of the Transform
+	     *
+	     * @method getFinal
+	     *
+	     * @return Transform {Transform}
+	     */
+	    TransitionableTransform.prototype.getFinal = function getFinal() {
+	        return this._final;
+	    };
+	
+	    /**
+	     * Determine if the TransitionalTransform is currently transitioning
+	     *
+	     * @method isActive
+	     *
+	     * @return {Boolean}
+	     */
+	    TransitionableTransform.prototype.isActive = function isActive() {
+	        return this.translate.isActive() || this.rotate.isActive() || this.scale.isActive() || this.skew.isActive();
+	    };
+	
+	    /**
+	     * Halts the transition
+	     *
+	     * @method halt
+	     */
+	    TransitionableTransform.prototype.halt = function halt() {
+	        this.translate.halt();
+	        this.rotate.halt();
+	        this.skew.halt();
+	        this.scale.halt();
+	
+	        this._final = this.get();
+	        this._finalTranslate = this.translate.get();
+	        this._finalRotate = this.rotate.get();
+	        this._finalSkew = this.skew.get();
+	        this._finalScale = this.scale.get();
+	
+	        return this;
+	    };
+	
+	    module.exports = TransitionableTransform;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7571,121 +8640,297 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    /**
-	     * This namespace holds standalone functionality.
-	     *  Currently includes name mapping for transition curves,
-	     *  name mapping for origin pairs, and the after() function.
-	     *
-	     * @class Utility
-	     * @static
-	     */
-	    var Utility = {};
+	    var Entity = __webpack_require__(49);
+	    var SpecParser = __webpack_require__(50);
 	
 	    /**
-	     * Table of direction array positions
+	     * A wrapper for inserting a renderable component (like a Modifer or
+	     *   Surface) into the render tree.
 	     *
-	     * @property {object} Direction
-	     * @final
+	     * @class RenderNode
+	     * @constructor
+	     *
+	     * @param {Object} object Target renderable component
 	     */
-	    Utility.Direction = {
-	        X: 0,
-	        Y: 1,
-	        Z: 2
+	    function RenderNode(object) {
+	        this._object = null;
+	        this._child = null;
+	        this._hasMultipleChildren = false;
+	        this._isRenderable = false;
+	        this._isModifier = false;
+	
+	        this._resultCache = {};
+	        this._prevResults = {};
+	
+	        this._childResult = null;
+	
+	        if (object) this.set(object);
+	    }
+	
+	    /**
+	     * Append a renderable to the list of this node's children.
+	     *   This produces a new RenderNode in the tree.
+	     *   Note: Does not double-wrap if child is a RenderNode already.
+	     *
+	     * @method add
+	     * @param {Object} child renderable object
+	     * @return {RenderNode} new render node wrapping child
+	     */
+	    RenderNode.prototype.add = function add(child) {
+	        var childNode = (child instanceof RenderNode) ? child : new RenderNode(child);
+	        if (this._child instanceof Array) this._child.push(childNode);
+	        else if (this._child) {
+	            this._child = [this._child, childNode];
+	            this._hasMultipleChildren = true;
+	            this._childResult = []; // to be used later
+	        }
+	        else this._child = childNode;
+	
+	        return childNode;
 	    };
 	
 	    /**
-	     * Return wrapper around callback function. Once the wrapper is called N
-	     *   times, invoke the callback function. Arguments and scope preserved.
+	     * Return the single wrapped object.  Returns null if this node has multiple child nodes.
 	     *
-	     * @method after
+	     * @method get
 	     *
-	     * @param {number} count number of calls before callback function invoked
-	     * @param {Function} callback wrapped callback function
-	     *
-	     * @return {function} wrapped callback with coundown feature
+	     * @return {Ojbect} contained renderable object
 	     */
-	    Utility.after = function after(count, callback) {
-	        var counter = count;
-	        return function() {
-	            counter--;
-	            if (counter === 0) callback.apply(this, arguments);
-	        };
+	    RenderNode.prototype.get = function get() {
+	        return this._object || (this._hasMultipleChildren ? null : (this._child ? this._child.get() : null));
 	    };
 	
 	    /**
-	     * Load a URL and return its contents in a callback
+	     * Overwrite the list of children to contain the single provided object
 	     *
-	     * @method loadURL
-	     *
-	     * @param {string} url URL of object
-	     * @param {function} callback callback to dispatch with content
+	     * @method set
+	     * @param {Object} child renderable object
+	     * @return {RenderNode} this render node, or child if it is a RenderNode
 	     */
-	    Utility.loadURL = function loadURL(url, callback) {
-	        var xhr = new XMLHttpRequest();
-	        xhr.onreadystatechange = function onreadystatechange() {
-	            if (this.readyState === 4) {
-	                if (callback) callback(this.responseText);
-	            }
-	        };
-	        xhr.open('GET', url);
-	        xhr.send();
+	    RenderNode.prototype.set = function set(child) {
+	        this._childResult = null;
+	        this._hasMultipleChildren = false;
+	        this._isRenderable = child.render ? true : false;
+	        this._isModifier = child.modify ? true : false;
+	        this._object = child;
+	        this._child = null;
+	        if (child instanceof RenderNode) return child;
+	        else return this;
 	    };
 	
 	    /**
-	     * Create a document fragment from a string of HTML
+	     * Get render size of contained object.
 	     *
-	     * @method createDocumentFragmentFromHTML
-	     *
-	     * @param {string} html HTML to convert to DocumentFragment
-	     *
-	     * @return {DocumentFragment} DocumentFragment representing input HTML
+	     * @method getSize
+	     * @return {Array.Number} size of this or size of single child.
 	     */
-	    Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
-	        var element = document.createElement('div');
-	        element.innerHTML = html;
-	        var result = document.createDocumentFragment();
-	        while (element.hasChildNodes()) result.appendChild(element.firstChild);
+	    RenderNode.prototype.getSize = function getSize() {
+	        var result = null;
+	        var target = this.get();
+	        if (target && target.getSize) result = target.getSize();
+	        if (!result && this._child && this._child.getSize) result = this._child.getSize();
 	        return result;
 	    };
 	
-	    /*
-	     *  Deep clone an object.
-	     *  @param b {Object} Object to clone
-	     *  @return a {Object} Cloned object.
+	    // apply results of rendering this subtree to the document
+	    function _applyCommit(spec, context, cacheStorage) {
+	        var result = SpecParser.parse(spec, context);
+	        var keys = Object.keys(result);
+	        for (var i = 0; i < keys.length; i++) {
+	            var id = keys[i];
+	            var childNode = Entity.get(id);
+	            var commitParams = result[id];
+	            commitParams.allocator = context.allocator;
+	            var commitResult = childNode.commit(commitParams);
+	            if (commitResult) _applyCommit(commitResult, context, cacheStorage);
+	            else cacheStorage[id] = commitParams;
+	        }
+	    }
+	
+	    /**
+	     * Commit the content change from this node to the document.
+	     *
+	     * @private
+	     * @method commit
+	     * @param {Context} context render context
 	     */
-	    Utility.clone = function clone(b) {
-	        var a;
-	        if (typeof b === 'object') {
-	            a = (b instanceof Array) ? [] : {};
-	            for (var key in b) {
-	                if (typeof b[key] === 'object' && b[key] !== null) {
-	                    if (b[key] instanceof Array) {
-	                        a[key] = new Array(b[key].length);
-	                        for (var i = 0; i < b[key].length; i++) {
-	                            a[key][i] = Utility.clone(b[key][i]);
-	                        }
-	                    }
-	                    else {
-	                      a[key] = Utility.clone(b[key]);
-	                    }
-	                }
-	                else {
-	                    a[key] = b[key];
-	                }
+	    RenderNode.prototype.commit = function commit(context) {
+	        // free up some divs from the last loop
+	        var prevKeys = Object.keys(this._prevResults);
+	        for (var i = 0; i < prevKeys.length; i++) {
+	            var id = prevKeys[i];
+	            if (this._resultCache[id] === undefined) {
+	                var object = Entity.get(id);
+	                if (object.cleanup) object.cleanup(context.allocator);
 	            }
 	        }
-	        else {
-	            a = b;
-	        }
-	        return a;
+	
+	        this._prevResults = this._resultCache;
+	        this._resultCache = {};
+	        _applyCommit(this.render(), context, this._resultCache);
 	    };
 	
-	    module.exports = Utility;
+	    /**
+	     * Generate a render spec from the contents of the wrapped component.
+	     *
+	     * @private
+	     * @method render
+	     *
+	     * @return {Object} render specification for the component subtree
+	     *    only under this node.
+	     */
+	    RenderNode.prototype.render = function render() {
+	        if (this._isRenderable) return this._object.render();
+	
+	        var result = null;
+	        if (this._hasMultipleChildren) {
+	            result = this._childResult;
+	            var children = this._child;
+	            for (var i = 0; i < children.length; i++) {
+	                result[i] = children[i].render();
+	            }
+	        }
+	        else if (this._child) result = this._child.render();
+	
+	        return this._isModifier ? this._object.modify(result) : result;
+	    };
+	
+	    module.exports = RenderNode;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
-/* 36 */
+/* 42 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var EventHandler = __webpack_require__(37);
+	
+	    var _now = Date.now;
+	
+	    function _timestampTouch(touch, event, history) {
+	        return {
+	            x: touch.clientX,
+	            y: touch.clientY,
+	            identifier : touch.identifier,
+	            origin: event.origin,
+	            timestamp: _now(),
+	            count: event.touches.length,
+	            history: history
+	        };
+	    }
+	
+	    function _handleStart(event) {
+	        if (event.touches.length > this.touchLimit) return;
+	        this.isTouched = true;
+	
+	        for (var i = 0; i < event.changedTouches.length; i++) {
+	            var touch = event.changedTouches[i];
+	            var data = _timestampTouch(touch, event, null);
+	            this.eventOutput.emit('trackstart', data);
+	            if (!this.selective && !this.touchHistory[touch.identifier]) this.track(data);
+	        }
+	    }
+	
+	    function _handleMove(event) {
+	        if (event.touches.length > this.touchLimit) return;
+	
+	        for (var i = 0; i < event.changedTouches.length; i++) {
+	            var touch = event.changedTouches[i];
+	            var history = this.touchHistory[touch.identifier];
+	            if (history) {
+	                var data = _timestampTouch(touch, event, history);
+	                this.touchHistory[touch.identifier].push(data);
+	                this.eventOutput.emit('trackmove', data);
+	            }
+	        }
+	    }
+	
+	    function _handleEnd(event) {
+	        if (!this.isTouched) return;
+	
+	        for (var i = 0; i < event.changedTouches.length; i++) {
+	            var touch = event.changedTouches[i];
+	            var history = this.touchHistory[touch.identifier];
+	            if (history) {
+	                var data = _timestampTouch(touch, event, history);
+	                this.eventOutput.emit('trackend', data);
+	                delete this.touchHistory[touch.identifier];
+	            }
+	        }
+	
+	        this.isTouched = false;
+	    }
+	
+	    function _handleUnpipe() {
+	        for (var i in this.touchHistory) {
+	            var history = this.touchHistory[i];
+	            this.eventOutput.emit('trackend', {
+	                touch: history[history.length - 1].touch,
+	                timestamp: Date.now(),
+	                count: 0,
+	                history: history
+	            });
+	            delete this.touchHistory[i];
+	        }
+	    }
+	
+	    /**
+	     * Helper to TouchSync – tracks piped in touch events, organizes touch
+	     *   events by ID, and emits track events back to TouchSync.
+	     *   Emits 'trackstart', 'trackmove', and 'trackend' events upstream.
+	     *
+	     * @class TouchTracker
+	     * @constructor
+	     * @param {Object} options default options overrides
+	     * @param [options.selective] {Boolean} selective if false, saves state for each touch
+	     * @param [options.touchLimit] {Number} touchLimit upper bound for emitting events based on number of touches
+	     */
+	    function TouchTracker(options) {
+	        this.selective = options.selective;
+	        this.touchLimit = options.touchLimit || 1;
+	
+	        this.touchHistory = {};
+	
+	        this.eventInput = new EventHandler();
+	        this.eventOutput = new EventHandler();
+	
+	        EventHandler.setInputHandler(this, this.eventInput);
+	        EventHandler.setOutputHandler(this, this.eventOutput);
+	
+	        this.eventInput.on('touchstart', _handleStart.bind(this));
+	        this.eventInput.on('touchmove', _handleMove.bind(this));
+	        this.eventInput.on('touchend', _handleEnd.bind(this));
+	        this.eventInput.on('touchcancel', _handleEnd.bind(this));
+	        this.eventInput.on('unpipe', _handleUnpipe.bind(this));
+	
+	        this.isTouched = false;
+	    }
+	
+	    /**
+	     * Record touch data, if selective is false.
+	     * @private
+	     * @method track
+	     * @param {Object} data touch data
+	     */
+	    TouchTracker.prototype.track = function track(data) {
+	        this.touchHistory[data.identifier] = [data];
+	    };
+	
+	    module.exports = TouchTracker;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7698,8 +8943,8 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(44);
-	    var EventHandler = __webpack_require__(32);
+	    var Entity = __webpack_require__(49);
+	    var EventHandler = __webpack_require__(37);
 	    var Transform = __webpack_require__(18);
 	
 	    var usePrefix = !('transform' in document.documentElement.style);
@@ -8019,7 +9264,160 @@
 
 
 /***/ },
-/* 37 */
+/* 44 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: felix@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var OptionsManager = __webpack_require__(38);
+	    var Transform = __webpack_require__(18);
+	    var ViewSequence = __webpack_require__(51);
+	    var Utility = __webpack_require__(21);
+	
+	    /**
+	     * SequentialLayout will lay out a collection of renderables sequentially in the specified direction.
+	     * @class SequentialLayout
+	     * @constructor
+	     * @param {Options} [options] An object of configurable options.
+	     * @param {Number} [options.direction=Utility.Direction.Y] Using the direction helper found in the famous Utility
+	     * module, this option will lay out the SequentialLayout instance's renderables either horizontally
+	     * (x) or vertically (y). Utility's direction is essentially either zero (X) or one (Y), so feel free
+	     * to just use integers as well.
+	     */
+	    function SequentialLayout(options) {
+	        this._items = null;
+	        this._size = null;
+	        this._outputFunction = SequentialLayout.DEFAULT_OUTPUT_FUNCTION;
+	
+	        this.options = Utility.clone(this.constructor.DEFAULT_OPTIONS || SequentialLayout.DEFAULT_OPTIONS);
+	        this.optionsManager = new OptionsManager(this.options);
+	
+	        if (options) this.setOptions(options);
+	    }
+	
+	    SequentialLayout.DEFAULT_OPTIONS = {
+	        direction: Utility.Direction.Y,
+	        itemSpacing: 0
+	    };
+	
+	    SequentialLayout.DEFAULT_OUTPUT_FUNCTION = function DEFAULT_OUTPUT_FUNCTION(input, offset, index) {
+	        var transform = (this.options.direction === Utility.Direction.X) ? Transform.translate(offset, 0) : Transform.translate(0, offset);
+	        return {
+	            transform: transform,
+	            target: input.render()
+	        };
+	    };
+	
+	    /**
+	     * Returns the width and the height of the SequentialLayout instance.
+	     *
+	     * @method getSize
+	     * @return {Array} A two value array of the SequentialLayout instance's current width and height (in that order).
+	     */
+	    SequentialLayout.prototype.getSize = function getSize() {
+	        if (!this._size) this.render(); // hack size in
+	        return this._size;
+	    };
+	
+	    /**
+	     * Sets the collection of renderables under the SequentialLayout instance's control.
+	     *
+	     * @method sequenceFrom
+	     * @param {Array|ViewSequence} items Either an array of renderables or a Famous viewSequence.
+	     * @chainable
+	     */
+	    SequentialLayout.prototype.sequenceFrom = function sequenceFrom(items) {
+	        if (items instanceof Array) items = new ViewSequence(items);
+	        this._items = items;
+	        return this;
+	    };
+	
+	    /**
+	     * Patches the SequentialLayout instance's options with the passed-in ones.
+	     *
+	     * @method setOptions
+	     * @param {Options} options An object of configurable options for the SequentialLayout instance.
+	     * @chainable
+	     */
+	    SequentialLayout.prototype.setOptions = function setOptions(options) {
+	        this.optionsManager.setOptions.apply(this.optionsManager, arguments);
+	        return this;
+	    };
+	
+	    /**
+	     * setOutputFunction is used to apply a user-defined output transform on each processed renderable.
+	     *  For a good example, check out SequentialLayout's own DEFAULT_OUTPUT_FUNCTION in the code.
+	     *
+	     * @method setOutputFunction
+	     * @param {Function} outputFunction An output processer for each renderable in the SequentialLayout
+	     * instance.
+	     * @chainable
+	     */
+	    SequentialLayout.prototype.setOutputFunction = function setOutputFunction(outputFunction) {
+	        this._outputFunction = outputFunction;
+	        return this;
+	    };
+	
+	    /**
+	     * Generate a render spec from the contents of this component.
+	     *
+	     * @private
+	     * @method render
+	     * @return {number} Render spec for this component
+	     */
+	    SequentialLayout.prototype.render = function render() {
+	        var length             = 0;
+	        var secondaryDirection = this.options.direction ^ 1;
+	        var currentNode        = this._items;
+	        var item               = null;
+	        var itemSize           = [];
+	        var output             = {};
+	        var result             = [];
+	        var i                  = 0;
+	
+	        this._size = [0, 0];
+	
+	        while (currentNode) {
+	            item = currentNode.get();
+	            if (!item) break;
+	
+	            if (item.getSize) itemSize = item.getSize();
+	
+	            output = this._outputFunction.call(this, item, length, i++);
+	            result.push(output);
+	
+	            if (itemSize) {
+	                if (itemSize[this.options.direction]) length += itemSize[this.options.direction];
+	                if (itemSize[secondaryDirection] > this._size[secondaryDirection]) this._size[secondaryDirection] = itemSize[secondaryDirection];
+	                if (itemSize[secondaryDirection] === 0) this._size[secondaryDirection] = undefined;
+	            }
+	
+	            currentNode = currentNode.getNext();
+	
+	            if (this.options.itemSpacing && currentNode) length += this.options.itemSpacing;
+	        }
+	
+	        this._size[this.options.direction] = length;
+	
+	        return {
+	            size: this.getSize(),
+	            target: result
+	        };
+	    };
+	
+	    module.exports = SequentialLayout;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+/***/ },
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8032,167 +9430,207 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(44);
-	    var SpecParser = __webpack_require__(45);
-	
 	    /**
-	     * A wrapper for inserting a renderable component (like a Modifer or
-	     *   Surface) into the render tree.
+	     * EventEmitter represents a channel for events.
 	     *
-	     * @class RenderNode
+	     * @class EventEmitter
 	     * @constructor
-	     *
-	     * @param {Object} object Target renderable component
 	     */
-	    function RenderNode(object) {
-	        this._object = null;
-	        this._child = null;
-	        this._hasMultipleChildren = false;
-	        this._isRenderable = false;
-	        this._isModifier = false;
-	
-	        this._resultCache = {};
-	        this._prevResults = {};
-	
-	        this._childResult = null;
-	
-	        if (object) this.set(object);
+	    function EventEmitter() {
+	        this.listeners = {};
+	        this._owner = this;
 	    }
 	
 	    /**
-	     * Append a renderable to the list of this node's children.
-	     *   This produces a new RenderNode in the tree.
-	     *   Note: Does not double-wrap if child is a RenderNode already.
+	     * Trigger an event, sending to all downstream handlers
+	     *   listening for provided 'type' key.
 	     *
-	     * @method add
-	     * @param {Object} child renderable object
-	     * @return {RenderNode} new render node wrapping child
+	     * @method emit
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {Object} event event data
+	     * @return {EventHandler} this
 	     */
-	    RenderNode.prototype.add = function add(child) {
-	        var childNode = (child instanceof RenderNode) ? child : new RenderNode(child);
-	        if (this._child instanceof Array) this._child.push(childNode);
-	        else if (this._child) {
-	            this._child = [this._child, childNode];
-	            this._hasMultipleChildren = true;
-	            this._childResult = []; // to be used later
-	        }
-	        else this._child = childNode;
-	
-	        return childNode;
-	    };
-	
-	    /**
-	     * Return the single wrapped object.  Returns null if this node has multiple child nodes.
-	     *
-	     * @method get
-	     *
-	     * @return {Ojbect} contained renderable object
-	     */
-	    RenderNode.prototype.get = function get() {
-	        return this._object || (this._hasMultipleChildren ? null : (this._child ? this._child.get() : null));
-	    };
-	
-	    /**
-	     * Overwrite the list of children to contain the single provided object
-	     *
-	     * @method set
-	     * @param {Object} child renderable object
-	     * @return {RenderNode} this render node, or child if it is a RenderNode
-	     */
-	    RenderNode.prototype.set = function set(child) {
-	        this._childResult = null;
-	        this._hasMultipleChildren = false;
-	        this._isRenderable = child.render ? true : false;
-	        this._isModifier = child.modify ? true : false;
-	        this._object = child;
-	        this._child = null;
-	        if (child instanceof RenderNode) return child;
-	        else return this;
-	    };
-	
-	    /**
-	     * Get render size of contained object.
-	     *
-	     * @method getSize
-	     * @return {Array.Number} size of this or size of single child.
-	     */
-	    RenderNode.prototype.getSize = function getSize() {
-	        var result = null;
-	        var target = this.get();
-	        if (target && target.getSize) result = target.getSize();
-	        if (!result && this._child && this._child.getSize) result = this._child.getSize();
-	        return result;
-	    };
-	
-	    // apply results of rendering this subtree to the document
-	    function _applyCommit(spec, context, cacheStorage) {
-	        var result = SpecParser.parse(spec, context);
-	        var keys = Object.keys(result);
-	        for (var i = 0; i < keys.length; i++) {
-	            var id = keys[i];
-	            var childNode = Entity.get(id);
-	            var commitParams = result[id];
-	            commitParams.allocator = context.allocator;
-	            var commitResult = childNode.commit(commitParams);
-	            if (commitResult) _applyCommit(commitResult, context, cacheStorage);
-	            else cacheStorage[id] = commitParams;
-	        }
-	    }
-	
-	    /**
-	     * Commit the content change from this node to the document.
-	     *
-	     * @private
-	     * @method commit
-	     * @param {Context} context render context
-	     */
-	    RenderNode.prototype.commit = function commit(context) {
-	        // free up some divs from the last loop
-	        var prevKeys = Object.keys(this._prevResults);
-	        for (var i = 0; i < prevKeys.length; i++) {
-	            var id = prevKeys[i];
-	            if (this._resultCache[id] === undefined) {
-	                var object = Entity.get(id);
-	                if (object.cleanup) object.cleanup(context.allocator);
+	    EventEmitter.prototype.emit = function emit(type, event) {
+	        var handlers = this.listeners[type];
+	        if (handlers) {
+	            for (var i = 0; i < handlers.length; i++) {
+	                handlers[i].call(this._owner, event);
 	            }
 	        }
-	
-	        this._prevResults = this._resultCache;
-	        this._resultCache = {};
-	        _applyCommit(this.render(), context, this._resultCache);
+	        return this;
 	    };
 	
 	    /**
-	     * Generate a render spec from the contents of the wrapped component.
+	     * Bind a callback function to an event type handled by this object.
 	     *
-	     * @private
-	     * @method render
+	     * @method "on"
 	     *
-	     * @return {Object} render specification for the component subtree
-	     *    only under this node.
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function(string, Object)} handler callback
+	     * @return {EventHandler} this
 	     */
-	    RenderNode.prototype.render = function render() {
-	        if (this._isRenderable) return this._object.render();
-	
-	        var result = null;
-	        if (this._hasMultipleChildren) {
-	            result = this._childResult;
-	            var children = this._child;
-	            for (var i = 0; i < children.length; i++) {
-	                result[i] = children[i].render();
-	            }
-	        }
-	        else if (this._child) result = this._child.render();
-	
-	        return this._isModifier ? this._object.modify(result) : result;
+	   EventEmitter.prototype.on = function on(type, handler) {
+	        if (!(type in this.listeners)) this.listeners[type] = [];
+	        var index = this.listeners[type].indexOf(handler);
+	        if (index < 0) this.listeners[type].push(handler);
+	        return this;
 	    };
 	
-	    module.exports = RenderNode;
+	    /**
+	     * Alias for "on".
+	     * @method addListener
+	     */
+	    EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+	
+	   /**
+	     * Unbind an event by type and handler.
+	     *   This undoes the work of "on".
+	     *
+	     * @method removeListener
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function} handler function object to remove
+	     * @return {EventEmitter} this
+	     */
+	    EventEmitter.prototype.removeListener = function removeListener(type, handler) {
+	        var listener = this.listeners[type];
+	        if (listener !== undefined) {
+	            var index = listener.indexOf(handler);
+	            if (index >= 0) listener.splice(index, 1);
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Call event handlers with this set to owner.
+	     *
+	     * @method bindThis
+	     *
+	     * @param {Object} owner object this EventEmitter belongs to
+	     */
+	    EventEmitter.prototype.bindThis = function bindThis(owner) {
+	        this._owner = owner;
+	    };
+	
+	    module.exports = EventEmitter;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
-/* 38 */
+/* 46 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    /**
+	     * Internal helper object to Context that handles the process of
+	     *   creating and allocating DOM elements within a managed div.
+	     *   Private.
+	     *
+	     * @class ElementAllocator
+	     * @constructor
+	     * @private
+	     * @param {Node} container document element in which Famo.us content will be inserted
+	     */
+	    function ElementAllocator(container) {
+	        if (!container) container = document.createDocumentFragment();
+	        this.container = container;
+	        this.detachedNodes = {};
+	        this.nodeCount = 0;
+	    }
+	
+	    /**
+	     * Move the document elements from their original container to a new one.
+	     *
+	     * @private
+	     * @method migrate
+	     *
+	     * @param {Node} container document element to which Famo.us content will be migrated
+	     */
+	    ElementAllocator.prototype.migrate = function migrate(container) {
+	        var oldContainer = this.container;
+	        if (container === oldContainer) return;
+	
+	        if (oldContainer instanceof DocumentFragment) {
+	            container.appendChild(oldContainer);
+	        }
+	        else {
+	            while (oldContainer.hasChildNodes()) {
+	                container.appendChild(oldContainer.removeChild(oldContainer.firstChild));
+	            }
+	        }
+	
+	        this.container = container;
+	    };
+	
+	    /**
+	     * Allocate an element of specified type from the pool.
+	     *
+	     * @private
+	     * @method allocate
+	     *
+	     * @param {string} type type of element, e.g. 'div'
+	     * @return {Node} allocated document element
+	     */
+	    ElementAllocator.prototype.allocate = function allocate(type) {
+	        type = type.toLowerCase();
+	        if (!(type in this.detachedNodes)) this.detachedNodes[type] = [];
+	        var nodeStore = this.detachedNodes[type];
+	        var result;
+	        if (nodeStore.length > 0) {
+	            result = nodeStore.pop();
+	        }
+	        else {
+	            result = document.createElement(type);
+	            this.container.appendChild(result);
+	        }
+	        this.nodeCount++;
+	        return result;
+	    };
+	
+	    /**
+	     * De-allocate an element of specified type to the pool.
+	     *
+	     * @private
+	     * @method deallocate
+	     *
+	     * @param {Node} element document element to deallocate
+	     */
+	    ElementAllocator.prototype.deallocate = function deallocate(element) {
+	        var nodeType = element.nodeName.toLowerCase();
+	        var nodeStore = this.detachedNodes[nodeType];
+	        nodeStore.push(element);
+	        this.nodeCount--;
+	    };
+	
+	    /**
+	     * Get count of total allocated nodes in the document.
+	     *
+	     * @private
+	     * @method getNodeCount
+	     *
+	     * @return {Number} total node count
+	     */
+	    ElementAllocator.prototype.getNodeCount = function getNodeCount() {
+	        return this.nodeCount;
+	    };
+	
+	    module.exports = ElementAllocator;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8205,7 +9643,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Utility = __webpack_require__(35);
+	    var Utility = __webpack_require__(21);
 	
 	    /**
 	     * Transition meta-method to support transitioning multiple
@@ -8275,7 +9713,7 @@
 
 
 /***/ },
-/* 39 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8707,7 +10145,7 @@
 
 
 /***/ },
-/* 40 */
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8720,106 +10158,77 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	
 	    /**
-	     * Internal helper object to Context that handles the process of
-	     *   creating and allocating DOM elements within a managed div.
+	     * A singleton that maintains a global registry of Surfaces.
 	     *   Private.
 	     *
-	     * @class ElementAllocator
-	     * @constructor
 	     * @private
-	     * @param {Node} container document element in which Famo.us content will be inserted
+	     * @static
+	     * @class Entity
 	     */
-	    function ElementAllocator(container) {
-	        if (!container) container = document.createDocumentFragment();
-	        this.container = container;
-	        this.detachedNodes = {};
-	        this.nodeCount = 0;
+	
+	    var entities = [];
+	
+	    /**
+	     * Get entity from global index.
+	     *
+	     * @private
+	     * @method get
+	     * @param {Number} id entity registration id
+	     * @return {Surface} entity in the global index
+	     */
+	    function get(id) {
+	        return entities[id];
 	    }
 	
 	    /**
-	     * Move the document elements from their original container to a new one.
+	     * Overwrite entity in the global index
 	     *
 	     * @private
-	     * @method migrate
-	     *
-	     * @param {Node} container document element to which Famo.us content will be migrated
+	     * @method set
+	     * @param {Number} id entity registration id
+	     * @param {Surface} entity to add to the global index
 	     */
-	    ElementAllocator.prototype.migrate = function migrate(container) {
-	        var oldContainer = this.container;
-	        if (container === oldContainer) return;
-	
-	        if (oldContainer instanceof DocumentFragment) {
-	            container.appendChild(oldContainer);
-	        }
-	        else {
-	            while (oldContainer.hasChildNodes()) {
-	                container.appendChild(oldContainer.removeChild(oldContainer.firstChild));
-	            }
-	        }
-	
-	        this.container = container;
-	    };
+	    function set(id, entity) {
+	        entities[id] = entity;
+	    }
 	
 	    /**
-	     * Allocate an element of specified type from the pool.
+	     * Add entity to global index
 	     *
 	     * @private
-	     * @method allocate
-	     *
-	     * @param {string} type type of element, e.g. 'div'
-	     * @return {Node} allocated document element
+	     * @method register
+	     * @param {Surface} entity to add to global index
+	     * @return {Number} new id
 	     */
-	    ElementAllocator.prototype.allocate = function allocate(type) {
-	        type = type.toLowerCase();
-	        if (!(type in this.detachedNodes)) this.detachedNodes[type] = [];
-	        var nodeStore = this.detachedNodes[type];
-	        var result;
-	        if (nodeStore.length > 0) {
-	            result = nodeStore.pop();
-	        }
-	        else {
-	            result = document.createElement(type);
-	            this.container.appendChild(result);
-	        }
-	        this.nodeCount++;
-	        return result;
-	    };
+	    function register(entity) {
+	        var id = entities.length;
+	        set(id, entity);
+	        return id;
+	    }
 	
 	    /**
-	     * De-allocate an element of specified type to the pool.
+	     * Remove entity from global index
 	     *
 	     * @private
-	     * @method deallocate
-	     *
-	     * @param {Node} element document element to deallocate
+	     * @method unregister
+	     * @param {Number} id entity registration id
 	     */
-	    ElementAllocator.prototype.deallocate = function deallocate(element) {
-	        var nodeType = element.nodeName.toLowerCase();
-	        var nodeStore = this.detachedNodes[nodeType];
-	        nodeStore.push(element);
-	        this.nodeCount--;
-	    };
+	    function unregister(id) {
+	        set(id, null);
+	    }
 	
-	    /**
-	     * Get count of total allocated nodes in the document.
-	     *
-	     * @private
-	     * @method getNodeCount
-	     *
-	     * @return {Number} total node count
-	     */
-	    ElementAllocator.prototype.getNodeCount = function getNodeCount() {
-	        return this.nodeCount;
+	    module.exports = {
+	        register: register,
+	        unregister: unregister,
+	        get: get,
+	        set: set
 	    };
-	
-	    module.exports = ElementAllocator;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
-/* 41 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8832,95 +10241,176 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Transform = __webpack_require__(18);
+	
 	    /**
-	     * EventEmitter represents a channel for events.
 	     *
-	     * @class EventEmitter
+	     * This object translates the rendering instructions ("render specs")
+	     *   that renderable components generate into document update
+	     *   instructions ("update specs").  Private.
+	     *
+	     * @private
+	     * @class SpecParser
 	     * @constructor
 	     */
-	    function EventEmitter() {
-	        this.listeners = {};
-	        this._owner = this;
+	    function SpecParser() {
+	        this.result = {};
+	    }
+	    SpecParser._instance = new SpecParser();
+	
+	    /**
+	     * Convert a render spec coming from the context's render chain to an
+	     *    update spec for the update chain. This is the only major entry point
+	     *    for a consumer of this class.
+	     *
+	     * @method parse
+	     * @static
+	     * @private
+	     *
+	     * @param {renderSpec} spec input render spec
+	     * @param {Object} context context to do the parse in
+	     * @return {Object} the resulting update spec (if no callback
+	     *   specified, else none)
+	     */
+	    SpecParser.parse = function parse(spec, context) {
+	        return SpecParser._instance.parse(spec, context);
+	    };
+	
+	    /**
+	     * Convert a renderSpec coming from the context's render chain to an update
+	     *    spec for the update chain. This is the only major entrypoint for a
+	     *    consumer of this class.
+	     *
+	     * @method parse
+	     *
+	     * @private
+	     * @param {renderSpec} spec input render spec
+	     * @param {Context} context
+	     * @return {updateSpec} the resulting update spec
+	     */
+	    SpecParser.prototype.parse = function parse(spec, context) {
+	        this.reset();
+	        this._parseSpec(spec, context, Transform.identity);
+	        return this.result;
+	    };
+	
+	    /**
+	     * Prepare SpecParser for re-use (or first use) by setting internal state
+	     *  to blank.
+	     *
+	     * @private
+	     * @method reset
+	     */
+	    SpecParser.prototype.reset = function reset() {
+	        this.result = {};
+	    };
+	
+	    // Multiply matrix M by vector v
+	    function _vecInContext(v, m) {
+	        return [
+	            v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
+	            v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
+	            v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
+	        ];
 	    }
 	
-	    /**
-	     * Trigger an event, sending to all downstream handlers
-	     *   listening for provided 'type' key.
-	     *
-	     * @method emit
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {Object} event event data
-	     * @return {EventHandler} this
-	     */
-	    EventEmitter.prototype.emit = function emit(type, event) {
-	        var handlers = this.listeners[type];
-	        if (handlers) {
-	            for (var i = 0; i < handlers.length; i++) {
-	                handlers[i].call(this._owner, event);
+	    var _zeroZero = [0, 0];
+	
+	    // From the provided renderSpec tree, recursively compose opacities,
+	    //    origins, transforms, and sizes corresponding to each surface id from
+	    //    the provided renderSpec tree structure. On completion, those
+	    //    properties of 'this' object should be ready to use to build an
+	    //    updateSpec.
+	    SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
+	        var id;
+	        var target;
+	        var transform;
+	        var opacity;
+	        var origin;
+	        var align;
+	        var size;
+	
+	        if (typeof spec === 'number') {
+	            id = spec;
+	            transform = parentContext.transform;
+	            align = parentContext.align || _zeroZero;
+	            if (parentContext.size && align && (align[0] || align[1])) {
+	                var alignAdjust = [align[0] * parentContext.size[0], align[1] * parentContext.size[1], 0];
+	                transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
+	            }
+	            this.result[id] = {
+	                transform: transform,
+	                opacity: parentContext.opacity,
+	                origin: parentContext.origin || _zeroZero,
+	                align: parentContext.align || _zeroZero,
+	                size: parentContext.size
+	            };
+	        }
+	        else if (!spec) { // placed here so 0 will be cached earlier
+	            return;
+	        }
+	        else if (spec instanceof Array) {
+	            for (var i = 0; i < spec.length; i++) {
+	                this._parseSpec(spec[i], parentContext, sizeContext);
 	            }
 	        }
-	        return this;
-	    };
+	        else {
+	            target = spec.target;
+	            transform = parentContext.transform;
+	            opacity = parentContext.opacity;
+	            origin = parentContext.origin;
+	            align = parentContext.align;
+	            size = parentContext.size;
+	            var nextSizeContext = sizeContext;
 	
-	    /**
-	     * Bind a callback function to an event type handled by this object.
-	     *
-	     * @method "on"
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function(string, Object)} handler callback
-	     * @return {EventHandler} this
-	     */
-	   EventEmitter.prototype.on = function on(type, handler) {
-	        if (!(type in this.listeners)) this.listeners[type] = [];
-	        var index = this.listeners[type].indexOf(handler);
-	        if (index < 0) this.listeners[type].push(handler);
-	        return this;
-	    };
+	            if (spec.opacity !== undefined) opacity = parentContext.opacity * spec.opacity;
+	            if (spec.transform) transform = Transform.multiply(parentContext.transform, spec.transform);
+	            if (spec.origin) {
+	                origin = spec.origin;
+	                nextSizeContext = parentContext.transform;
+	            }
+	            if (spec.align) align = spec.align;
 	
-	    /**
-	     * Alias for "on".
-	     * @method addListener
-	     */
-	    EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+	            if (spec.size || spec.proportions) {
+	                var parentSize = size;
+	                size = [size[0], size[1]];
 	
-	   /**
-	     * Unbind an event by type and handler.
-	     *   This undoes the work of "on".
-	     *
-	     * @method removeListener
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function} handler function object to remove
-	     * @return {EventEmitter} this
-	     */
-	    EventEmitter.prototype.removeListener = function removeListener(type, handler) {
-	        var listener = this.listeners[type];
-	        if (listener !== undefined) {
-	            var index = listener.indexOf(handler);
-	            if (index >= 0) listener.splice(index, 1);
+	                if (spec.size) {
+	                    if (spec.size[0] !== undefined) size[0] = spec.size[0];
+	                    if (spec.size[1] !== undefined) size[1] = spec.size[1];
+	                }
+	
+	                if (spec.proportions) {
+	                    if (spec.proportions[0] !== undefined) size[0] = size[0] * spec.proportions[0];
+	                    if (spec.proportions[1] !== undefined) size[1] = size[1] * spec.proportions[1];
+	                }
+	
+	                if (parentSize) {
+	                    if (align && (align[0] || align[1])) transform = Transform.thenMove(transform, _vecInContext([align[0] * parentSize[0], align[1] * parentSize[1], 0], sizeContext));
+	                    if (origin && (origin[0] || origin[1])) transform = Transform.moveThen([-origin[0] * size[0], -origin[1] * size[1], 0], transform);
+	                }
+	
+	                nextSizeContext = parentContext.transform;
+	                origin = null;
+	                align = null;
+	            }
+	
+	            this._parseSpec(target, {
+	                transform: transform,
+	                opacity: opacity,
+	                origin: origin,
+	                align: align,
+	                size: size
+	            }, nextSizeContext);
 	        }
-	        return this;
 	    };
 	
-	    /**
-	     * Call event handlers with this set to owner.
-	     *
-	     * @method bindThis
-	     *
-	     * @param {Object} owner object this EventEmitter belongs to
-	     */
-	    EventEmitter.prototype.bindThis = function bindThis(owner) {
-	        this._owner = owner;
-	    };
-	
-	    module.exports = EventEmitter;
+	    module.exports = SpecParser;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
-/* 42 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9260,3289 +10750,6 @@
 	    };
 	
 	    module.exports = ViewSequence;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 43 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(44);
-	    var Group = __webpack_require__(53);
-	    var OptionsManager = __webpack_require__(33);
-	    var Transform = __webpack_require__(18);
-	    var Utility = __webpack_require__(35);
-	    var ViewSequence = __webpack_require__(42);
-	    var EventHandler = __webpack_require__(32);
-	
-	    /**
-	     * Scroller lays out a collection of renderables, and will browse through them based on
-	     * accessed position. Scroller also broadcasts an 'edgeHit' event, with a position property of the location of the edge,
-	     * when you've hit the 'edges' of it's renderable collection.
-	     * @class Scroller
-	     * @constructor
-	      * @event error
-	     * @param {Options} [options] An object of configurable options.
-	     * @param {Number} [options.direction=Utility.Direction.Y] Using the direction helper found in the famous Utility
-	     * module, this option will lay out the Scroller instance's renderables either horizontally
-	     * (x) or vertically (y). Utility's direction is essentially either zero (X) or one (Y), so feel free
-	     * to just use integers as well.
-	     * @param {Number} [clipSize=undefined] The size of the area (in pixels) that Scroller will display content in.
-	     * @param {Number} [margin=undefined] The size of the area (in pixels) that Scroller will process renderables' associated calculations in.
-	     */
-	    function Scroller(options) {
-	        this.options = Object.create(this.constructor.DEFAULT_OPTIONS);
-	        this._optionsManager = new OptionsManager(this.options);
-	        if (options) this._optionsManager.setOptions(options);
-	
-	        this._node = null;
-	        this._position = 0;
-	
-	        // used for shifting nodes
-	        this._positionOffset = 0;
-	
-	        this._positionGetter = null;
-	        this._outputFunction = null;
-	        this._masterOutputFunction = null;
-	        this.outputFrom();
-	
-	        this._onEdge = 0; // -1 for top, 1 for bottom
-	
-	        this.group = new Group();
-	        this.group.add({render: _innerRender.bind(this)});
-	
-	        this._entityId = Entity.register(this);
-	        this._size = [undefined, undefined];
-	        this._contextSize = [undefined, undefined];
-	
-	        this._eventInput = new EventHandler();
-	        this._eventOutput = new EventHandler();
-	
-	        EventHandler.setInputHandler(this, this._eventInput);
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	    }
-	
-	    Scroller.DEFAULT_OPTIONS = {
-	        direction: Utility.Direction.Y,
-	        margin: 0,
-	        clipSize: undefined,
-	        groupScroll: false
-	    };
-	
-	    var EDGE_TOLERANCE = 0; //slop for detecting passing the edge
-	
-	    function _sizeForDir(size) {
-	        if (!size) size = this._contextSize;
-	        var dimension = this.options.direction;
-	        return (size[dimension] === undefined) ? this._contextSize[dimension] : size[dimension];
-	    }
-	
-	    function _output(node, offset, target) {
-	        var size = node.getSize ? node.getSize() : this._contextSize;
-	        var transform = this._outputFunction(offset);
-	        target.push({transform: transform, target: node.render()});
-	        return _sizeForDir.call(this, size);
-	    }
-	
-	    function _getClipSize() {
-	        if (this.options.clipSize !== undefined) return this.options.clipSize;
-	        if (this._contextSize[this.options.direction] > this.getCumulativeSize()[this.options.direction]) {
-	            return _sizeForDir.call(this, this.getCumulativeSize());
-	        } else {
-	            return _sizeForDir.call(this, this._contextSize);
-	        }
-	    }
-	
-	    /**
-	    * Returns the cumulative size of the renderables in the view sequence
-	    * @method getCumulativeSize
-	    * @return {array} a two value array of the view sequence's cumulative size up to the index.
-	    */
-	    Scroller.prototype.getCumulativeSize = function(index) {
-	        if (index === undefined) index = this._node._.cumulativeSizes.length - 1;
-	        return this._node._.getSize(index);
-	    };
-	
-	    /**
-	     * Patches the Scroller instance's options with the passed-in ones.
-	     * @method setOptions
-	     * @param {Options} options An object of configurable options for the Scroller instance.
-	     */
-	    Scroller.prototype.setOptions = function setOptions(options) {
-	        if (options.groupScroll !== this.options.groupScroll) {
-	            if (options.groupScroll)
-	                this.group.pipe(this._eventOutput);
-	            else
-	                this.group.unpipe(this._eventOutput);
-	        }
-	        this._optionsManager.setOptions(options);
-	    };
-	
-	    /**
-	     * Tells you if the Scroller instance is on an edge.
-	     * @method onEdge
-	     * @return {Boolean} Whether the Scroller instance is on an edge or not.
-	     */
-	    Scroller.prototype.onEdge = function onEdge() {
-	        return this._onEdge;
-	    };
-	
-	    /**
-	     * Allows you to overwrite the way Scroller lays out it's renderables. Scroller will
-	     * pass an offset into the function. By default the Scroller instance just translates each node
-	     * in it's direction by the passed-in offset.
-	     * Scroller will translate each renderable down
-	     * @method outputFrom
-	     * @param {Function} fn A function that takes an offset and returns a transform.
-	     * @param {Function} [masterFn]
-	     */
-	    Scroller.prototype.outputFrom = function outputFrom(fn, masterFn) {
-	        if (!fn) {
-	            fn = function(offset) {
-	                return (this.options.direction === Utility.Direction.X) ? Transform.translate(offset, 0) : Transform.translate(0, offset);
-	            }.bind(this);
-	            if (!masterFn) masterFn = fn;
-	        }
-	        this._outputFunction = fn;
-	        this._masterOutputFunction = masterFn ? masterFn : function(offset) {
-	            return Transform.inverse(fn(-offset));
-	        };
-	    };
-	
-	    /**
-	     * The Scroller instance's method for reading from an external position. Scroller uses
-	     * the external position to actually scroll through it's renderables.
-	     * @method positionFrom
-	     * @param {Getter} position Can be either a function that returns a position,
-	     * or an object with a get method that returns a position.
-	     */
-	    Scroller.prototype.positionFrom = function positionFrom(position) {
-	        if (position instanceof Function) this._positionGetter = position;
-	        else if (position && position.get) this._positionGetter = position.get.bind(position);
-	        else {
-	            this._positionGetter = null;
-	            this._position = position;
-	        }
-	        if (this._positionGetter) this._position = this._positionGetter.call(this);
-	    };
-	
-	    /**
-	     * Sets the collection of renderables under the Scroller instance's control.
-	     *
-	     * @method sequenceFrom
-	     * @param node {Array|ViewSequence} Either an array of renderables or a Famous viewSequence.
-	     * @chainable
-	     */
-	    Scroller.prototype.sequenceFrom = function sequenceFrom(node) {
-	        if (node instanceof Array) node = new ViewSequence({array: node});
-	        this._node = node;
-	        this._positionOffset = 0;
-	    };
-	
-	    /**
-	     * Returns the width and the height of the Scroller instance.
-	     *
-	     * @method getSize
-	     * @return {Array} A two value array of the Scroller instance's current width and height (in that order).
-	     */
-	    Scroller.prototype.getSize = function getSize(actual) {
-	        return actual ? this._contextSize : this._size;
-	    };
-	
-	    /**
-	     * Generate a render spec from the contents of this component.
-	     *
-	     * @private
-	     * @method render
-	     * @return {number} Render spec for this component
-	     */
-	    Scroller.prototype.render = function render() {
-	        if (!this._node) return null;
-	        if (this._positionGetter) this._position = this._positionGetter.call(this);
-	        return this._entityId;
-	    };
-	
-	    /**
-	     * Apply changes from this component to the corresponding document element.
-	     * This includes changes to classes, styles, size, content, opacity, origin,
-	     * and matrix transforms.
-	     *
-	     * @private
-	     * @method commit
-	     * @param {Context} context commit context
-	     */
-	    Scroller.prototype.commit = function commit(context) {
-	        var transform = context.transform;
-	        var opacity = context.opacity;
-	        var origin = context.origin;
-	        var size = context.size;
-	
-	        // reset edge detection on size change
-	        if (!this.options.clipSize && (size[0] !== this._contextSize[0] || size[1] !== this._contextSize[1])) {
-	            this._onEdge = 0;
-	            this._contextSize[0] = size[0];
-	            this._contextSize[1] = size[1];
-	
-	            if (this.options.direction === Utility.Direction.X) {
-	                this._size[0] = _getClipSize.call(this);
-	                this._size[1] = undefined;
-	            }
-	            else {
-	                this._size[0] = undefined;
-	                this._size[1] = _getClipSize.call(this);
-	            }
-	        }
-	
-	        var scrollTransform = this._masterOutputFunction(-this._position);
-	
-	        return {
-	            transform: Transform.multiply(transform, scrollTransform),
-	            size: size,
-	            opacity: opacity,
-	            origin: origin,
-	            target: this.group.render()
-	        };
-	    };
-	
-	    function _innerRender() {
-	        var size = null;
-	        var position = this._position;
-	        var result = [];
-	
-	        var offset = -this._positionOffset;
-	        var clipSize = _getClipSize.call(this);
-	        var currNode = this._node;
-	        while (currNode && offset - position < clipSize + this.options.margin) {
-	            offset += _output.call(this, currNode, offset, result);
-	            currNode = currNode.getNext ? currNode.getNext() : null;
-	        }
-	
-	        var sizeNode = this._node;
-	        var nodesSize = _sizeForDir.call(this, sizeNode.getSize());
-	        if (offset < clipSize) {
-	            while (sizeNode && nodesSize < clipSize) {
-	                sizeNode = sizeNode.getPrevious();
-	                if (sizeNode) nodesSize += _sizeForDir.call(this, sizeNode.getSize());
-	            }
-	            sizeNode = this._node;
-	            while (sizeNode && nodesSize < clipSize) {
-	                sizeNode = sizeNode.getNext();
-	                if (sizeNode) nodesSize += _sizeForDir.call(this, sizeNode.getSize());
-	            }
-	        }
-	
-	        if (!currNode && offset - position < clipSize - EDGE_TOLERANCE) {
-	            if (this._onEdge !== 1){
-	                this._onEdge = 1;
-	                this._eventOutput.emit('onEdge', {
-	                    position: offset - clipSize
-	                });
-	            }
-	        }
-	        else if (!this._node.getPrevious() && position < -EDGE_TOLERANCE) {
-	            if (this._onEdge !== -1) {
-	                this._onEdge = -1;
-	                this._eventOutput.emit('onEdge', {
-	                    position: 0
-	                });
-	            }
-	        }
-	        else {
-	            if (this._onEdge !== 0){
-	                this._onEdge = 0;
-	                this._eventOutput.emit('offEdge');
-	            }
-	        }
-	
-	        // backwards
-	        currNode = (this._node && this._node.getPrevious) ? this._node.getPrevious() : null;
-	        offset = -this._positionOffset;
-	        if (currNode) {
-	            size = currNode.getSize ? currNode.getSize() : this._contextSize;
-	            offset -= _sizeForDir.call(this, size);
-	        }
-	
-	        while (currNode && ((offset - position) > -(clipSize + this.options.margin))) {
-	            _output.call(this, currNode, offset, result);
-	            currNode = currNode.getPrevious ? currNode.getPrevious() : null;
-	            if (currNode) {
-	                size = currNode.getSize ? currNode.getSize() : this._contextSize;
-	                offset -= _sizeForDir.call(this, size);
-	            }
-	        }
-	
-	        return result;
-	    }
-	
-	    module.exports = Scroller;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 44 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    /**
-	     * A singleton that maintains a global registry of Surfaces.
-	     *   Private.
-	     *
-	     * @private
-	     * @static
-	     * @class Entity
-	     */
-	
-	    var entities = [];
-	
-	    /**
-	     * Get entity from global index.
-	     *
-	     * @private
-	     * @method get
-	     * @param {Number} id entity registration id
-	     * @return {Surface} entity in the global index
-	     */
-	    function get(id) {
-	        return entities[id];
-	    }
-	
-	    /**
-	     * Overwrite entity in the global index
-	     *
-	     * @private
-	     * @method set
-	     * @param {Number} id entity registration id
-	     * @param {Surface} entity to add to the global index
-	     */
-	    function set(id, entity) {
-	        entities[id] = entity;
-	    }
-	
-	    /**
-	     * Add entity to global index
-	     *
-	     * @private
-	     * @method register
-	     * @param {Surface} entity to add to global index
-	     * @return {Number} new id
-	     */
-	    function register(entity) {
-	        var id = entities.length;
-	        set(id, entity);
-	        return id;
-	    }
-	
-	    /**
-	     * Remove entity from global index
-	     *
-	     * @private
-	     * @method unregister
-	     * @param {Number} id entity registration id
-	     */
-	    function unregister(id) {
-	        set(id, null);
-	    }
-	
-	    module.exports = {
-	        register: register,
-	        unregister: unregister,
-	        get: get,
-	        set: set
-	    };
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 45 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Transform = __webpack_require__(18);
-	
-	    /**
-	     *
-	     * This object translates the rendering instructions ("render specs")
-	     *   that renderable components generate into document update
-	     *   instructions ("update specs").  Private.
-	     *
-	     * @private
-	     * @class SpecParser
-	     * @constructor
-	     */
-	    function SpecParser() {
-	        this.result = {};
-	    }
-	    SpecParser._instance = new SpecParser();
-	
-	    /**
-	     * Convert a render spec coming from the context's render chain to an
-	     *    update spec for the update chain. This is the only major entry point
-	     *    for a consumer of this class.
-	     *
-	     * @method parse
-	     * @static
-	     * @private
-	     *
-	     * @param {renderSpec} spec input render spec
-	     * @param {Object} context context to do the parse in
-	     * @return {Object} the resulting update spec (if no callback
-	     *   specified, else none)
-	     */
-	    SpecParser.parse = function parse(spec, context) {
-	        return SpecParser._instance.parse(spec, context);
-	    };
-	
-	    /**
-	     * Convert a renderSpec coming from the context's render chain to an update
-	     *    spec for the update chain. This is the only major entrypoint for a
-	     *    consumer of this class.
-	     *
-	     * @method parse
-	     *
-	     * @private
-	     * @param {renderSpec} spec input render spec
-	     * @param {Context} context
-	     * @return {updateSpec} the resulting update spec
-	     */
-	    SpecParser.prototype.parse = function parse(spec, context) {
-	        this.reset();
-	        this._parseSpec(spec, context, Transform.identity);
-	        return this.result;
-	    };
-	
-	    /**
-	     * Prepare SpecParser for re-use (or first use) by setting internal state
-	     *  to blank.
-	     *
-	     * @private
-	     * @method reset
-	     */
-	    SpecParser.prototype.reset = function reset() {
-	        this.result = {};
-	    };
-	
-	    // Multiply matrix M by vector v
-	    function _vecInContext(v, m) {
-	        return [
-	            v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
-	            v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
-	            v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
-	        ];
-	    }
-	
-	    var _zeroZero = [0, 0];
-	
-	    // From the provided renderSpec tree, recursively compose opacities,
-	    //    origins, transforms, and sizes corresponding to each surface id from
-	    //    the provided renderSpec tree structure. On completion, those
-	    //    properties of 'this' object should be ready to use to build an
-	    //    updateSpec.
-	    SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
-	        var id;
-	        var target;
-	        var transform;
-	        var opacity;
-	        var origin;
-	        var align;
-	        var size;
-	
-	        if (typeof spec === 'number') {
-	            id = spec;
-	            transform = parentContext.transform;
-	            align = parentContext.align || _zeroZero;
-	            if (parentContext.size && align && (align[0] || align[1])) {
-	                var alignAdjust = [align[0] * parentContext.size[0], align[1] * parentContext.size[1], 0];
-	                transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
-	            }
-	            this.result[id] = {
-	                transform: transform,
-	                opacity: parentContext.opacity,
-	                origin: parentContext.origin || _zeroZero,
-	                align: parentContext.align || _zeroZero,
-	                size: parentContext.size
-	            };
-	        }
-	        else if (!spec) { // placed here so 0 will be cached earlier
-	            return;
-	        }
-	        else if (spec instanceof Array) {
-	            for (var i = 0; i < spec.length; i++) {
-	                this._parseSpec(spec[i], parentContext, sizeContext);
-	            }
-	        }
-	        else {
-	            target = spec.target;
-	            transform = parentContext.transform;
-	            opacity = parentContext.opacity;
-	            origin = parentContext.origin;
-	            align = parentContext.align;
-	            size = parentContext.size;
-	            var nextSizeContext = sizeContext;
-	
-	            if (spec.opacity !== undefined) opacity = parentContext.opacity * spec.opacity;
-	            if (spec.transform) transform = Transform.multiply(parentContext.transform, spec.transform);
-	            if (spec.origin) {
-	                origin = spec.origin;
-	                nextSizeContext = parentContext.transform;
-	            }
-	            if (spec.align) align = spec.align;
-	
-	            if (spec.size || spec.proportions) {
-	                var parentSize = size;
-	                size = [size[0], size[1]];
-	
-	                if (spec.size) {
-	                    if (spec.size[0] !== undefined) size[0] = spec.size[0];
-	                    if (spec.size[1] !== undefined) size[1] = spec.size[1];
-	                }
-	
-	                if (spec.proportions) {
-	                    if (spec.proportions[0] !== undefined) size[0] = size[0] * spec.proportions[0];
-	                    if (spec.proportions[1] !== undefined) size[1] = size[1] * spec.proportions[1];
-	                }
-	
-	                if (parentSize) {
-	                    if (align && (align[0] || align[1])) transform = Transform.thenMove(transform, _vecInContext([align[0] * parentSize[0], align[1] * parentSize[1], 0], sizeContext));
-	                    if (origin && (origin[0] || origin[1])) transform = Transform.moveThen([-origin[0] * size[0], -origin[1] * size[1], 0], transform);
-	                }
-	
-	                nextSizeContext = parentContext.transform;
-	                origin = null;
-	                align = null;
-	            }
-	
-	            this._parseSpec(target, {
-	                transform: transform,
-	                opacity: opacity,
-	                origin: origin,
-	                align: align,
-	                size: size
-	            }, nextSizeContext);
-	        }
-	    };
-	
-	    module.exports = SpecParser;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 46 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(32);
-	
-	    /**
-	     * The Physics Engine is responsible for mediating bodies with their
-	     *   interaction with forces and constraints (agents). Specifically, it
-	     *   is responsible for:
-	     *
-	     *   - adding and removing bodies
-	     *   - updating a body's state over time
-	     *   - attaching and detaching agents
-	     *   - sleeping upon equillibrium and waking upon excitation
-	     *
-	     * @class PhysicsEngine
-	     * @constructor
-	     * @param options {Object} options
-	     */
-	    function PhysicsEngine(options) {
-	        this.options = Object.create(PhysicsEngine.DEFAULT_OPTIONS);
-	        if (options) this.setOptions(options);
-	
-	        this._particles      = [];   //list of managed particles
-	        this._bodies         = [];   //list of managed bodies
-	        this._agentData      = {};   //hash of managed agent data
-	        this._forces         = [];   //list of Ids of agents that are forces
-	        this._constraints    = [];   //list of Ids of agents that are constraints
-	
-	        this._buffer         = 0.0;
-	        this._prevTime       = now();
-	        this._isSleeping     = false;
-	        this._eventHandler   = null;
-	        this._currAgentId    = 0;
-	        this._hasBodies      = false;
-	        this._eventHandler   = null;
-	    }
-	
-	    /** const */
-	    var TIMESTEP = 17;
-	    var MIN_TIME_STEP = 1000 / 120;
-	    var MAX_TIME_STEP = 17;
-	
-	    var now = Date.now;
-	
-	    // Catalogue of outputted events
-	    var _events = {
-	        start : 'start',
-	        update : 'update',
-	        end : 'end'
-	    };
-	
-	    /**
-	     * @property PhysicsEngine.DEFAULT_OPTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    PhysicsEngine.DEFAULT_OPTIONS = {
-	
-	        /**
-	         * The number of iterations the engine takes to resolve constraints
-	         * @attribute constraintSteps
-	         * @type Number
-	         */
-	        constraintSteps : 1,
-	
-	        /**
-	         * The energy threshold required for the Physics Engine to update
-	         * @attribute sleepTolerance
-	         * @type Number
-	         */
-	        sleepTolerance : 1e-7,
-	
-	        /**
-	         * The maximum velocity magnitude of a physics body
-	         *      Range : [0, Infinity]
-	         * @attribute velocityCap
-	         * @type Number
-	         */
-	        velocityCap : undefined,
-	
-	        /**
-	         * The maximum angular velocity magnitude of a physics body
-	         *      Range : [0, Infinity]
-	         * @attribute angularVelocityCap
-	         * @type Number
-	         */
-	        angularVelocityCap : undefined
-	    };
-	
-	    /**
-	     * Options setter
-	     *
-	     * @method setOptions
-	     * @param opts {Object}
-	     */
-	    PhysicsEngine.prototype.setOptions = function setOptions(opts) {
-	        for (var key in opts) if (this.options[key]) this.options[key] = opts[key];
-	    };
-	
-	    /**
-	     * Method to add a physics body to the engine. Necessary to update the
-	     *   body over time.
-	     *
-	     * @method addBody
-	     * @param body {Body}
-	     * @return body {Body}
-	     */
-	    PhysicsEngine.prototype.addBody = function addBody(body) {
-	        body._engine = this;
-	        if (body.isBody) {
-	            this._bodies.push(body);
-	            this._hasBodies = true;
-	        }
-	        else this._particles.push(body);
-	        body.on('start', this.wake.bind(this));
-	        return body;
-	    };
-	
-	    /**
-	     * Remove a body from the engine. Detaches body from all forces and
-	     *   constraints.
-	     *
-	     * TODO: Fix for in loop
-	     *
-	     * @method removeBody
-	     * @param body {Body}
-	     */
-	    PhysicsEngine.prototype.removeBody = function removeBody(body) {
-	        var array = (body.isBody) ? this._bodies : this._particles;
-	        var index = array.indexOf(body);
-	        if (index > -1) {
-	            for (var agent in this._agentData) this.detachFrom(agent.id, body);
-	            array.splice(index,1);
-	        }
-	        if (this.getBodies().length === 0) this._hasBodies = false;
-	    };
-	
-	    function _mapAgentArray(agent) {
-	        if (agent.applyForce)      return this._forces;
-	        if (agent.applyConstraint) return this._constraints;
-	    }
-	
-	    function _attachOne(agent, targets, source) {
-	        if (targets === undefined) targets = this.getParticlesAndBodies();
-	        if (!(targets instanceof Array)) targets = [targets];
-	
-	        agent.on('change', this.wake.bind(this));
-	
-	        this._agentData[this._currAgentId] = {
-	            agent   : agent,
-	            id      : this._currAgentId,
-	            targets : targets,
-	            source  : source
-	        };
-	
-	        _mapAgentArray.call(this, agent).push(this._currAgentId);
-	        return this._currAgentId++;
-	    }
-	
-	    /**
-	     * Attaches a force or constraint to a Body. Returns an AgentId of the
-	     *   attached agent which can be used to detach the agent.
-	     *
-	     * @method attach
-	     * @param agents {Agent|Array.Agent} A force, constraint, or array of them.
-	     * @param [targets=All] {Body|Array.Body} The Body or Bodies affected by the agent
-	     * @param [source] {Body} The source of the agent
-	     * @return AgentId {Number}
-	     */
-	    PhysicsEngine.prototype.attach = function attach(agents, targets, source) {
-	        this.wake();
-	
-	        if (agents instanceof Array) {
-	            var agentIDs = [];
-	            for (var i = 0; i < agents.length; i++)
-	                agentIDs[i] = _attachOne.call(this, agents[i], targets, source);
-	            return agentIDs;
-	        }
-	        else return _attachOne.call(this, agents, targets, source);
-	    };
-	
-	    /**
-	     * Append a body to the targets of a previously defined physics agent.
-	     *
-	     * @method attachTo
-	     * @param agentID {AgentId} The agentId of a previously defined agent
-	     * @param target {Body} The Body affected by the agent
-	     */
-	    PhysicsEngine.prototype.attachTo = function attachTo(agentID, target) {
-	        _getAgentData.call(this, agentID).targets.push(target);
-	    };
-	
-	    /**
-	     * Undoes PhysicsEngine.attach. Removes an agent and its associated
-	     *   effect on its affected Bodies.
-	     *
-	     * @method detach
-	     * @param id {AgentId} The agentId of a previously defined agent
-	     */
-	    PhysicsEngine.prototype.detach = function detach(id) {
-	        // detach from forces/constraints array
-	        var agent = this.getAgent(id);
-	        var agentArray = _mapAgentArray.call(this, agent);
-	        var index = agentArray.indexOf(id);
-	        agentArray.splice(index,1);
-	
-	        // detach agents array
-	        delete this._agentData[id];
-	    };
-	
-	    /**
-	     * Remove a single Body from a previously defined agent.
-	     *
-	     * @method detach
-	     * @param id {AgentId} The agentId of a previously defined agent
-	     * @param target {Body} The body to remove from the agent
-	     */
-	    PhysicsEngine.prototype.detachFrom = function detachFrom(id, target) {
-	        var boundAgent = _getAgentData.call(this, id);
-	        if (boundAgent.source === target) this.detach(id);
-	        else {
-	            var targets = boundAgent.targets;
-	            var index = targets.indexOf(target);
-	            if (index > -1) targets.splice(index,1);
-	        }
-	    };
-	
-	    /**
-	     * A convenience method to give the Physics Engine a clean slate of
-	     * agents. Preserves all added Body objects.
-	     *
-	     * @method detachAll
-	     */
-	    PhysicsEngine.prototype.detachAll = function detachAll() {
-	        this._agentData     = {};
-	        this._forces        = [];
-	        this._constraints   = [];
-	        this._currAgentId   = 0;
-	    };
-	
-	    function _getAgentData(id) {
-	        return this._agentData[id];
-	    }
-	
-	    /**
-	     * Returns the corresponding agent given its agentId.
-	     *
-	     * @method getAgent
-	     * @param id {AgentId}
-	     */
-	    PhysicsEngine.prototype.getAgent = function getAgent(id) {
-	        return _getAgentData.call(this, id).agent;
-	    };
-	
-	    /**
-	     * Returns all particles that are currently managed by the Physics Engine.
-	     *
-	     * @method getParticles
-	     * @return particles {Array.Particles}
-	     */
-	    PhysicsEngine.prototype.getParticles = function getParticles() {
-	        return this._particles;
-	    };
-	
-	    /**
-	     * Returns all bodies, except particles, that are currently managed by the Physics Engine.
-	     *
-	     * @method getBodies
-	     * @return bodies {Array.Bodies}
-	     */
-	    PhysicsEngine.prototype.getBodies = function getBodies() {
-	        return this._bodies;
-	    };
-	
-	    /**
-	     * Returns all bodies that are currently managed by the Physics Engine.
-	     *
-	     * @method getBodies
-	     * @return bodies {Array.Bodies}
-	     */
-	    PhysicsEngine.prototype.getParticlesAndBodies = function getParticlesAndBodies() {
-	        return this.getParticles().concat(this.getBodies());
-	    };
-	
-	    /**
-	     * Iterates over every Particle and applies a function whose first
-	     *   argument is the Particle
-	     *
-	     * @method forEachParticle
-	     * @param fn {Function} Function to iterate over
-	     * @param [dt] {Number} Delta time
-	     */
-	    PhysicsEngine.prototype.forEachParticle = function forEachParticle(fn, dt) {
-	        var particles = this.getParticles();
-	        for (var index = 0, len = particles.length; index < len; index++)
-	            fn.call(this, particles[index], dt);
-	    };
-	
-	    /**
-	     * Iterates over every Body that isn't a Particle and applies
-	     *   a function whose first argument is the Body
-	     *
-	     * @method forEachBody
-	     * @param fn {Function} Function to iterate over
-	     * @param [dt] {Number} Delta time
-	     */
-	    PhysicsEngine.prototype.forEachBody = function forEachBody(fn, dt) {
-	        if (!this._hasBodies) return;
-	        var bodies = this.getBodies();
-	        for (var index = 0, len = bodies.length; index < len; index++)
-	            fn.call(this, bodies[index], dt);
-	    };
-	
-	    /**
-	     * Iterates over every Body and applies a function whose first
-	     *   argument is the Body
-	     *
-	     * @method forEach
-	     * @param fn {Function} Function to iterate over
-	     * @param [dt] {Number} Delta time
-	     */
-	    PhysicsEngine.prototype.forEach = function forEach(fn, dt) {
-	        this.forEachParticle(fn, dt);
-	        this.forEachBody(fn, dt);
-	    };
-	
-	    function _updateForce(index) {
-	        var boundAgent = _getAgentData.call(this, this._forces[index]);
-	        boundAgent.agent.applyForce(boundAgent.targets, boundAgent.source);
-	    }
-	
-	    function _updateForces() {
-	        for (var index = this._forces.length - 1; index > -1; index--)
-	            _updateForce.call(this, index);
-	    }
-	
-	    function _updateConstraint(index, dt) {
-	        var boundAgent = this._agentData[this._constraints[index]];
-	        return boundAgent.agent.applyConstraint(boundAgent.targets, boundAgent.source, dt);
-	    }
-	
-	    function _updateConstraints(dt) {
-	        var iteration = 0;
-	        while (iteration < this.options.constraintSteps) {
-	            for (var index = this._constraints.length - 1; index > -1; index--)
-	                _updateConstraint.call(this, index, dt);
-	            iteration++;
-	        }
-	    }
-	
-	    function _updateVelocities(body, dt) {
-	        body.integrateVelocity(dt);
-	        if (this.options.velocityCap)
-	            body.velocity.cap(this.options.velocityCap).put(body.velocity);
-	    }
-	
-	    function _updateAngularVelocities(body, dt) {
-	        body.integrateAngularMomentum(dt);
-	        body.updateAngularVelocity();
-	        if (this.options.angularVelocityCap)
-	            body.angularVelocity.cap(this.options.angularVelocityCap).put(body.angularVelocity);
-	    }
-	
-	    function _updateOrientations(body, dt) {
-	        body.integrateOrientation(dt);
-	    }
-	
-	    function _updatePositions(body, dt) {
-	        body.integratePosition(dt);
-	        body.emit(_events.update, body);
-	    }
-	
-	    function _integrate(dt) {
-	        _updateForces.call(this, dt);
-	        this.forEach(_updateVelocities, dt);
-	        this.forEachBody(_updateAngularVelocities, dt);
-	        _updateConstraints.call(this, dt);
-	        this.forEachBody(_updateOrientations, dt);
-	        this.forEach(_updatePositions, dt);
-	    }
-	
-	    function _getParticlesEnergy() {
-	        var energy = 0.0;
-	        var particleEnergy = 0.0;
-	        this.forEach(function(particle) {
-	            particleEnergy = particle.getEnergy();
-	            energy += particleEnergy;
-	        });
-	        return energy;
-	    }
-	
-	    function _getAgentsEnergy() {
-	        var energy = 0;
-	        for (var id in this._agentData)
-	            energy += this.getAgentEnergy(id);
-	        return energy;
-	    }
-	
-	    /**
-	     * Calculates the potential energy of an agent, like a spring, by its Id
-	     *
-	     * @method getAgentEnergy
-	     * @param agentId {Number} The attached agent Id
-	     * @return energy {Number}
-	     */
-	    PhysicsEngine.prototype.getAgentEnergy = function(agentId) {
-	        var agentData = _getAgentData.call(this, agentId);
-	        return agentData.agent.getEnergy(agentData.targets, agentData.source);
-	    };
-	
-	    /**
-	     * Calculates the kinetic energy of all Body objects and potential energy
-	     *   of all attached agents.
-	     *
-	     * TODO: implement.
-	     * @method getEnergy
-	     * @return energy {Number}
-	     */
-	    PhysicsEngine.prototype.getEnergy = function getEnergy() {
-	        return _getParticlesEnergy.call(this) + _getAgentsEnergy.call(this);
-	    };
-	
-	    /**
-	     * Updates all Body objects managed by the physics engine over the
-	     *   time duration since the last time step was called.
-	     *
-	     * @method step
-	     */
-	    PhysicsEngine.prototype.step = function step() {
-	        if (this.isSleeping()) return;
-	
-	        //set current frame's time
-	        var currTime = now();
-	
-	        //milliseconds elapsed since last frame
-	        var dtFrame = currTime - this._prevTime;
-	
-	        this._prevTime = currTime;
-	
-	        if (dtFrame < MIN_TIME_STEP) return;
-	        if (dtFrame > MAX_TIME_STEP) dtFrame = MAX_TIME_STEP;
-	
-	        //robust integration
-	//        this._buffer += dtFrame;
-	//        while (this._buffer > this._timestep){
-	//            _integrate.call(this, this._timestep);
-	//            this._buffer -= this._timestep;
-	//        };
-	//        _integrate.call(this, this._buffer);
-	//        this._buffer = 0.0;
-	
-	        _integrate.call(this, TIMESTEP);
-	
-	        this.emit(_events.update, this);
-	
-	        if (this.getEnergy() < this.options.sleepTolerance) this.sleep();
-	    };
-	
-	    /**
-	     * Tells whether the Physics Engine is sleeping or awake.
-	     *
-	     * @method isSleeping
-	     * @return {Boolean}
-	     */
-	    PhysicsEngine.prototype.isSleeping = function isSleeping() {
-	        return this._isSleeping;
-	    };
-	
-	    /**
-	     * Tells whether the Physics Engine is sleeping or awake.
-	     *
-	     * @method isActive
-	     * @return {Boolean}
-	     */
-	    PhysicsEngine.prototype.isActive = function isSleeping() {
-	        return !this._isSleeping;
-	    };
-	
-	    /**
-	     * Stops the Physics Engine update loop. Emits an 'end' event.
-	     *
-	     * @method sleep
-	     */
-	    PhysicsEngine.prototype.sleep = function sleep() {
-	        if (this._isSleeping) return;
-	        this.forEach(function(body) {
-	            body.sleep();
-	        });
-	        this.emit(_events.end, this);
-	        this._isSleeping = true;
-	    };
-	
-	    /**
-	     * Restarts the Physics Engine update loop. Emits an 'start' event.
-	     *
-	     * @method wake
-	     */
-	    PhysicsEngine.prototype.wake = function wake() {
-	        if (!this._isSleeping) return;
-	        this._prevTime = now();
-	        this.emit(_events.start, this);
-	        this._isSleeping = false;
-	    };
-	
-	    PhysicsEngine.prototype.emit = function emit(type, data) {
-	        if (this._eventHandler === null) return;
-	        this._eventHandler.emit(type, data);
-	    };
-	
-	    PhysicsEngine.prototype.on = function on(event, fn) {
-	        if (this._eventHandler === null) this._eventHandler = new EventHandler();
-	        this._eventHandler.on(event, fn);
-	    };
-	
-	    module.exports = PhysicsEngine;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 47 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(56);
-	    var Transform = __webpack_require__(18);
-	    var EventHandler = __webpack_require__(32);
-	    var Integrator = __webpack_require__(57);
-	
-	    /**
-	     * A point body that is controlled by the Physics Engine. A particle has
-	     *   position and velocity states that are updated by the Physics Engine.
-	     *   Ultimately, a particle is a special type of modifier, and can be added to
-	     *   the Famo.us Scene Graph like any other modifier.
-	     *
-	     * @class Particle
-	     * @uses EventHandler
-	     * @extensionfor Body
-	     *
-	     * @param [options] {Options}           An object of configurable options.
-	     * @param [options.position] {Array}    The position of the particle.
-	     * @param [options.velocity] {Array}    The velocity of the particle.
-	     * @param [options.mass] {Number}       The mass of the particle.
-	     */
-	     function Particle(options) {
-	        options = options || {};
-	        var defaults = Particle.DEFAULT_OPTIONS;
-	
-	        // registers
-	        this.position = new Vector();
-	        this.velocity = new Vector();
-	        this.force = new Vector();
-	
-	        // state variables
-	        this._engine = null;
-	        this._isSleeping = true;
-	        this._eventOutput = null;
-	
-	        // set scalars
-	        this.mass = (options.mass !== undefined)
-	            ? options.mass
-	            : defaults.mass;
-	
-	        this.inverseMass = 1 / this.mass;
-	
-	        // set vectors
-	        this.setPosition(options.position || defaults.position);
-	        this.setVelocity(options.velocity || defaults.velocity);
-	        this.force.set(options.force || [0,0,0]);
-	
-	        this.transform = Transform.identity.slice();
-	
-	        // cached _spec
-	        this._spec = {
-	            size : [true, true],
-	            target : {
-	                transform : this.transform,
-	                origin : [0.5, 0.5],
-	                target : null
-	            }
-	        };
-	    }
-	
-	    Particle.DEFAULT_OPTIONS = {
-	        position : [0, 0, 0],
-	        velocity : [0, 0, 0],
-	        mass : 1
-	    };
-	
-	    //Catalogue of outputted events
-	    var _events = {
-	        start : 'start',
-	        update : 'update',
-	        end : 'end'
-	    };
-	
-	    // Cached timing function
-	    var now = Date.now;
-	
-	    /**
-	     * @attribute isBody
-	     * @type Boolean
-	     * @static
-	     */
-	    Particle.prototype.isBody = false;
-	
-	    /**
-	     * Determines if particle is active
-	     *
-	     * @method isActive
-	     * @return {Boolean}
-	     */
-	    Particle.prototype.isActive = function isActive() {
-	        return !this._isSleeping;
-	    };
-	
-	    /**
-	     * Stops the particle from updating
-	     *
-	     * @method sleep
-	     */
-	    Particle.prototype.sleep = function sleep() {
-	        if (this._isSleeping) return;
-	        this.emit(_events.end, this);
-	        this._isSleeping = true;
-	    };
-	
-	    /**
-	     * Starts the particle update
-	     *
-	     * @method wake
-	     */
-	    Particle.prototype.wake = function wake() {
-	        if (!this._isSleeping) return;
-	        this.emit(_events.start, this);
-	        this._isSleeping = false;
-	        this._prevTime = now();
-	        if (this._engine) this._engine.wake();
-	    };
-	
-	    /**
-	     * Basic setter for position
-	     *
-	     * @method setPosition
-	     * @param position {Array|Vector}
-	     */
-	    Particle.prototype.setPosition = function setPosition(position) {
-	        this.position.set(position);
-	    };
-	
-	    /**
-	     * 1-dimensional setter for position
-	     *
-	     * @method setPosition1D
-	     * @param x {Number}
-	     */
-	    Particle.prototype.setPosition1D = function setPosition1D(x) {
-	        this.position.x = x;
-	    };
-	
-	    /**
-	     * Basic getter function for position
-	     *
-	     * @method getPosition
-	     * @return position {Array}
-	     */
-	    Particle.prototype.getPosition = function getPosition() {
-	        this._engine.step();
-	        return this.position.get();
-	    };
-	
-	    /**
-	     * 1-dimensional getter for position
-	     *
-	     * @method getPosition1D
-	     * @return value {Number}
-	     */
-	    Particle.prototype.getPosition1D = function getPosition1D() {
-	        this._engine.step();
-	        return this.position.x;
-	    };
-	
-	    /**
-	     * Basic setter function for velocity Vector
-	     *
-	     * @method setVelocity
-	     * @function
-	     */
-	    Particle.prototype.setVelocity = function setVelocity(velocity) {
-	        this.velocity.set(velocity);
-	        if (!(velocity[0] === 0 && velocity[1] === 0 && velocity[2] === 0))
-	            this.wake();
-	    };
-	
-	    /**
-	     * 1-dimensional setter for velocity
-	     *
-	     * @method setVelocity1D
-	     * @param x {Number}
-	     */
-	    Particle.prototype.setVelocity1D = function setVelocity1D(x) {
-	        this.velocity.x = x;
-	        if (x !== 0) this.wake();
-	    };
-	
-	    /**
-	     * Basic getter function for velocity Vector
-	     *
-	     * @method getVelocity
-	     * @return velocity {Array}
-	     */
-	    Particle.prototype.getVelocity = function getVelocity() {
-	        return this.velocity.get();
-	    };
-	
-	    /**
-	     * Basic setter function for force Vector
-	     *
-	     * @method setForce
-	     * @return force {Array}
-	     */
-	    Particle.prototype.setForce = function setForce(force) {
-	        this.force.set(force);
-	        this.wake();
-	    };
-	
-	    /**
-	     * 1-dimensional getter for velocity
-	     *
-	     * @method getVelocity1D
-	     * @return velocity {Number}
-	     */
-	    Particle.prototype.getVelocity1D = function getVelocity1D() {
-	        return this.velocity.x;
-	    };
-	
-	    /**
-	     * Basic setter function for mass quantity
-	     *
-	     * @method setMass
-	     * @param mass {Number} mass
-	     */
-	    Particle.prototype.setMass = function setMass(mass) {
-	        this.mass = mass;
-	        this.inverseMass = 1 / mass;
-	    };
-	
-	    /**
-	     * Basic getter function for mass quantity
-	     *
-	     * @method getMass
-	     * @return mass {Number}
-	     */
-	    Particle.prototype.getMass = function getMass() {
-	        return this.mass;
-	    };
-	
-	    /**
-	     * Reset position and velocity
-	     *
-	     * @method reset
-	     * @param position {Array|Vector}
-	     * @param velocity {Array|Vector}
-	     */
-	    Particle.prototype.reset = function reset(position, velocity) {
-	        this.setPosition(position || [0,0,0]);
-	        this.setVelocity(velocity || [0,0,0]);
-	    };
-	
-	    /**
-	     * Add force vector to existing internal force Vector
-	     *
-	     * @method applyForce
-	     * @param force {Vector}
-	     */
-	    Particle.prototype.applyForce = function applyForce(force) {
-	        if (force.isZero()) return;
-	        this.force.add(force).put(this.force);
-	        this.wake();
-	    };
-	
-	    /**
-	     * Add impulse (change in velocity) Vector to this Vector's velocity.
-	     *
-	     * @method applyImpulse
-	     * @param impulse {Vector}
-	     */
-	    Particle.prototype.applyImpulse = function applyImpulse(impulse) {
-	        if (impulse.isZero()) return;
-	        var velocity = this.velocity;
-	        velocity.add(impulse.mult(this.inverseMass)).put(velocity);
-	    };
-	
-	    /**
-	     * Update a particle's velocity from its force accumulator
-	     *
-	     * @method integrateVelocity
-	     * @param dt {Number} Time differential
-	     */
-	    Particle.prototype.integrateVelocity = function integrateVelocity(dt) {
-	        Integrator.integrateVelocity(this, dt);
-	    };
-	
-	    /**
-	     * Update a particle's position from its velocity
-	     *
-	     * @method integratePosition
-	     * @param dt {Number} Time differential
-	     */
-	    Particle.prototype.integratePosition = function integratePosition(dt) {
-	        Integrator.integratePosition(this, dt);
-	    };
-	
-	    /**
-	     * Update the position and velocity of the particle
-	     *
-	     * @method _integrate
-	     * @protected
-	     * @param dt {Number} Time differential
-	     */
-	    Particle.prototype._integrate = function _integrate(dt) {
-	        this.integrateVelocity(dt);
-	        this.integratePosition(dt);
-	    };
-	
-	    /**
-	     * Get kinetic energy of the particle.
-	     *
-	     * @method getEnergy
-	     * @function
-	     */
-	    Particle.prototype.getEnergy = function getEnergy() {
-	        return 0.5 * this.mass * this.velocity.normSquared();
-	    };
-	
-	    /**
-	     * Generate transform from the current position state
-	     *
-	     * @method getTransform
-	     * @return Transform {Transform}
-	     */
-	    Particle.prototype.getTransform = function getTransform() {
-	        this._engine.step();
-	
-	        var position = this.position;
-	        var transform = this.transform;
-	
-	        transform[12] = position.x;
-	        transform[13] = position.y;
-	        transform[14] = position.z;
-	        return transform;
-	    };
-	
-	    /**
-	     * The modify interface of a Modifier
-	     *
-	     * @method modify
-	     * @param target {Spec}
-	     * @return Spec {Spec}
-	     */
-	    Particle.prototype.modify = function modify(target) {
-	        var _spec = this._spec.target;
-	        _spec.transform = this.getTransform();
-	        _spec.target = target;
-	        return this._spec;
-	    };
-	
-	    // private
-	    function _createEventOutput() {
-	        this._eventOutput = new EventHandler();
-	        this._eventOutput.bindThis(this);
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	    }
-	
-	    Particle.prototype.emit = function emit(type, data) {
-	        if (!this._eventOutput) return;
-	        this._eventOutput.emit(type, data);
-	    };
-	
-	    Particle.prototype.on = function on() {
-	        _createEventOutput.call(this);
-	        return this.on.apply(this, arguments);
-	    };
-	
-	    Particle.prototype.removeListener = function removeListener() {
-	        _createEventOutput.call(this);
-	        return this.removeListener.apply(this, arguments);
-	    };
-	
-	    Particle.prototype.pipe = function pipe() {
-	        _createEventOutput.call(this);
-	        return this.pipe.apply(this, arguments);
-	    };
-	
-	    Particle.prototype.unpipe = function unpipe() {
-	        _createEventOutput.call(this);
-	        return this.unpipe.apply(this, arguments);
-	    };
-	
-	    module.exports = Particle;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 48 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Force = __webpack_require__(55);
-	
-	    /**
-	     * Drag is a force that opposes velocity. Attach it to the physics engine
-	     * to slow down a physics body in motion.
-	     *
-	     * @class Drag
-	     * @constructor
-	     * @extends Force
-	     * @param {Object} options options to set on drag
-	     */
-	    function Drag(options) {
-	        this.options = Object.create(this.constructor.DEFAULT_OPTIONS);
-	        if (options) this.setOptions(options);
-	
-	        Force.call(this);
-	    }
-	
-	    Drag.prototype = Object.create(Force.prototype);
-	    Drag.prototype.constructor = Drag;
-	
-	    /**
-	     * @property Drag.FORCE_FUNCTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    Drag.FORCE_FUNCTIONS = {
-	
-	        /**
-	         * A drag force proportional to the velocity
-	         * @attribute LINEAR
-	         * @type Function
-	         * @param {Vector} velocity
-	         * @return {Vector} drag force
-	         */
-	        LINEAR : function(velocity) {
-	            return velocity;
-	        },
-	
-	        /**
-	         * A drag force proportional to the square of the velocity
-	         * @attribute QUADRATIC
-	         * @type Function
-	         * @param {Vector} velocity
-	         * @return {Vector} drag force
-	         */
-	        QUADRATIC : function(velocity) {
-	            return velocity.mult(velocity.norm());
-	        }
-	    };
-	
-	    /**
-	     * @property Drag.DEFAULT_OPTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    Drag.DEFAULT_OPTIONS = {
-	
-	        /**
-	         * The strength of the force
-	         *    Range : [0, 0.1]
-	         * @attribute strength
-	         * @type Number
-	         * @default 0.01
-	         */
-	        strength : 0.01,
-	
-	        /**
-	         * The type of opposing force
-	         * @attribute forceFunction
-	         * @type Function
-	         */
-	        forceFunction : Drag.FORCE_FUNCTIONS.LINEAR
-	    };
-	
-	    /**
-	     * Adds a drag force to a physics body's force accumulator.
-	     *
-	     * @method applyForce
-	     * @param targets {Array.Body} Array of bodies to apply drag force to.
-	     */
-	    Drag.prototype.applyForce = function applyForce(targets) {
-	        var strength        = this.options.strength;
-	        var forceFunction   = this.options.forceFunction;
-	        var force           = this.force;
-	        var index;
-	        var particle;
-	
-	        for (index = 0; index < targets.length; index++) {
-	            particle = targets[index];
-	            forceFunction(particle.velocity).mult(-strength).put(force);
-	            particle.applyForce(force);
-	        }
-	    };
-	
-	    /**
-	     * Basic options setter
-	     *
-	     * @method setOptions
-	     * @param {Objects} options
-	     */
-	    Drag.prototype.setOptions = function setOptions(options) {
-	        for (var key in options) this.options[key] = options[key];
-	    };
-	
-	    module.exports = Drag;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 49 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	/*global console */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Force = __webpack_require__(55);
-	    var Vector = __webpack_require__(56);
-	
-	    /**
-	     *  A force that moves a physics body to a location with a spring motion.
-	     *    The body can be moved to another physics body, or an anchor point.
-	     *
-	     *  @class Spring
-	     *  @constructor
-	     *  @extends Force
-	     *  @param {Object} options options to set on drag
-	     */
-	    function Spring(options) {
-	        Force.call(this);
-	
-	        this.options = Object.create(this.constructor.DEFAULT_OPTIONS);
-	        if (options) this.setOptions(options);
-	
-	        //registers
-	        this.disp = new Vector(0,0,0);
-	
-	        _init.call(this);
-	    }
-	
-	    Spring.prototype = Object.create(Force.prototype);
-	    Spring.prototype.constructor = Spring;
-	
-	    /** @const */
-	    var pi = Math.PI;
-	    var MIN_PERIOD = 150;
-	
-	    /**
-	     * @property Spring.FORCE_FUNCTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    Spring.FORCE_FUNCTIONS = {
-	
-	        /**
-	         * A FENE (Finitely Extensible Nonlinear Elastic) spring force
-	         *      see: http://en.wikipedia.org/wiki/FENE
-	         * @attribute FENE
-	         * @type Function
-	         * @param {Number} dist current distance target is from source body
-	         * @param {Number} rMax maximum range of influence
-	         * @return {Number} unscaled force
-	         */
-	        FENE : function(dist, rMax) {
-	            var rMaxSmall = rMax * .99;
-	            var r = Math.max(Math.min(dist, rMaxSmall), -rMaxSmall);
-	            return r / (1 - r * r/(rMax * rMax));
-	        },
-	
-	        /**
-	         * A Hookean spring force, linear in the displacement
-	         *      see: http://en.wikipedia.org/wiki/Hooke's_law
-	         * @attribute FENE
-	         * @type Function
-	         * @param {Number} dist current distance target is from source body
-	         * @return {Number} unscaled force
-	         */
-	        HOOK : function(dist) {
-	            return dist;
-	        }
-	    };
-	
-	    /**
-	     * @property Spring.DEFAULT_OPTIONS
-	     * @type Object
-	     * @protected
-	     * @static
-	     */
-	    Spring.DEFAULT_OPTIONS = {
-	
-	        /**
-	         * The amount of time in milliseconds taken for one complete oscillation
-	         * when there is no damping
-	         *    Range : [150, Infinity]
-	         * @attribute period
-	         * @type Number
-	         * @default 300
-	         */
-	        period : 300,
-	
-	        /**
-	         * The damping of the spring.
-	         *    Range : [0, 1]
-	         *    0 = no damping, and the spring will oscillate forever
-	         *    1 = critically damped (the spring will never oscillate)
-	         * @attribute dampingRatio
-	         * @type Number
-	         * @default 0.1
-	         */
-	        dampingRatio : 0.1,
-	
-	        /**
-	         * The rest length of the spring
-	         *    Range : [0, Infinity]
-	         * @attribute length
-	         * @type Number
-	         * @default 0
-	         */
-	        length : 0,
-	
-	        /**
-	         * The maximum length of the spring (for a FENE spring)
-	         *    Range : [0, Infinity]
-	         * @attribute length
-	         * @type Number
-	         * @default Infinity
-	         */
-	        maxLength : Infinity,
-	
-	        /**
-	         * The location of the spring's anchor, if not another physics body
-	         *
-	         * @attribute anchor
-	         * @type Array
-	         * @optional
-	         */
-	        anchor : undefined,
-	
-	        /**
-	         * The type of spring force
-	         * @attribute forceFunction
-	         * @type Function
-	         */
-	        forceFunction : Spring.FORCE_FUNCTIONS.HOOK
-	    };
-	
-	    function _calcStiffness() {
-	        var options = this.options;
-	        options.stiffness = Math.pow(2 * pi / options.period, 2);
-	    }
-	
-	    function _calcDamping() {
-	        var options = this.options;
-	        options.damping = 4 * pi * options.dampingRatio / options.period;
-	    }
-	
-	    function _init() {
-	        _calcStiffness.call(this);
-	        _calcDamping.call(this);
-	    }
-	
-	    /**
-	     * Basic options setter
-	     *
-	     * @method setOptions
-	     * @param options {Object}
-	     */
-	    Spring.prototype.setOptions = function setOptions(options) {
-	        // TODO fix no-console error
-	        /* eslint no-console: 0 */
-	
-	        if (options.anchor !== undefined) {
-	            if (options.anchor.position instanceof Vector) this.options.anchor = options.anchor.position;
-	            if (options.anchor instanceof Vector) this.options.anchor = options.anchor;
-	            if (options.anchor instanceof Array)  this.options.anchor = new Vector(options.anchor);
-	        }
-	
-	        if (options.period !== undefined){
-	            if (options.period < MIN_PERIOD) {
-	                options.period = MIN_PERIOD;
-	                console.warn('The period of a SpringTransition is capped at ' + MIN_PERIOD + ' ms. Use a SnapTransition for faster transitions');
-	            }
-	            this.options.period = options.period;
-	        }
-	
-	        if (options.dampingRatio !== undefined) this.options.dampingRatio = options.dampingRatio;
-	        if (options.length !== undefined) this.options.length = options.length;
-	        if (options.forceFunction !== undefined) this.options.forceFunction = options.forceFunction;
-	        if (options.maxLength !== undefined) this.options.maxLength = options.maxLength;
-	
-	        _init.call(this);
-	        Force.prototype.setOptions.call(this, options);
-	    };
-	
-	    /**
-	     * Adds a spring force to a physics body's force accumulator.
-	     *
-	     * @method applyForce
-	     * @param targets {Array.Body} Array of bodies to apply force to.
-	     */
-	    Spring.prototype.applyForce = function applyForce(targets, source) {
-	        var force = this.force;
-	        var disp = this.disp;
-	        var options = this.options;
-	
-	        var stiffness = options.stiffness;
-	        var damping = options.damping;
-	        var restLength = options.length;
-	        var maxLength = options.maxLength;
-	        var anchor = options.anchor || source.position;
-	        var forceFunction = options.forceFunction;
-	
-	        var i;
-	        var target;
-	        var p2;
-	        var v2;
-	        var dist;
-	        var m;
-	
-	        for (i = 0; i < targets.length; i++) {
-	            target = targets[i];
-	            p2 = target.position;
-	            v2 = target.velocity;
-	
-	            anchor.sub(p2).put(disp);
-	            dist = disp.norm() - restLength;
-	
-	            if (dist === 0) return;
-	
-	            //if dampingRatio specified, then override strength and damping
-	            m      = target.mass;
-	            stiffness *= m;
-	            damping   *= m;
-	
-	            disp.normalize(stiffness * forceFunction(dist, maxLength))
-	                .put(force);
-	
-	            if (damping)
-	                if (source) force.add(v2.sub(source.velocity).mult(-damping)).put(force);
-	                else force.add(v2.mult(-damping)).put(force);
-	
-	            target.applyForce(force);
-	            if (source) source.applyForce(force.mult(-1));
-	        }
-	    };
-	
-	    /**
-	     * Calculates the potential energy of the spring.
-	     *
-	     * @method getEnergy
-	     * @param [targets] target  The physics body attached to the spring
-	     * @return {source}         The potential energy of the spring
-	     */
-	    Spring.prototype.getEnergy = function getEnergy(targets, source) {
-	        var options     = this.options;
-	        var restLength  = options.length;
-	        var anchor      = (source) ? source.position : options.anchor;
-	        var strength    = options.stiffness;
-	
-	        var energy = 0.0;
-	        for (var i = 0; i < targets.length; i++){
-	            var target = targets[i];
-	            var dist = anchor.sub(target.position).norm() - restLength;
-	            energy += 0.5 * strength * dist * dist;
-	        }
-	        return energy;
-	    };
-	
-	    module.exports = Spring;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	
-	    var EventHandler = __webpack_require__(32);
-	
-	    /**
-	     * Combines multiple types of sync classes (e.g. mouse, touch,
-	     *  scrolling) into one standardized interface for inclusion in widgets.
-	     *
-	     *  Sync classes are first registered with a key, and then can be accessed
-	     *  globally by key.
-	     *
-	     *  Emits 'start', 'update' and 'end' events as a union of the sync class
-	     *  providers.
-	     *
-	     * @class GenericSync
-	     * @constructor
-	     * @param syncs {Object|Array} object with fields {sync key : sync options}
-	     *    or an array of registered sync keys
-	     * @param [options] {Object|Array} options object to set on all syncs
-	     */
-	    function GenericSync(syncs, options) {
-	        this._eventInput = new EventHandler();
-	        this._eventOutput = new EventHandler();
-	
-	        EventHandler.setInputHandler(this, this._eventInput);
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	
-	        this._syncs = {};
-	        if (syncs) this.addSync(syncs);
-	        if (options) this.setOptions(options);
-	    }
-	
-	    GenericSync.DIRECTION_X = 0;
-	    GenericSync.DIRECTION_Y = 1;
-	    GenericSync.DIRECTION_Z = 2;
-	
-	    // Global registry of sync classes. Append only.
-	    var registry = {};
-	
-	    /**
-	     * Register a global sync class with an identifying key
-	     *
-	     * @static
-	     * @method register
-	     *
-	     * @param syncObject {Object} an object of {sync key : sync options} fields
-	     */
-	    GenericSync.register = function register(syncObject) {
-	        for (var key in syncObject){
-	            if (registry[key]){
-	                if (registry[key] === syncObject[key]) return; // redundant registration
-	                else throw new Error('this key is registered to a different sync class');
-	            }
-	            else registry[key] = syncObject[key];
-	        }
-	    };
-	
-	    /**
-	     * Helper to set options on all sync instances
-	     *
-	     * @method setOptions
-	     * @param options {Object} options object
-	     */
-	    GenericSync.prototype.setOptions = function(options) {
-	        for (var key in this._syncs){
-	            this._syncs[key].setOptions(options);
-	        }
-	    };
-	
-	    /**
-	     * Pipe events to a sync class
-	     *
-	     * @method pipeSync
-	     * @param key {String} identifier for sync class
-	     */
-	    GenericSync.prototype.pipeSync = function pipeToSync(key) {
-	        var sync = this._syncs[key];
-	        this._eventInput.pipe(sync);
-	        sync.pipe(this._eventOutput);
-	    };
-	
-	    /**
-	     * Unpipe events from a sync class
-	     *
-	     * @method unpipeSync
-	     * @param key {String} identifier for sync class
-	     */
-	    GenericSync.prototype.unpipeSync = function unpipeFromSync(key) {
-	        var sync = this._syncs[key];
-	        this._eventInput.unpipe(sync);
-	        sync.unpipe(this._eventOutput);
-	    };
-	
-	    function _addSingleSync(key, options) {
-	        if (!registry[key]) return;
-	        this._syncs[key] = new (registry[key])(options);
-	        this.pipeSync(key);
-	    }
-	
-	    /**
-	     * Add a sync class to from the registered classes
-	     *
-	     * @method addSync
-	     * @param syncs {Object|Array.String} an array of registered sync keys
-	     *    or an object with fields {sync key : sync options}
-	     */
-	    GenericSync.prototype.addSync = function addSync(syncs) {
-	        if (syncs instanceof Array)
-	            for (var i = 0; i < syncs.length; i++)
-	                _addSingleSync.call(this, syncs[i]);
-	        else if (syncs instanceof Object)
-	            for (var key in syncs)
-	                _addSingleSync.call(this, key, syncs[key]);
-	    };
-	
-	    module.exports = GenericSync;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 51 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(32);
-	    var Engine = __webpack_require__(17);
-	    var OptionsManager = __webpack_require__(33);
-	
-	    /**
-	     * Handles piped in mousewheel events.
-	     *   Emits 'start', 'update', and 'end' events with payloads including:
-	     *   delta: change since last position,
-	     *   position: accumulated deltas,
-	     *   velocity: speed of change in pixels per ms,
-	     *   slip: true (unused).
-	     *
-	     *   Can be used as delegate of GenericSync.
-	     *
-	     * @class ScrollSync
-	     * @constructor
-	     * @param {Object} [options] overrides of default options
-	     * @param {Number} [options.direction] Pay attention to x changes (ScrollSync.DIRECTION_X),
-	     *   y changes (ScrollSync.DIRECTION_Y) or both (undefined)
-	     * @param {Number} [options.minimumEndSpeed] End speed calculation floors at this number, in pixels per ms
-	     * @param {boolean} [options.rails] whether to snap position calculations to nearest axis
-	     * @param {Number | Array.Number} [options.scale] scale outputs in by scalar or pair of scalars
-	     * @param {Number} [options.stallTime] reset time for velocity calculation in ms
-	     */
-	    function ScrollSync(options) {
-	        this.options = Object.create(ScrollSync.DEFAULT_OPTIONS);
-	        this._optionsManager = new OptionsManager(this.options);
-	        if (options) this.setOptions(options);
-	
-	        this._payload = {
-	            delta    : null,
-	            position : null,
-	            velocity : null,
-	            slip     : true
-	        };
-	
-	        this._eventInput = new EventHandler();
-	        this._eventOutput = new EventHandler();
-	
-	        EventHandler.setInputHandler(this, this._eventInput);
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	
-	        this._position = (this.options.direction === undefined) ? [0,0] : 0;
-	        this._prevTime = undefined;
-	        this._prevVel = undefined;
-	        this._eventInput.on('mousewheel', _handleMove.bind(this));
-	        this._eventInput.on('wheel', _handleMove.bind(this));
-	        this._inProgress = false;
-	        this._loopBound = false;
-	    }
-	
-	    ScrollSync.DEFAULT_OPTIONS = {
-	        direction: undefined,
-	        minimumEndSpeed: Infinity,
-	        rails: false,
-	        scale: 1,
-	        stallTime: 50,
-	        lineHeight: 40,
-	        preventDefault: true
-	    };
-	
-	    ScrollSync.DIRECTION_X = 0;
-	    ScrollSync.DIRECTION_Y = 1;
-	
-	    var MINIMUM_TICK_TIME = 8;
-	
-	    var _now = Date.now;
-	
-	    function _newFrame() {
-	        if (this._inProgress && (_now() - this._prevTime) > this.options.stallTime) {
-	            this._inProgress = false;
-	
-	            var finalVel = (Math.abs(this._prevVel) >= this.options.minimumEndSpeed)
-	                ? this._prevVel
-	                : 0;
-	
-	            var payload = this._payload;
-	            payload.position = this._position;
-	            payload.velocity = finalVel;
-	            payload.slip = true;
-	
-	            this._eventOutput.emit('end', payload);
-	        }
-	    }
-	
-	    function _handleMove(event) {
-	        if (this.options.preventDefault) event.preventDefault();
-	
-	        if (!this._inProgress) {
-	            this._inProgress = true;
-	            this._position = (this.options.direction === undefined) ? [0,0] : 0;
-	            payload = this._payload;
-	            payload.slip = true;
-	            payload.position = this._position;
-	            payload.clientX = event.clientX;
-	            payload.clientY = event.clientY;
-	            payload.offsetX = event.offsetX;
-	            payload.offsetY = event.offsetY;
-	            this._eventOutput.emit('start', payload);
-	            if (!this._loopBound) {
-	                Engine.on('prerender', _newFrame.bind(this));
-	                this._loopBound = true;
-	            }
-	        }
-	
-	        var currTime = _now();
-	        var prevTime = this._prevTime || currTime;
-	
-	        var diffX = (event.wheelDeltaX !== undefined) ? event.wheelDeltaX : -event.deltaX;
-	        var diffY = (event.wheelDeltaY !== undefined) ? event.wheelDeltaY : -event.deltaY;
-	
-	        if (event.deltaMode === 1) { // units in lines, not pixels
-	            diffX *= this.options.lineHeight;
-	            diffY *= this.options.lineHeight;
-	        }
-	
-	        if (this.options.rails) {
-	            if (Math.abs(diffX) > Math.abs(diffY)) diffY = 0;
-	            else diffX = 0;
-	        }
-	
-	        var diffTime = Math.max(currTime - prevTime, MINIMUM_TICK_TIME); // minimum tick time
-	
-	        var velX = diffX / diffTime;
-	        var velY = diffY / diffTime;
-	
-	        var scale = this.options.scale;
-	        var nextVel;
-	        var nextDelta;
-	
-	        if (this.options.direction === ScrollSync.DIRECTION_X) {
-	            nextDelta = scale * diffX;
-	            nextVel = scale * velX;
-	            this._position += nextDelta;
-	        }
-	        else if (this.options.direction === ScrollSync.DIRECTION_Y) {
-	            nextDelta = scale * diffY;
-	            nextVel = scale * velY;
-	            this._position += nextDelta;
-	        }
-	        else {
-	            nextDelta = [scale * diffX, scale * diffY];
-	            nextVel = [scale * velX, scale * velY];
-	            this._position[0] += nextDelta[0];
-	            this._position[1] += nextDelta[1];
-	        }
-	
-	        var payload = this._payload;
-	        payload.delta    = nextDelta;
-	        payload.velocity = nextVel;
-	        payload.position = this._position;
-	        payload.slip     = true;
-	
-	        this._eventOutput.emit('update', payload);
-	
-	        this._prevTime = currTime;
-	        this._prevVel = nextVel;
-	    }
-	
-	    /**
-	     * Return entire options dictionary, including defaults.
-	     *
-	     * @method getOptions
-	     * @return {Object} configuration options
-	     */
-	    ScrollSync.prototype.getOptions = function getOptions() {
-	        return this.options;
-	    };
-	
-	    /**
-	     * Set internal options, overriding any default options
-	     *
-	     * @method setOptions
-	     *
-	     * @param {Object} [options] overrides of default options
-	     * @param {Number} [options.minimimEndSpeed] If final velocity smaller than this, round down to 0.
-	     * @param {Number} [options.stallTime] ms of non-motion before 'end' emitted
-	     * @param {Number} [options.rails] whether to constrain to nearest axis.
-	     * @param {Number} [options.direction] ScrollSync.DIRECTION_X, DIRECTION_Y -
-	     *    pay attention to one specific direction.
-	     * @param {Number} [options.scale] constant factor to scale velocity output
-	     */
-	    ScrollSync.prototype.setOptions = function setOptions(options) {
-	        return this._optionsManager.setOptions(options);
-	    };
-	
-	    module.exports = ScrollSync;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 52 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var TouchTracker = __webpack_require__(54);
-	    var EventHandler = __webpack_require__(32);
-	    var OptionsManager = __webpack_require__(33);
-	
-	    /**
-	     * Handles piped in touch events. Emits 'start', 'update', and 'events'
-	     *   events with delta, position, velocity, acceleration, clientX, clientY, count, and touch id.
-	     *   Useful for dealing with inputs on touch devices. Designed to be used either as standalone, or
-	     *   included in a GenericSync.
-	     *
-	     * @class TouchSync
-	     * @constructor
-	     *
-	     * @example
-	     *   var Surface = require('../core/Surface');
-	     *   var TouchSync = require('../inputs/TouchSync');
-	     *
-	     *   var surface = new Surface({ size: [100, 100] });
-	     *   var touchSync = new TouchSync();
-	     *   surface.pipe(touchSync);
-	     *
-	     *   touchSync.on('start', function (e) { // react to start });
-	     *   touchSync.on('update', function (e) { // react to update });
-	     *   touchSync.on('end', function (e) { // react to end });*
-	     *
-	     * @param [options] {Object}             default options overrides
-	     * @param [options.direction] {Number}   read from a particular axis
-	     * @param [options.rails] {Boolean}      read from axis with greatest differential
-	     * @param [options.velocitySampleLength] {Number}  Number of previous frames to check velocity against.
-	     * @param [options.scale] {Number}       constant factor to scale velocity output
-	     * @param [options.touchLimit] {Number}  touchLimit upper bound for emitting events based on number of touches
-	     */
-	    function TouchSync(options) {
-	        this.options =  Object.create(TouchSync.DEFAULT_OPTIONS);
-	        this._optionsManager = new OptionsManager(this.options);
-	        if (options) this.setOptions(options);
-	
-	        this._eventOutput = new EventHandler();
-	        this._touchTracker = new TouchTracker({
-	            touchLimit: this.options.touchLimit
-	        });
-	
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	        EventHandler.setInputHandler(this, this._touchTracker);
-	
-	        this._touchTracker.on('trackstart', _handleStart.bind(this));
-	        this._touchTracker.on('trackmove', _handleMove.bind(this));
-	        this._touchTracker.on('trackend', _handleEnd.bind(this));
-	
-	        this._payload = {
-	            delta    : null,
-	            position : null,
-	            velocity : null,
-	            clientX  : undefined,
-	            clientY  : undefined,
-	            count    : 0,
-	            touch    : undefined
-	        };
-	
-	        this._position = null; // to be deprecated
-	    }
-	
-	    TouchSync.DEFAULT_OPTIONS = {
-	        direction: undefined,
-	        rails: false,
-	        touchLimit: 1,
-	        velocitySampleLength: 10,
-	        scale: 1
-	    };
-	
-	    TouchSync.DIRECTION_X = 0;
-	    TouchSync.DIRECTION_Y = 1;
-	
-	    var MINIMUM_TICK_TIME = 8;
-	
-	    /**
-	     *  Triggered by trackstart.
-	     *  @method _handleStart
-	     *  @private
-	     */
-	    function _handleStart(data) {
-	        var velocity;
-	        var delta;
-	        if (this.options.direction !== undefined){
-	            this._position = 0;
-	            velocity = 0;
-	            delta = 0;
-	        }
-	        else {
-	            this._position = [0, 0];
-	            velocity = [0, 0];
-	            delta = [0, 0];
-	        }
-	
-	        var payload = this._payload;
-	        payload.delta = delta;
-	        payload.position = this._position;
-	        payload.velocity = velocity;
-	        payload.clientX = data.x;
-	        payload.clientY = data.y;
-	        payload.count = data.count;
-	        payload.touch = data.identifier;
-	
-	        this._eventOutput.emit('start', payload);
-	    }
-	
-	    /**
-	     *  Triggered by trackmove.
-	     *  @method _handleMove
-	     *  @private
-	     */
-	    function _handleMove(data) {
-	        var history = data.history;
-	
-	        var currHistory = history[history.length - 1];
-	        var prevHistory = history[history.length - 2];
-	
-	        var distantHistory = history[history.length - this.options.velocitySampleLength] ?
-	          history[history.length - this.options.velocitySampleLength] :
-	          history[history.length - 2];
-	
-	        var distantTime = distantHistory.timestamp;
-	        var currTime = currHistory.timestamp;
-	
-	        var diffX = currHistory.x - prevHistory.x;
-	        var diffY = currHistory.y - prevHistory.y;
-	
-	        var velDiffX = currHistory.x - distantHistory.x;
-	        var velDiffY = currHistory.y - distantHistory.y;
-	
-	        if (this.options.rails) {
-	            if (Math.abs(diffX) > Math.abs(diffY)) diffY = 0;
-	            else diffX = 0;
-	
-	            if (Math.abs(velDiffX) > Math.abs(velDiffY)) velDiffY = 0;
-	            else velDiffX = 0;
-	        }
-	
-	        var diffTime = Math.max(currTime - distantTime, MINIMUM_TICK_TIME);
-	
-	        var velX = velDiffX / diffTime;
-	        var velY = velDiffY / diffTime;
-	
-	        var scale = this.options.scale;
-	        var nextVel;
-	        var nextDelta;
-	
-	        if (this.options.direction === TouchSync.DIRECTION_X) {
-	            nextDelta = scale * diffX;
-	            nextVel = scale * velX;
-	            this._position += nextDelta;
-	        }
-	        else if (this.options.direction === TouchSync.DIRECTION_Y) {
-	            nextDelta = scale * diffY;
-	            nextVel = scale * velY;
-	            this._position += nextDelta;
-	        }
-	        else {
-	            nextDelta = [scale * diffX, scale * diffY];
-	            nextVel = [scale * velX, scale * velY];
-	            this._position[0] += nextDelta[0];
-	            this._position[1] += nextDelta[1];
-	        }
-	
-	        var payload = this._payload;
-	        payload.delta    = nextDelta;
-	        payload.velocity = nextVel;
-	        payload.position = this._position;
-	        payload.clientX  = data.x;
-	        payload.clientY  = data.y;
-	        payload.count    = data.count;
-	        payload.touch    = data.identifier;
-	
-	        this._eventOutput.emit('update', payload);
-	    }
-	
-	    /**
-	     *  Triggered by trackend.
-	     *  @method _handleEnd
-	     *  @private
-	     */
-	    function _handleEnd(data) {
-	        this._payload.count = data.count;
-	        this._eventOutput.emit('end', this._payload);
-	    }
-	
-	    /**
-	     * Set internal options, overriding any default options
-	     *
-	     * @method setOptions
-	     *
-	     * @param [options] {Object}             default options overrides
-	     * @param [options.direction] {Number}   read from a particular axis
-	     * @param [options.rails] {Boolean}      read from axis with greatest differential
-	     * @param [options.scale] {Number}       constant factor to scale velocity output
-	     */
-	    TouchSync.prototype.setOptions = function setOptions(options) {
-	        return this._optionsManager.setOptions(options);
-	    };
-	
-	    /**
-	     * Return entire options dictionary, including defaults.
-	     *
-	     * @method getOptions
-	     * @return {Object} configuration options
-	     */
-	    TouchSync.prototype.getOptions = function getOptions() {
-	        return this.options;
-	    };
-	
-	    module.exports = TouchSync;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 53 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Context = __webpack_require__(31);
-	    var Transform = __webpack_require__(18);
-	    var Surface = __webpack_require__(23);
-	
-	    /**
-	     * A Context designed to contain surfaces and set properties
-	     *   to be applied to all of them at once.
-	     *   This is primarily used for specific performance improvements in the rendering engine.
-	     *   Private.
-	     *
-	     * @private
-	     * @class Group
-	     * @extends Surface
-	     * @constructor
-	     * @param {Object} [options] Surface options array (see Surface})
-	     */
-	    function Group(options) {
-	        Surface.call(this, options);
-	        this._shouldRecalculateSize = false;
-	        this._container = document.createDocumentFragment();
-	        this.context = new Context(this._container);
-	        this.setContent(this._container);
-	        this._groupSize = [undefined, undefined];
-	    }
-	
-	    /** @const */
-	    Group.SIZE_ZERO = [0, 0];
-	
-	    Group.prototype = Object.create(Surface.prototype);
-	    Group.prototype.elementType = 'div';
-	    Group.prototype.elementClass = 'famous-group';
-	
-	    /**
-	     * Add renderables to this component's render tree.
-	     *
-	     * @method add
-	     * @private
-	     * @param {Object} obj renderable object
-	     * @return {RenderNode} Render wrapping provided object, if not already a RenderNode
-	     */
-	    Group.prototype.add = function add() {
-	        return this.context.add.apply(this.context, arguments);
-	    };
-	
-	    /**
-	     * Generate a render spec from the contents of this component.
-	     *
-	     * @private
-	     * @method render
-	     * @return {Number} Render spec for this component
-	     */
-	    Group.prototype.render = function render() {
-	        return Surface.prototype.render.call(this);
-	    };
-	
-	    /**
-	     * Place the document element this component manages into the document.
-	     *
-	     * @private
-	     * @method deploy
-	     * @param {Node} target document parent of this container
-	     */
-	    Group.prototype.deploy = function deploy(target) {
-	        this.context.migrate(target);
-	    };
-	
-	    /**
-	     * Remove this component and contained content from the document
-	     *
-	     * @private
-	     * @method recall
-	     *
-	     * @param {Node} target node to which the component was deployed
-	     */
-	    Group.prototype.recall = function recall(target) {
-	        this._container = document.createDocumentFragment();
-	        this.context.migrate(this._container);
-	    };
-	
-	    /**
-	     * Apply changes from this component to the corresponding document element.
-	     *
-	     * @private
-	     * @method commit
-	     *
-	     * @param {Object} context update spec passed in from above in the render tree.
-	     */
-	    Group.prototype.commit = function commit(context) {
-	        var transform = context.transform;
-	        var origin = context.origin;
-	        var opacity = context.opacity;
-	        var size = context.size;
-	        var result = Surface.prototype.commit.call(this, {
-	            allocator: context.allocator,
-	            transform: Transform.thenMove(transform, [-origin[0] * size[0], -origin[1] * size[1], 0]),
-	            opacity: opacity,
-	            origin: origin,
-	            size: Group.SIZE_ZERO
-	        });
-	        if (size[0] !== this._groupSize[0] || size[1] !== this._groupSize[1]) {
-	            this._groupSize[0] = size[0];
-	            this._groupSize[1] = size[1];
-	            this.context.setSize(size);
-	        }
-	        this.context.update({
-	            transform: Transform.translate(-origin[0] * size[0], -origin[1] * size[1], 0),
-	            origin: origin,
-	            size: size
-	        });
-	        return result;
-	    };
-	
-	    module.exports = Group;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 54 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(32);
-	
-	    var _now = Date.now;
-	
-	    function _timestampTouch(touch, event, history) {
-	        return {
-	            x: touch.clientX,
-	            y: touch.clientY,
-	            identifier : touch.identifier,
-	            origin: event.origin,
-	            timestamp: _now(),
-	            count: event.touches.length,
-	            history: history
-	        };
-	    }
-	
-	    function _handleStart(event) {
-	        if (event.touches.length > this.touchLimit) return;
-	        this.isTouched = true;
-	
-	        for (var i = 0; i < event.changedTouches.length; i++) {
-	            var touch = event.changedTouches[i];
-	            var data = _timestampTouch(touch, event, null);
-	            this.eventOutput.emit('trackstart', data);
-	            if (!this.selective && !this.touchHistory[touch.identifier]) this.track(data);
-	        }
-	    }
-	
-	    function _handleMove(event) {
-	        if (event.touches.length > this.touchLimit) return;
-	
-	        for (var i = 0; i < event.changedTouches.length; i++) {
-	            var touch = event.changedTouches[i];
-	            var history = this.touchHistory[touch.identifier];
-	            if (history) {
-	                var data = _timestampTouch(touch, event, history);
-	                this.touchHistory[touch.identifier].push(data);
-	                this.eventOutput.emit('trackmove', data);
-	            }
-	        }
-	    }
-	
-	    function _handleEnd(event) {
-	        if (!this.isTouched) return;
-	
-	        for (var i = 0; i < event.changedTouches.length; i++) {
-	            var touch = event.changedTouches[i];
-	            var history = this.touchHistory[touch.identifier];
-	            if (history) {
-	                var data = _timestampTouch(touch, event, history);
-	                this.eventOutput.emit('trackend', data);
-	                delete this.touchHistory[touch.identifier];
-	            }
-	        }
-	
-	        this.isTouched = false;
-	    }
-	
-	    function _handleUnpipe() {
-	        for (var i in this.touchHistory) {
-	            var history = this.touchHistory[i];
-	            this.eventOutput.emit('trackend', {
-	                touch: history[history.length - 1].touch,
-	                timestamp: Date.now(),
-	                count: 0,
-	                history: history
-	            });
-	            delete this.touchHistory[i];
-	        }
-	    }
-	
-	    /**
-	     * Helper to TouchSync – tracks piped in touch events, organizes touch
-	     *   events by ID, and emits track events back to TouchSync.
-	     *   Emits 'trackstart', 'trackmove', and 'trackend' events upstream.
-	     *
-	     * @class TouchTracker
-	     * @constructor
-	     * @param {Object} options default options overrides
-	     * @param [options.selective] {Boolean} selective if false, saves state for each touch
-	     * @param [options.touchLimit] {Number} touchLimit upper bound for emitting events based on number of touches
-	     */
-	    function TouchTracker(options) {
-	        this.selective = options.selective;
-	        this.touchLimit = options.touchLimit || 1;
-	
-	        this.touchHistory = {};
-	
-	        this.eventInput = new EventHandler();
-	        this.eventOutput = new EventHandler();
-	
-	        EventHandler.setInputHandler(this, this.eventInput);
-	        EventHandler.setOutputHandler(this, this.eventOutput);
-	
-	        this.eventInput.on('touchstart', _handleStart.bind(this));
-	        this.eventInput.on('touchmove', _handleMove.bind(this));
-	        this.eventInput.on('touchend', _handleEnd.bind(this));
-	        this.eventInput.on('touchcancel', _handleEnd.bind(this));
-	        this.eventInput.on('unpipe', _handleUnpipe.bind(this));
-	
-	        this.isTouched = false;
-	    }
-	
-	    /**
-	     * Record touch data, if selective is false.
-	     * @private
-	     * @method track
-	     * @param {Object} data touch data
-	     */
-	    TouchTracker.prototype.track = function track(data) {
-	        this.touchHistory[data.identifier] = [data];
-	    };
-	
-	    module.exports = TouchTracker;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 55 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(56);
-	    var EventHandler = __webpack_require__(32);
-	
-	    /**
-	     * Force base class.
-	     *
-	     * @class Force
-	     * @uses EventHandler
-	     * @constructor
-	     */
-	    function Force(force) {
-	        this.force = new Vector(force);
-	        this._eventOutput = new EventHandler();
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	    }
-	
-	    /**
-	     * Basic setter for options
-	     *
-	     * @method setOptions
-	     * @param options {Objects}
-	     */
-	    Force.prototype.setOptions = function setOptions(options) {
-	        this._eventOutput.emit('change', options);
-	    };
-	
-	    /**
-	     * Adds a force to a physics body's force accumulator.
-	     *
-	     * @method applyForce
-	     * @param targets {Array.Body} Array of bodies to apply a force to.
-	     */
-	    Force.prototype.applyForce = function applyForce(targets) {
-	        var length = targets.length;
-	        while (length--) {
-	            targets[length].applyForce(this.force);
-	        }
-	    };
-	
-	    /**
-	     * Getter for a force's potential energy.
-	     *
-	     * @method getEnergy
-	     * @return energy {Number}
-	     */
-	    Force.prototype.getEnergy = function getEnergy() {
-	        return 0.0;
-	    };
-	
-	    module.exports = Force;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 56 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	
-	    /**
-	     * Three-element floating point vector.
-	     *
-	     * @class Vector
-	     * @constructor
-	     *
-	     * @param {number} x x element value
-	     * @param {number} y y element value
-	     * @param {number} z z element value
-	     */
-	    function Vector(x,y,z) {
-	        if (arguments.length === 1 && x !== undefined) this.set(x);
-	        else {
-	            this.x = x || 0;
-	            this.y = y || 0;
-	            this.z = z || 0;
-	        }
-	        return this;
-	    }
-	
-	    var _register = new Vector(0,0,0);
-	
-	    /**
-	     * Add this element-wise to another Vector, element-wise.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method add
-	     * @param {Vector} v addend
-	     * @return {Vector} vector sum
-	     */
-	    Vector.prototype.add = function add(v) {
-	        return _setXYZ.call(_register,
-	            this.x + v.x,
-	            this.y + v.y,
-	            this.z + v.z
-	        );
-	    };
-	
-	    /**
-	     * Subtract another vector from this vector, element-wise.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method sub
-	     * @param {Vector} v subtrahend
-	     * @return {Vector} vector difference
-	     */
-	    Vector.prototype.sub = function sub(v) {
-	        return _setXYZ.call(_register,
-	            this.x - v.x,
-	            this.y - v.y,
-	            this.z - v.z
-	        );
-	    };
-	
-	    /**
-	     * Scale Vector by floating point r.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method mult
-	     *
-	     * @param {number} r scalar
-	     * @return {Vector} vector result
-	     */
-	    Vector.prototype.mult = function mult(r) {
-	        return _setXYZ.call(_register,
-	            r * this.x,
-	            r * this.y,
-	            r * this.z
-	        );
-	    };
-	
-	    /**
-	     * Scale Vector by floating point 1/r.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method div
-	     *
-	     * @param {number} r scalar
-	     * @return {Vector} vector result
-	     */
-	    Vector.prototype.div = function div(r) {
-	        return this.mult(1 / r);
-	    };
-	
-	    /**
-	     * Given another vector v, return cross product (v)x(this).
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method cross
-	     * @param {Vector} v Left Hand Vector
-	     * @return {Vector} vector result
-	     */
-	    Vector.prototype.cross = function cross(v) {
-	        var x = this.x;
-	        var y = this.y;
-	        var z = this.z;
-	        var vx = v.x;
-	        var vy = v.y;
-	        var vz = v.z;
-	
-	        return _setXYZ.call(_register,
-	            z * vy - y * vz,
-	            x * vz - z * vx,
-	            y * vx - x * vy
-	        );
-	    };
-	
-	    /**
-	     * Component-wise equality test between this and Vector v.
-	     * @method equals
-	     * @param {Vector} v vector to compare
-	     * @return {boolean}
-	     */
-	    Vector.prototype.equals = function equals(v) {
-	        return (v.x === this.x && v.y === this.y && v.z === this.z);
-	    };
-	
-	    /**
-	     * Rotate clockwise around x-axis by theta radians.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     * @method rotateX
-	     * @param {number} theta radians
-	     * @return {Vector} rotated vector
-	     */
-	    Vector.prototype.rotateX = function rotateX(theta) {
-	        var x = this.x;
-	        var y = this.y;
-	        var z = this.z;
-	
-	        var cosTheta = Math.cos(theta);
-	        var sinTheta = Math.sin(theta);
-	
-	        return _setXYZ.call(_register,
-	            x,
-	            y * cosTheta - z * sinTheta,
-	            y * sinTheta + z * cosTheta
-	        );
-	    };
-	
-	    /**
-	     * Rotate clockwise around y-axis by theta radians.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     * @method rotateY
-	     * @param {number} theta radians
-	     * @return {Vector} rotated vector
-	     */
-	    Vector.prototype.rotateY = function rotateY(theta) {
-	        var x = this.x;
-	        var y = this.y;
-	        var z = this.z;
-	
-	        var cosTheta = Math.cos(theta);
-	        var sinTheta = Math.sin(theta);
-	
-	        return _setXYZ.call(_register,
-	            z * sinTheta + x * cosTheta,
-	            y,
-	            z * cosTheta - x * sinTheta
-	        );
-	    };
-	
-	    /**
-	     * Rotate clockwise around z-axis by theta radians.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     * @method rotateZ
-	     * @param {number} theta radians
-	     * @return {Vector} rotated vector
-	     */
-	    Vector.prototype.rotateZ = function rotateZ(theta) {
-	        var x = this.x;
-	        var y = this.y;
-	        var z = this.z;
-	
-	        var cosTheta = Math.cos(theta);
-	        var sinTheta = Math.sin(theta);
-	
-	        return _setXYZ.call(_register,
-	            x * cosTheta - y * sinTheta,
-	            x * sinTheta + y * cosTheta,
-	            z
-	        );
-	    };
-	
-	    /**
-	     * Return dot product of this with a second Vector
-	     * @method dot
-	     * @param {Vector} v second vector
-	     * @return {number} dot product
-	     */
-	    Vector.prototype.dot = function dot(v) {
-	        return this.x * v.x + this.y * v.y + this.z * v.z;
-	    };
-	
-	    /**
-	     * Return squared length of this vector
-	     * @method normSquared
-	     * @return {number} squared length
-	     */
-	    Vector.prototype.normSquared = function normSquared() {
-	        return this.dot(this);
-	    };
-	
-	    /**
-	     * Return length of this vector
-	     * @method norm
-	     * @return {number} length
-	     */
-	    Vector.prototype.norm = function norm() {
-	        return Math.sqrt(this.normSquared());
-	    };
-	
-	    /**
-	     * Scale Vector to specified length.
-	     *   If length is less than internal tolerance, set vector to [length, 0, 0].
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     * @method normalize
-	     *
-	     * @param {number} length target length, default 1.0
-	     * @return {Vector}
-	     */
-	    Vector.prototype.normalize = function normalize(length) {
-	        if (arguments.length === 0) length = 1;
-	        var norm = this.norm();
-	
-	        if (norm > 1e-7) return _setFromVector.call(_register, this.mult(length / norm));
-	        else return _setXYZ.call(_register, length, 0, 0);
-	    };
-	
-	    /**
-	     * Make a separate copy of the Vector.
-	     *
-	     * @method clone
-	     *
-	     * @return {Vector}
-	     */
-	    Vector.prototype.clone = function clone() {
-	        return new Vector(this);
-	    };
-	
-	    /**
-	     * True if and only if every value is 0 (or falsy)
-	     *
-	     * @method isZero
-	     *
-	     * @return {boolean}
-	     */
-	    Vector.prototype.isZero = function isZero() {
-	        return !(this.x || this.y || this.z);
-	    };
-	
-	    function _setXYZ(x,y,z) {
-	        this.x = x;
-	        this.y = y;
-	        this.z = z;
-	        return this;
-	    }
-	
-	    function _setFromArray(v) {
-	        return _setXYZ.call(this,v[0],v[1],v[2] || 0);
-	    }
-	
-	    function _setFromVector(v) {
-	        return _setXYZ.call(this, v.x, v.y, v.z);
-	    }
-	
-	    function _setFromNumber(x) {
-	        return _setXYZ.call(this,x,0,0);
-	    }
-	
-	    /**
-	     * Set this Vector to the values in the provided Array or Vector.
-	     *
-	     * @method set
-	     * @param {object} v array, Vector, or number
-	     * @return {Vector} this
-	     */
-	    Vector.prototype.set = function set(v) {
-	        if (v instanceof Array) return _setFromArray.call(this, v);
-	        if (typeof v === 'number') return _setFromNumber.call(this, v);
-	        return _setFromVector.call(this, v);
-	    };
-	
-	    Vector.prototype.setXYZ = function(x,y,z) {
-	        return _setXYZ.apply(this, arguments);
-	    };
-	
-	    Vector.prototype.set1D = function(x) {
-	        return _setFromNumber.call(this, x);
-	    };
-	
-	    /**
-	     * Put result of last internal register calculation in specified output vector.
-	     *
-	     * @method put
-	     * @param {Vector} v destination vector
-	     * @return {Vector} destination vector
-	     */
-	
-	    Vector.prototype.put = function put(v) {
-	        if (this === _register) _setFromVector.call(v, _register);
-	        else _setFromVector.call(v, this);
-	    };
-	
-	    /**
-	     * Set this vector to [0,0,0]
-	     *
-	     * @method clear
-	     */
-	    Vector.prototype.clear = function clear() {
-	        return _setXYZ.call(this,0,0,0);
-	    };
-	
-	    /**
-	     * Scale this Vector down to specified "cap" length.
-	     *   If Vector shorter than cap, or cap is Infinity, do nothing.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method cap
-	     * @return {Vector} capped vector
-	     */
-	    Vector.prototype.cap = function cap(cap) {
-	        if (cap === Infinity) return _setFromVector.call(_register, this);
-	        var norm = this.norm();
-	        if (norm > cap) return _setFromVector.call(_register, this.mult(cap / norm));
-	        else return _setFromVector.call(_register, this);
-	    };
-	
-	    /**
-	     * Return projection of this Vector onto another.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method project
-	     * @param {Vector} n vector to project upon
-	     * @return {Vector} projected vector
-	     */
-	    Vector.prototype.project = function project(n) {
-	        return n.mult(this.dot(n));
-	    };
-	
-	    /**
-	     * Reflect this Vector across provided vector.
-	     *   Note: This sets the internal result register, so other references to that vector will change.
-	     *
-	     * @method reflectAcross
-	     * @param {Vector} n vector to reflect across
-	     * @return {Vector} reflected vector
-	     */
-	    Vector.prototype.reflectAcross = function reflectAcross(n) {
-	        n.normalize().put(n);
-	        return _setFromVector(_register, this.sub(this.project(n).mult(2)));
-	    };
-	
-	    /**
-	     * Convert Vector to three-element array.
-	     *
-	     * @method get
-	     * @return {array<number>} three-element array
-	     */
-	    Vector.prototype.get = function get() {
-	        return [this.x, this.y, this.z];
-	    };
-	
-	    Vector.prototype.get1D = function() {
-	        return this.x;
-	    };
-	
-	    module.exports = Vector;
-	
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 57 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: david@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	
-	    /**
-	     * Ordinary Differential Equation (ODE) Integrator.
-	     * Manages updating a physics body's state over time.
-	     *
-	     *  p = position, v = velocity, m = mass, f = force, dt = change in time
-	     *
-	     *      v <- v + dt * f / m
-	     *      p <- p + dt * v
-	     *
-	     *  q = orientation, w = angular velocity, L = angular momentum
-	     *
-	     *      L <- L + dt * t
-	     *      q <- q + dt/2 * q * w
-	     *
-	     * @class SymplecticEuler
-	     * @constructor
-	     * @param {Object} options Options to set
-	     */
-	    var SymplecticEuler = {};
-	
-	    /*
-	     * Updates the velocity of a physics body from its accumulated force.
-	     *      v <- v + dt * f / m
-	     *
-	     * @method integrateVelocity
-	     * @param {Body} physics body
-	     * @param {Number} dt delta time
-	     */
-	    SymplecticEuler.integrateVelocity = function integrateVelocity(body, dt) {
-	        var v = body.velocity;
-	        var w = body.inverseMass;
-	        var f = body.force;
-	
-	        if (f.isZero()) return;
-	
-	        v.add(f.mult(dt * w)).put(v);
-	        f.clear();
-	    };
-	
-	    /*
-	     * Updates the position of a physics body from its velocity.
-	     *      p <- p + dt * v
-	     *
-	     * @method integratePosition
-	     * @param {Body} physics body
-	     * @param {Number} dt delta time
-	     */
-	    SymplecticEuler.integratePosition = function integratePosition(body, dt) {
-	        var p = body.position;
-	        var v = body.velocity;
-	
-	        p.add(v.mult(dt)).put(p);
-	    };
-	
-	    /*
-	     * Updates the angular momentum of a physics body from its accumuled torque.
-	     *      L <- L + dt * t
-	     *
-	     * @method integrateAngularMomentum
-	     * @param {Body} physics body (except a particle)
-	     * @param {Number} dt delta time
-	     */
-	    SymplecticEuler.integrateAngularMomentum = function integrateAngularMomentum(body, dt) {
-	        var L = body.angularMomentum;
-	        var t = body.torque;
-	
-	        if (t.isZero()) return;
-	
-	        L.add(t.mult(dt)).put(L);
-	        t.clear();
-	    };
-	
-	    /*
-	     * Updates the orientation of a physics body from its angular velocity.
-	     *      q <- q + dt/2 * q * w
-	     *
-	     * @method integrateOrientation
-	     * @param {Body} physics body (except a particle)
-	     * @param {Number} dt delta time
-	     */
-	    SymplecticEuler.integrateOrientation = function integrateOrientation(body, dt) {
-	        var q = body.orientation;
-	        var w = body.angularVelocity;
-	
-	        if (w.isZero()) return;
-	        q.add(q.multiply(w).scalarMultiply(0.5 * dt)).put(q);
-	//        q.normalize.put(q);
-	    };
-	
-	    module.exports = SymplecticEuler;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
