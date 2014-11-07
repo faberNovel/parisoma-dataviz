@@ -149,23 +149,25 @@
 	  scroll : ScrollSync
 	});
 	
+	var sync = new GenericSync(
+	  ['mouse', 'touch', 'scroll'], {
+	    direction : Utility.Direction.Y,
+	    rails: true
+	  });
 	
-	var sync = new GenericSync(['mouse', 'touch', 'scroll']);
 	Engine.pipe(sync);
 	
-	sync.on("start", function(data) {
+	sync.on('start', function(data) {
 	  console.log('start ...', data);
 	});
 	
-	// sync.on("update", function(data) {
+	// sync.on('update', function(data) {
 	//   console.log('update ...', data);
 	// });
 	
-	sync.on("end", function(data) {
-	  console.log('update ...', data);
-	});
-	
-	
+	// sync.on('end', function(data) {
+	//   console.log('end...', data);
+	// });
 	
 	Engine.on('keydown', function(e) {
 	  setTimeout(function() {
@@ -462,8 +464,8 @@
 	    this.bg.modifier.setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack });
 	  }
 	
-	  doStep0.call(this);
-	  setTimeout(doStep1.bind(this), 2000);
+	  setTimeout(doStep0.bind(this), 2000);
+	  setTimeout(doStep1.bind(this), 4000);
 	
 	}
 	
@@ -2485,7 +2487,7 @@
 	
 	  this.logo = { sides: [] };
 	  this.logo.modifier = new StateModifier({
-	    transform: Transform.translate(0, 50, 0),
+	    transform: Transform.translate(0, 0, 0),
 	    size: [284, 456],
 	    origin: [0.5, 0.5],
 	    align: [0.5, 0.5]
@@ -7520,7 +7522,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	    var RenderNode = __webpack_require__(41);
 	    var EventHandler = __webpack_require__(37);
-	    var ElementAllocator = __webpack_require__(46);
+	    var ElementAllocator = __webpack_require__(45);
 	    var Transform = __webpack_require__(18);
 	    var Transitionable = __webpack_require__(39);
 	
@@ -7757,7 +7759,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventEmitter = __webpack_require__(45);
+	    var EventEmitter = __webpack_require__(46);
 	
 	    /**
 	     * EventHandler forwards received events to a set of provided callback functions.
@@ -9430,107 +9432,6 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    /**
-	     * EventEmitter represents a channel for events.
-	     *
-	     * @class EventEmitter
-	     * @constructor
-	     */
-	    function EventEmitter() {
-	        this.listeners = {};
-	        this._owner = this;
-	    }
-	
-	    /**
-	     * Trigger an event, sending to all downstream handlers
-	     *   listening for provided 'type' key.
-	     *
-	     * @method emit
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {Object} event event data
-	     * @return {EventHandler} this
-	     */
-	    EventEmitter.prototype.emit = function emit(type, event) {
-	        var handlers = this.listeners[type];
-	        if (handlers) {
-	            for (var i = 0; i < handlers.length; i++) {
-	                handlers[i].call(this._owner, event);
-	            }
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Bind a callback function to an event type handled by this object.
-	     *
-	     * @method "on"
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function(string, Object)} handler callback
-	     * @return {EventHandler} this
-	     */
-	   EventEmitter.prototype.on = function on(type, handler) {
-	        if (!(type in this.listeners)) this.listeners[type] = [];
-	        var index = this.listeners[type].indexOf(handler);
-	        if (index < 0) this.listeners[type].push(handler);
-	        return this;
-	    };
-	
-	    /**
-	     * Alias for "on".
-	     * @method addListener
-	     */
-	    EventEmitter.prototype.addListener = EventEmitter.prototype.on;
-	
-	   /**
-	     * Unbind an event by type and handler.
-	     *   This undoes the work of "on".
-	     *
-	     * @method removeListener
-	     *
-	     * @param {string} type event type key (for example, 'click')
-	     * @param {function} handler function object to remove
-	     * @return {EventEmitter} this
-	     */
-	    EventEmitter.prototype.removeListener = function removeListener(type, handler) {
-	        var listener = this.listeners[type];
-	        if (listener !== undefined) {
-	            var index = listener.indexOf(handler);
-	            if (index >= 0) listener.splice(index, 1);
-	        }
-	        return this;
-	    };
-	
-	    /**
-	     * Call event handlers with this set to owner.
-	     *
-	     * @method bindThis
-	     *
-	     * @param {Object} owner object this EventEmitter belongs to
-	     */
-	    EventEmitter.prototype.bindThis = function bindThis(owner) {
-	        this._owner = owner;
-	    };
-	
-	    module.exports = EventEmitter;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 46 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    /**
 	     * Internal helper object to Context that handles the process of
@@ -9626,6 +9527,107 @@
 	    };
 	
 	    module.exports = ElementAllocator;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 46 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    /**
+	     * EventEmitter represents a channel for events.
+	     *
+	     * @class EventEmitter
+	     * @constructor
+	     */
+	    function EventEmitter() {
+	        this.listeners = {};
+	        this._owner = this;
+	    }
+	
+	    /**
+	     * Trigger an event, sending to all downstream handlers
+	     *   listening for provided 'type' key.
+	     *
+	     * @method emit
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {Object} event event data
+	     * @return {EventHandler} this
+	     */
+	    EventEmitter.prototype.emit = function emit(type, event) {
+	        var handlers = this.listeners[type];
+	        if (handlers) {
+	            for (var i = 0; i < handlers.length; i++) {
+	                handlers[i].call(this._owner, event);
+	            }
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Bind a callback function to an event type handled by this object.
+	     *
+	     * @method "on"
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function(string, Object)} handler callback
+	     * @return {EventHandler} this
+	     */
+	   EventEmitter.prototype.on = function on(type, handler) {
+	        if (!(type in this.listeners)) this.listeners[type] = [];
+	        var index = this.listeners[type].indexOf(handler);
+	        if (index < 0) this.listeners[type].push(handler);
+	        return this;
+	    };
+	
+	    /**
+	     * Alias for "on".
+	     * @method addListener
+	     */
+	    EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+	
+	   /**
+	     * Unbind an event by type and handler.
+	     *   This undoes the work of "on".
+	     *
+	     * @method removeListener
+	     *
+	     * @param {string} type event type key (for example, 'click')
+	     * @param {function} handler function object to remove
+	     * @return {EventEmitter} this
+	     */
+	    EventEmitter.prototype.removeListener = function removeListener(type, handler) {
+	        var listener = this.listeners[type];
+	        if (listener !== undefined) {
+	            var index = listener.indexOf(handler);
+	            if (index >= 0) listener.splice(index, 1);
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Call event handlers with this set to owner.
+	     *
+	     * @method bindThis
+	     *
+	     * @param {Object} owner object this EventEmitter belongs to
+	     */
+	    EventEmitter.prototype.bindThis = function bindThis(owner) {
+	        this._owner = owner;
+	    };
+	
+	    module.exports = EventEmitter;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
