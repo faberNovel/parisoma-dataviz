@@ -24,7 +24,7 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        loader: 'style-loader!css-loader!rework-loader'
+        loader: 'style-loader!css-loader?root=.!rework-loader'
       }
       // {
       //   test: /\.css$/,
