@@ -28,7 +28,7 @@ module.exports = {
       },
 
       // { test: /\.woff$/,   loader: "url-loader?prefix=font/&limit=5000&mimetype=application/font-woff" },
-      { test: /\.woff$/,   loader: "file-loader" },
+      { test: /\.woff$/,   loader: "file-loader?prefix=../&limit=5000&mimetype=application/font-woff" },
       { test: /\.ttf$/,    loader: "file-loader" },
       { test: /\.eot$/,    loader: "file-loader" },
       { test: /\.svg$/,    loader: "file-loader" },
