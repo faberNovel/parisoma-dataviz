@@ -1,11 +1,9 @@
 @import 'suitcss-base';
 @import 'suitcss-utils-text';
-@import 'suitcss-components-grid';
-@import 'suitcss-utils-size';
-@import 'suitcss-utils-offset';
 @import './fonts';
 @import './utilities';
 @import './variables';
+
 
 
 :root {

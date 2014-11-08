@@ -24,8 +24,18 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        loader: 'style-loader!css-loader?root=.!rework-loader'
-      }
+        loader: 'style-loader!css-loader!rework-loader'
+      },
+
+      // { test: /\.woff$/,   loader: "url-loader?prefix=font/&limit=5000&mimetype=application/font-woff" },
+      { test: /\.woff$/,   loader: "file-loader" },
+      { test: /\.ttf$/,    loader: "file-loader" },
+      { test: /\.eot$/,    loader: "file-loader" },
+      { test: /\.svg$/,    loader: "file-loader" },
+
+
+
+
       // {
       //   test: /\.css$/,
       //   loader: ExtractTextPlugin.extract('style-loader', 'css-loader!rework-loader')
