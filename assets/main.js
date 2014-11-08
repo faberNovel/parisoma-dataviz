@@ -61,7 +61,11 @@
 	    Modifier = __webpack_require__(19),
 	    ContainerSurface = __webpack_require__(22),
 	    RenderController = __webpack_require__(23),
-	
+	    GenericSync = __webpack_require__(24),
+	    MouseSync = __webpack_require__(25),
+	    TouchSync = __webpack_require__(26),
+	    ScrollSync = __webpack_require__(27),
+	    Utility = __webpack_require__(21),
 	    Slide01 = __webpack_require__(1),
 	    Slide02 = __webpack_require__(2),
 	    Slide03 = __webpack_require__(3),
@@ -74,19 +78,27 @@
 	    Slide10 = __webpack_require__(10),
 	    Logo = __webpack_require__(11);
 	
+	/*!
+	 * register syncs
+	 */
+	
+	GenericSync.register({
+	  mouse : MouseSync,
+	  touch : TouchSync,
+	  scroll : ScrollSync
+	});
 	
 	var mainContext = Engine.createContext();
-	mainContext.setPerspective(500);
-	
 	var Slides = [Slide01, Slide02, Slide03, Slide04, Slide05, Slide06, Slide07, Slide08, Slide09, Slide10];
-	// var Slides = [ViewStat];
 	var views = [];
-	
 	var renderController = new RenderController();
+	var currentSlide = -1;
 	
 	/*!
 	 * kick off
 	 */
+	
+	mainContext.setPerspective(500);
 	
 	function wrap(view) {
 	  var container = new ContainerSurface({
@@ -121,33 +133,6 @@
 	var scaleNode = mainContext.add(scaler);
 	
 	
-	
-	
-	var index = 0;
-	
-	renderController.show(views[index].container);
-	views[index]._eventInput.trigger('enter');
-	
-	var GenericSync = __webpack_require__(24);
-	var MouseSync = __webpack_require__(25);
-	var TouchSync = __webpack_require__(26);
-	var ScrollSync = __webpack_require__(27);
-	var Utility = __webpack_require__(21);
-	
-	
-	GenericSync.register({
-	    'mouse': MouseSync,
-	    'touch': TouchSync,
-	    'scroll': ScrollSync
-	});
-	
-	
-	GenericSync.register({
-	  mouse : MouseSync,
-	  touch : TouchSync,
-	  scroll : ScrollSync
-	});
-	
 	var sync = new GenericSync(
 	  ['mouse', 'touch', 'scroll'], {
 	    direction : Utility.Direction.Y,
@@ -167,13 +152,18 @@
 	
 	function changeSlide(e) {
 	  if (e.defaultPrevented) return;
-	  if (!views[index + e.detail.direction]) return;
+	  if (!views[currentSlide + e.detail.direction]) return;
 	
-	  var prev = index;
-	  index = index + e.detail.direction;
-	  renderController.show(views[index].container);
-	  views[index]._eventInput.trigger('enter', e.detail);
-	  if (views[prev]) views[prev]._eventInput.trigger('leave', e.detail);
+	  var prev = currentSlide;
+	  currentSlide = currentSlide + e.detail.direction;
+	
+	  views[currentSlide].willEnter(e.detail);
+	  if (views[prev]) views[prev].willLeave(e.detail);
+	
+	  renderController.show(views[currentSlide].container);
+	
+	  views[currentSlide].didEnter(e.detail);
+	  if (views[prev]) views[prev].didLeave(e.detail);
 	}
 	
 	Engine.on('keydown', function(e) {
@@ -188,7 +178,6 @@
 	  setTimeout(function() { changeSlide(e); }, 0);
 	});
 	
-	
 	/*!
 	 * logo cover
 	 */
@@ -199,70 +188,10 @@
 	scaleNode.add(renderController);
 	scaleNode.add(logo);
 	
-	
 	logo.animate();
+	changeSlide({ detail: { direction: 1 }});
 	
-	
-	// var Engine          = require('famous/core/Engine');
-	// var Surface         = require('famous/core/Surface');
-	// var StateModifier   = require('famous/modifiers/StateModifier');
-	// var PhysicsEngine   = require('famous/physics/PhysicsEngine');
-	// var Circle          = require('famous/physics/bodies/Circle');
-	// var Spring          = require('famous/physics/constraints/Distance');
-	// var Walls           = require('famous/physics/constraints/Walls');
-	
-	// var context = Engine.createContext();
-	// var physicsEngine = new PhysicsEngine();
-	
-	// context.setPerspective(500);
-	
-	// /*!
-	//  * ball
-	//  */
-	
-	// var ball = new Surface ({
-	//   size: [200, 200],
-	//   properties: {
-	//     backgroundColor: 'red',
-	//     borderRadius: '100px'
-	//   }
-	// });
-	
-	// ball.state = new StateModifier({
-	//     align: [0.5, 0.5],
-	//     origin: [0.5, 0.5]
-	// });
-	
-	// ball.particle = new Circle({
-	//   radius: 100
-	// });
-	
-	
-	// !
-	//  * add to context
-	
-	
-	// physicsEngine.addBody(ball.particle);
-	// context.add(ball.state).add(ball);
-	
-	// var walls    = new Walls({ size: [600, 600], origin: [0.5, 0.5]});
-	// physicsEngine.attach( walls.components[0],  [ball.particle]);
-	// physicsEngine.attach( walls.components[1],  [ball.particle]);
-	// physicsEngine.attach( walls.components[2],  [ball.particle]);
-	// physicsEngine.attach( walls.components[3],  [ball.particle]);
-	// // physicsEngine.attach( walls,  [ball.particle]);
-	// // physicsEngine.attach( rightWall, [ball.particle]);
-	// // physicsEngine.attach( topWall,   [ball.particle]);
-	// // physicsEngine.attach( bottomWall,[ball.particle]);
-	
-	// ball.particle.setVelocity([0.5,1,0]);
-	
-	// physicsEngine.attach( walls.components[3],  [ball.particle]);
-	
-	
-	// Engine.on('prerender', function(){
-	//   ball.state.setTransform(ball.particle.getTransform())
-	// });
+
 
 /***/ },
 /* 1 */
@@ -273,11 +202,11 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    ImageSurface = __webpack_require__(33),
+	    ImageSurface = __webpack_require__(29),
 	    StateModifier = __webpack_require__(30),
-	    Easing = __webpack_require__(34),
+	    Easing = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(29);
+	    SlideBase = __webpack_require__(32);
 	
 	/*!
 	 * globals
@@ -456,59 +385,43 @@
 	
 	}
 	
-	function _onEnter() {
-	
-	  var step = 0;
-	
-	
-	  function doStep0() {
-	    this.modifier.setOpacity(1);
-	  }
-	
-	  function doStep1() {
-	    this.title1.surface.addClass('text--white');
-	    // this.titleGroupModifer.setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack });
-	
-	    this.text.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack });
-	
-	    this.bg.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack });
-	    this.bg.modifier.setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack });
-	
-	    this.light.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack });
-	    this.light.modifier.setTransform(Transform.translate(0, 518, 0), { duration : 800, curve: Easing.outBack });
-	
-	    this.group.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack });
-	    this.group.modifier.setTransform(Transform.translate(-384, 460 , 0), { duration : 800, curve: Easing.outBack });
-	  }
-	
-	  setTimeout(doStep0.bind(this), 2000);
-	  setTimeout(doStep1.bind(this), 4000);
-	
-	}
-	
-	function _onLeave() {
-	  this.modifier.setOpacity(0, { duration : 500, curve: Easing.outBack });
-	  // this.bg.modifier.setTransform(Transform.translate(0, 100, 0), { duration : 1500, curve: Easing.outBack });
-	}
-	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
+	  this._steps = [
+	    function() {
+	      return [
+	        this.modifier.setOpacity(1, { duration : 1500, curve: Easing.outBack })
+	      ];
+	    },
+	    function() {
+	      this.title1.surface.addClass('text--white');
+	      return [
+	        this.titleGroupModifer.setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack }),
+	        this.text.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack }),
+	        this.bg.modifier.setOpacity(1, { duration : 800, curve: Easing.outBack }),
+	        this.bg.modifier.setTransform(Transform.translate(0, 0, 0), { duration : 800, curve: Easing.outBack })
+	      ];
+	    }
+	  ];
 	}
 	
 	/*!
-	 * extend View
+	 * extend SlideBase
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype = Object.create(SlideBase.prototype);
 	Slide.prototype.constructor = Slide;
+	
+	
+	Slide.prototype.didEnter = function() {
+	  setTimeout(this.playNextAnimation.bind(this), 2000);
+	  setTimeout(this.playNextAnimation.bind(this), 4000);
+	};
 	
 	/*!
 	 * module exports
@@ -527,9 +440,9 @@
 	var Surface = __webpack_require__(28),
 	    StateModifier = __webpack_require__(30),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(29),
-	    ViewList = __webpack_require__(31),
-	    ViewStat = __webpack_require__(32);
+	    SlideBase = __webpack_require__(33),
+	    ViewList = __webpack_require__(34),
+	    ViewStat = __webpack_require__(35);
 	
 	/**
 	 * create view layout
@@ -615,32 +528,27 @@
 	    .add(this.list.surface);
 	}
 	
-	function _onEnter() {
-	  this.stat.surface.count();
-	  this.list.surface.open();
-	}
-	
-	function _onLeave() {
-	}
-	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
-	 * extend View
+	 * extend SlideBase
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
-	Slide.prototype.constructor = Slide;
+	Slide.prototype = Object.create(SlideBase.prototype);
+	Slide.prototype.constructor = SlideBase;
+	
+	
+	Slide.prototype.didEnter = function() {
+	  this.stat.surface.count();
+	  this.list.surface.open();
+	};
 	
 	/*!
 	 * module exports
@@ -658,14 +566,13 @@
 	
 	var Surface = __webpack_require__(28),
 	    StateModifier = __webpack_require__(30),
-	    KeyCodes = __webpack_require__(20),
-	    ImageSurface = __webpack_require__(33),
-	    Easing = __webpack_require__(34),
+	    ImageSurface = __webpack_require__(29),
+	    Easing = __webpack_require__(31),
 	    Transform = __webpack_require__(18),
 	    Utility = __webpack_require__(21),
-	    View = __webpack_require__(29),
-	    ViewList = __webpack_require__(31),
-	    ViewStat = __webpack_require__(32);
+	    SlideBase = __webpack_require__(32),
+	    ViewList = __webpack_require__(34),
+	    ViewStat = __webpack_require__(35);
 	
 	/*!
 	 * globals
@@ -886,52 +793,44 @@
 	    .add(this.list2.surface);
 	}
 	
-	function _onEnter() {
-	
-	  var doStep0 = function() {
-	    this.stat1.surface.bump();
-	  };
-	
-	  var doStep1 = function() {
-	    this.list1.surface.open();
-	    this.list1.surface.forEach(function(s) { s.count(); });
-	  };
-	
-	  var doStep2 = function() {
-	    this.step1.setTransform(Transform.translate(300, -400, -300), { duration : 1000, curve: Easing.outBack });
-	    this.step2.setOpacity(1, { duration : 1000, curve: Easing.outBack });
-	    this.list2.surface.open();
-	    this.list2.surface.forEach(function(s) { s.count(); });
-	  };
-	
-	
-	  doStep0.call(this);
-	  setTimeout(doStep1.bind(this), 2000);
-	  setTimeout(doStep2.bind(this), 4000);
-	
-	
-	}
-	
-	function _onLeave() {
-	}
-	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
+	
+	  this._steps = [
+	    function() {
+	      return this.stat1.surface.bump();
+	    },
+	    function() {
+	      this.list1.surface.open();
+	      this.list1.surface.forEach(function(s) { s.count(); });
+	    },
+	    function() {
+	      this.step1.setTransform(Transform.translate(300, -400, -300), { duration : 1000, curve: Easing.outBack });
+	      this.step2.setOpacity(1, { duration : 1000, curve: Easing.outBack });
+	      this.list2.surface.open();
+	      this.list2.surface.forEach(function(s) { s.count(); });
+	    }
+	  ];
 	}
 	
 	/*!
-	 * extend View
+	 * extend SlideBase
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
-	Slide.prototype.constructor = Slide;
+	Slide.prototype = Object.create(SlideBase.prototype);
+	Slide.prototype.constructor = SlideBase;
+	
+	
+	Slide.prototype.didEnter = function() {
+	  this.playNextAnimation();
+	  setTimeout(this.playNextAnimation.bind(this), 2000);
+	  setTimeout(this.playNextAnimation.bind(this), 4000);
+	};
 	
 	/*!
 	 * module exports
@@ -948,13 +847,13 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    Easing = __webpack_require__(34),
+	    Easing = __webpack_require__(31),
 	    StateModifier = __webpack_require__(30),
-	    ImageSurface = __webpack_require__(33),
+	    ImageSurface = __webpack_require__(29),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(29),
-	    ViewStat = __webpack_require__(32),
-	    ViewList = __webpack_require__(31);
+	    SlideBase = __webpack_require__(33),
+	    ViewStat = __webpack_require__(35),
+	    ViewList = __webpack_require__(34);
 	
 	/*!
 	 * globals
@@ -1128,44 +1027,37 @@
 	    .add(this.notes.surface);
 	}
 	
-	function _onEnter() {
-	
-	  var doStep0 = function() {
-	    this.list.surface.open();
-	    this.list.surface.forEach(function(s) { s.count(); });
-	  };
-	
-	  var doStep1 = function() {
-	    this.list.modifier.setTransform(Transform.translate(-300, 0, 0), { duration : 500, curve: Easing.outBack });
-	    this.notes.surface.open();
-	  };
-	
-	  doStep0.call(this);
-	  setTimeout(doStep1.bind(this), 2000);
-	
-	}
-	
-	function _onLeave() {
-	}
-	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
 	
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
+	  this._steps = [
+	    function() {
+	      this.list.surface.open();
+	      this.list.surface.forEach(function(s) { s.count(); });
+	    },
+	    function() {
+	      this.list.modifier.setTransform(Transform.translate(-300, 0, 0), { duration : 500, curve: Easing.outBack });
+	      this.notes.surface.open();
+	    }
+	  ];
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype = Object.create(SlideBase.prototype);
 	Slide.prototype.constructor = Slide;
+	
+	Slide.prototype.didEnter = function() {
+	  this.playNextAnimation();
+	  setTimeout(this.playNextAnimation.bind(this), 2000);
+	};
 	
 	/*!
 	 * module exports
@@ -1182,14 +1074,14 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    Easing = __webpack_require__(34),
-	    ImageSurface = __webpack_require__(33),
+	    Easing = __webpack_require__(31),
+	    ImageSurface = __webpack_require__(29),
 	    StateModifier = __webpack_require__(30),
 	    Utility = __webpack_require__(21),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(29),
-	    ViewStat = __webpack_require__(32),
-	    ViewList = __webpack_require__(31);
+	    SlideBase = __webpack_require__(33),
+	    ViewStat = __webpack_require__(35),
+	    ViewList = __webpack_require__(34);
 	
 	/*!
 	 * globals
@@ -1401,36 +1293,27 @@
 	    .add(this.list.surface);
 	}
 	
-	function _onEnter() {
-	  this.list.surface.open();
-	  this.donutImg.modifier
-	    .setTransform(Transform.translate(-140, 580, 0));
-	
-	}
-	
-	function _onLeave() {
-	  this.donutImg.modifier
-	    .setTransform(Transform.translate(-140, 580, 0), { duration : 500 })
-	    .setTransform(Transform.translate(-140, 0, 0), { duration : 500, curve: Easing.outBack });
-	}
 	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype = Object.create(SlideBase.prototype);
 	Slide.prototype.constructor = Slide;
+	
+	Slide.prototype.didEnter = function() {
+	  this.list.surface.open();
+	  this.donutImg.modifier.setTransform(Transform.translate(-140, 580, 0));
+	};
 	
 	/*!
 	 * module exports
@@ -1447,13 +1330,12 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    Easing = __webpack_require__(34),
 	    StateModifier = __webpack_require__(30),
 	    Transform = __webpack_require__(18),
 	    Utility = __webpack_require__(21),
-	    View = __webpack_require__(29),
-	    ViewStat = __webpack_require__(32),
-	    ViewList = __webpack_require__(31);
+	    SlideBase = __webpack_require__(33),
+	    ViewStat = __webpack_require__(35),
+	    ViewList = __webpack_require__(34);
 	
 	/*!
 	 * templates
@@ -1544,39 +1426,29 @@
 	    .add(this.list.surface);
 	}
 	
-	function _onEnter() {
-	  this.list.surface.open();
-	  this.list.surface.forEach(function(stat) {
-	    stat.count();
-	  });
-	
-	  // this.title.modifier
-	  //   .setTransform(Transform.translate(250, -300, 0), { duration : 500 })
-	  //   .setTransform(Transform.translate(0, -250, 0), { duration : 500, curve: Easing.outBack });
-	}
-	
-	function _onLeave() {
-	  // this.title.modifier
-	  //   .setTransform(Transform.translate(250, -300, 0));
-	}
-	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
+	
 	/*!
-	 * extend View
+	 * extend SlideBase
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype = Object.create(SlideBase.prototype);
 	Slide.prototype.constructor = Slide;
+	
+	
+	Slide.prototype.didEnter = function() {
+	  this.list.surface.open();
+	  this.list.surface.forEach(function(stat) {
+	    stat.count();
+	  });
+	};
 	
 	/*!
 	 * module exports
@@ -1593,14 +1465,13 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    KeyCodes = __webpack_require__(20),
-	    ImageSurface = __webpack_require__(33),
-	    Easing = __webpack_require__(34),
+	    ImageSurface = __webpack_require__(29),
+	    Easing = __webpack_require__(31),
 	    StateModifier = __webpack_require__(30),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(29),
-	    ViewList = __webpack_require__(31),
-	    ViewStat = __webpack_require__(32);
+	    SlideBase = __webpack_require__(33),
+	    ViewList = __webpack_require__(34),
+	    ViewStat = __webpack_require__(35);
 	
 	/*!
 	 * globals
@@ -1854,52 +1725,36 @@
 	  step2
 	    .add(this.list.modifier)
 	    .add(this.list.surface);
-	
 	}
 	
-	function _onEnter() {
-	  var step = function(e) {
-	    e.preventDefault();
-	
-	    this.stat1.surface.bump();
-	    this._eventInput.removeListener('change-slide', step);
-	
-	    if (e.detail.direction === 1) {
-	      this.step1.setTransform(Transform.translate(250, -200, 0), { duration : 1000, curve: Easing.outBack });
-	
-	      this.list.surface.open();
-	      this.step2
-	        .setTransform(Transform.translate(0, 900, 0))
-	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
-	        .setTransform(Transform.translate(0, 0, 0), { duration : 1000, curve: Easing.outBack });
-	    }
-	
-	  }.bind(this);
-	
-	  this._eventInput.on('change-slide', step);
-	}
-	
-	function _onLeave() {
-	
-	}
 	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
+	  this._steps = [
+	    function() {
+	      this.stat1.surface.bump();
+	      this.step1.setTransform(Transform.translate(250, -200, 0), { duration : 1000, curve: Easing.outBack });
+	      this.list.surface.open();
+	      this.step2
+	        .setTransform(Transform.translate(0, 900, 0))
+	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
+	        .setTransform(Transform.translate(0, 0, 0), { duration : 1000, curve: Easing.outBack });
+	    }
+	  ];
 	}
 	
 	/*!
 	 * extend View
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
-	Slide.prototype.constructor = Slide;
+	Slide.prototype = Object.create(SlideBase.prototype);
+	Slide.prototype.constructor = SlideBase;
+	
 	
 	/*!
 	 * module exports
@@ -1916,13 +1771,13 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    ImageSurface = __webpack_require__(33),
+	    ImageSurface = __webpack_require__(29),
 	    StateModifier = __webpack_require__(30),
 	    Transform = __webpack_require__(18),
 	    Utility = __webpack_require__(21),
-	    View = __webpack_require__(29),
-	    ViewStat = __webpack_require__(32),
-	    ViewList = __webpack_require__(31);
+	    SlideBase = __webpack_require__(33),
+	    ViewStat = __webpack_require__(35),
+	    ViewList = __webpack_require__(34);
 	
 	/*!
 	 * templates
@@ -2049,31 +1904,26 @@
 	    .add(this.list.surface);
 	}
 	
-	function _onEnter() {
-	  this.list.surface.open();
-	}
-	
-	function _onLeave() {
-	
-	}
-	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
 	}
 	
 	/*!
-	 * extend View
+	 * extend SlideBase
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype = Object.create(SlideBase.prototype);
 	Slide.prototype.constructor = Slide;
+	
+	Slide.prototype.didEnter = function() {
+	  this.list.surface.open();
+	};
+	
 	
 	/*!
 	 * module exports
@@ -2090,14 +1940,13 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    KeyCodes = __webpack_require__(20),
-	    Easing = __webpack_require__(34),
-	    ImageSurface = __webpack_require__(33),
+	    Easing = __webpack_require__(31),
+	    ImageSurface = __webpack_require__(29),
 	    StateModifier = __webpack_require__(30),
 	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(29),
-	    ViewStat = __webpack_require__(32),
-	    ViewList = __webpack_require__(31);
+	    SlideBase = __webpack_require__(33),
+	    ViewStat = __webpack_require__(35),
+	    ViewList = __webpack_require__(34);
 	
 	/*!
 	 * globals
@@ -2286,48 +2135,36 @@
 	    .add(this.stat2.surface);
 	}
 	
-	function _onEnter() {
 	
-	  this.list.surface.open();
-	
-	  var step = function(e) {
-	    e.preventDefault();
-	    this._eventInput.removeListener('change-slide', step);
-	
-	    if (e.detail.direction === 1) {
-	      this.step1.setTransform(Transform.translate(-100, -200, 0), { duration : 1000, curve: Easing.outBack });
-	
-	      this.step2
-	        .setTransform(Transform.translate(0, 900, 0))
-	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
-	        .setTransform(Transform.translate(-100, 400, 0), { duration : 1000, curve: Easing.outBack });
-	    }
-	
-	  }.bind(this);
-	
-	  this._eventInput.on('change-slide', step);
-	}
-	
-	function _onLeave() {
-	}
 	
 	/**
 	 * Slide Constructor
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
-	  this._eventInput.on('enter', _onEnter.bind(this));
-	  this._eventInput.on('leave', _onLeave.bind(this));
+	  this._steps =  [
+	    function() {
+	      this.step1.setTransform(Transform.translate(-100, -200, 0), { duration : 1000, curve: Easing.outBack });
+	      this.step2
+	        .setTransform(Transform.translate(0, 900, 0))
+	        .setOpacity(1, { duration : 1000, curve: Easing.outBack })
+	        .setTransform(Transform.translate(-100, 400, 0), { duration : 1000, curve: Easing.outBack });
+	    }
+	  ];
 	}
 	
 	/*!
-	 * extend View
+	 * extend SlideBase
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype = Object.create(SlideBase.prototype);
 	Slide.prototype.constructor = Slide;
+	
+	Slide.prototype.didEnter = function() {
+	  this.list.surface.open();
+	};
 	
 	/*!
 	 * module exports
@@ -2344,10 +2181,10 @@
 	 */
 	
 	var Surface = __webpack_require__(28),
-	    ImageSurface = __webpack_require__(33),
+	    ImageSurface = __webpack_require__(29),
 	    Transform = __webpack_require__(18),
 	    StateModifier = __webpack_require__(30),
-	    View = __webpack_require__(29);
+	    SlideBase = __webpack_require__(33);
 	
 	/*!
 	 * templates
@@ -2427,15 +2264,15 @@
 	 */
 	
 	function Slide() {
-	  View.apply(this, arguments);
+	  SlideBase.apply(this, arguments);
 	  _createLayout.call(this);
 	}
 	
 	/*!
-	 * extend View
+	 * extend SlideBase
 	 */
 	
-	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype = Object.create(SlideBase.prototype);
 	Slide.prototype.constructor = Slide;
 	
 	/*!
@@ -2456,9 +2293,9 @@
 	    ContainerSurface = __webpack_require__(22),
 	    StateModifier = __webpack_require__(30),
 	    Transform = __webpack_require__(18),
-	    Easing = __webpack_require__(34),
-	    ImageSurface = __webpack_require__(33),
-	    View = __webpack_require__(29);
+	    Easing = __webpack_require__(31),
+	    ImageSurface = __webpack_require__(29),
+	    View = __webpack_require__(36);
 	
 	/*!
 	 * module globals
@@ -2651,7 +2488,7 @@
 /* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(35)();
+	exports = module.exports = __webpack_require__(37)();
 	exports.push([module.id, "/*! normalize.css v3.0.2 | MIT License | git.io/normalize */\n\n/**\n * 1. Set default font family to sans-serif.\n * 2. Prevent iOS text size adjust after orientation change, without disabling\n *    user zoom.\n */\n\nhtml {\n  font-family: sans-serif;\n  /* 1 */\n  -ms-text-size-adjust: 100%;\n  /* 2 */\n  -webkit-text-size-adjust: 100%;\n  /* 2 */\n}\n\n/**\n * Remove default margin.\n */\n\nbody {\n  margin: 0;\n}\n\n/* HTML5 display definitions\n   ========================================================================== */\n\n/**\n * Correct `block` display not defined for any HTML5 element in IE 8/9.\n * Correct `block` display not defined for `details` or `summary` in IE 10/11\n * and Firefox.\n * Correct `block` display not defined for `main` in IE 11.\n */\n\narticle,\naside,\ndetails,\nfigcaption,\nfigure,\nfooter,\nheader,\nhgroup,\nmain,\nmenu,\nnav,\nsection,\nsummary {\n  display: block;\n}\n\n/**\n * 1. Correct `inline-block` display not defined in IE 8/9.\n * 2. Normalize vertical alignment of `progress` in Chrome, Firefox, and Opera.\n */\n\naudio,\ncanvas,\nprogress,\nvideo {\n  display: inline-block;\n  /* 1 */\n  vertical-align: baseline;\n  /* 2 */\n}\n\n/**\n * Prevent modern browsers from displaying `audio` without controls.\n * Remove excess height in iOS 5 devices.\n */\n\naudio:not([controls]) {\n  display: none;\n  height: 0;\n}\n\n/**\n * Address `[hidden]` styling not present in IE 8/9/10.\n * Hide the `template` element in IE 8/9/11, Safari, and Firefox < 22.\n */\n\n[hidden],\ntemplate {\n  display: none;\n}\n\n/* Links\n   ========================================================================== */\n\n/**\n * Remove the gray background color from active links in IE 10.\n */\n\na {\n  background-color: transparent;\n}\n\n/**\n * Improve readability when focused and also mouse hovered in all browsers.\n */\n\na:active,\na:hover {\n  outline: 0;\n}\n\n/* Text-level semantics\n   ========================================================================== */\n\n/**\n * Address styling not present in IE 8/9/10/11, Safari, and Chrome.\n */\n\nabbr[title] {\n  border-bottom: 1px dotted;\n}\n\n/**\n * Address style set to `bolder` in Firefox 4+, Safari, and Chrome.\n */\n\nb,\nstrong {\n  font-weight: bold;\n}\n\n/**\n * Address styling not present in Safari and Chrome.\n */\n\ndfn {\n  font-style: italic;\n}\n\n/**\n * Address variable `h1` font-size and margin within `section` and `article`\n * contexts in Firefox 4+, Safari, and Chrome.\n */\n\nh1 {\n  font-size: 2em;\n  margin: 0.67em 0;\n}\n\n/**\n * Address styling not present in IE 8/9.\n */\n\nmark {\n  background: #ff0;\n  color: #000;\n}\n\n/**\n * Address inconsistent and variable font size in all browsers.\n */\n\nsmall {\n  font-size: 80%;\n}\n\n/**\n * Prevent `sub` and `sup` affecting `line-height` in all browsers.\n */\n\nsub,\nsup {\n  font-size: 75%;\n  line-height: 0;\n  position: relative;\n  vertical-align: baseline;\n}\n\nsup {\n  top: -0.5em;\n}\n\nsub {\n  bottom: -0.25em;\n}\n\n/* Embedded content\n   ========================================================================== */\n\n/**\n * Remove border when inside `a` element in IE 8/9/10.\n */\n\nimg {\n  border: 0;\n}\n\n/**\n * Correct overflow not hidden in IE 9/10/11.\n */\n\nsvg:not(:root) {\n  overflow: hidden;\n}\n\n/* Grouping content\n   ========================================================================== */\n\n/**\n * Address margin not present in IE 8/9 and Safari.\n */\n\nfigure {\n  margin: 1em 40px;\n}\n\n/**\n * Address differences between Firefox and other browsers.\n */\n\nhr {\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n  height: 0;\n}\n\n/**\n * Contain overflow in all browsers.\n */\n\npre {\n  overflow: auto;\n}\n\n/**\n * Address odd `em`-unit font size rendering in all browsers.\n */\n\ncode,\nkbd,\npre,\nsamp {\n  font-family: monospace, monospace;\n  font-size: 1em;\n}\n\n/* Forms\n   ========================================================================== */\n\n/**\n * Known limitation: by default, Chrome and Safari on OS X allow very limited\n * styling of `select`, unless a `border` property is set.\n */\n\n/**\n * 1. Correct color not being inherited.\n *    Known issue: affects color of disabled elements.\n * 2. Correct font properties not being inherited.\n * 3. Address margins set differently in Firefox 4+, Safari, and Chrome.\n */\n\nbutton,\ninput,\noptgroup,\nselect,\ntextarea {\n  color: inherit;\n  /* 1 */\n  font: inherit;\n  /* 2 */\n  margin: 0;\n  /* 3 */\n}\n\n/**\n * Address `overflow` set to `hidden` in IE 8/9/10/11.\n */\n\nbutton {\n  overflow: visible;\n}\n\n/**\n * Address inconsistent `text-transform` inheritance for `button` and `select`.\n * All other form control elements do not inherit `text-transform` values.\n * Correct `button` style inheritance in Firefox, IE 8/9/10/11, and Opera.\n * Correct `select` style inheritance in Firefox.\n */\n\nbutton,\nselect {\n  text-transform: none;\n}\n\n/**\n * 1. Avoid the WebKit bug in Android 4.0.* where (2) destroys native `audio`\n *    and `video` controls.\n * 2. Correct inability to style clickable `input` types in iOS.\n * 3. Improve usability and consistency of cursor style between image-type\n *    `input` and others.\n */\n\nbutton,\nhtml input[type=\"button\"],\ninput[type=\"reset\"],\ninput[type=\"submit\"] {\n  -webkit-appearance: button;\n  /* 2 */\n  cursor: pointer;\n  /* 3 */\n}\n\n/**\n * Re-set default cursor for disabled elements.\n */\n\nbutton[disabled],\nhtml input[disabled] {\n  cursor: default;\n}\n\n/**\n * Remove inner padding and border in Firefox 4+.\n */\n\nbutton::-moz-focus-inner,\ninput::-moz-focus-inner {\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Address Firefox 4+ setting `line-height` on `input` using `!important` in\n * the UA stylesheet.\n */\n\ninput {\n  line-height: normal;\n}\n\n/**\n * It's recommended that you don't attempt to style these elements.\n * Firefox's implementation doesn't respect box-sizing, padding, or width.\n *\n * 1. Address box sizing set to `content-box` in IE 8/9/10.\n * 2. Remove excess padding in IE 8/9/10.\n */\n\ninput[type=\"checkbox\"],\ninput[type=\"radio\"] {\n  box-sizing: border-box;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Fix the cursor style for Chrome's increment/decrement buttons. For certain\n * `font-size` values of the `input`, it causes the cursor style of the\n * decrement button to change from `default` to `text`.\n */\n\ninput[type=\"number\"]::-webkit-inner-spin-button,\ninput[type=\"number\"]::-webkit-outer-spin-button {\n  height: auto;\n}\n\n/**\n * 1. Address `appearance` set to `searchfield` in Safari and Chrome.\n * 2. Address `box-sizing` set to `border-box` in Safari and Chrome\n *    (include `-moz` to future-proof).\n */\n\ninput[type=\"search\"] {\n  -webkit-appearance: textfield;\n  /* 1 */\n  -moz-box-sizing: content-box;\n  -webkit-box-sizing: content-box;\n  /* 2 */\n  box-sizing: content-box;\n}\n\n/**\n * Remove inner padding and search cancel button in Safari and Chrome on OS X.\n * Safari (but not Chrome) clips the cancel button when the search input has\n * padding (and `textfield` appearance).\n */\n\ninput[type=\"search\"]::-webkit-search-cancel-button,\ninput[type=\"search\"]::-webkit-search-decoration {\n  -webkit-appearance: none;\n}\n\n/**\n * Define consistent border, margin, and padding.\n */\n\nfieldset {\n  border: 1px solid #c0c0c0;\n  margin: 0 2px;\n  padding: 0.35em 0.625em 0.75em;\n}\n\n/**\n * 1. Correct `color` not being inherited in IE 8/9/10/11.\n * 2. Remove padding so people aren't caught out if they zero out fieldsets.\n */\n\nlegend {\n  border: 0;\n  /* 1 */\n  padding: 0;\n  /* 2 */\n}\n\n/**\n * Remove default vertical scrollbar in IE 8/9/10/11.\n */\n\ntextarea {\n  overflow: auto;\n}\n\n/**\n * Don't inherit the `font-weight` (applied by a rule above).\n * NOTE: the default cannot safely be changed in Chrome and Safari on OS X.\n */\n\noptgroup {\n  font-weight: bold;\n}\n\n/* Tables\n   ========================================================================== */\n\n/**\n * Remove most spacing between table cells.\n */\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0;\n}\n\ntd,\nth {\n  padding: 0;\n}\n\n/**\n * A thin layer on top of normalize.css that provides a starting point more\n * suitable for web applications. Removes the default spacing and border for\n * appropriate elements.\n */\n\nblockquote,\ndl,\ndd,\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\nfigure,\np,\npre {\n  margin: 0;\n}\n\nbutton {\n  background: transparent;\n  border: 0;\n  padding: 0;\n}\n\n/**\n * Work around a Firefox/IE bug where the transparent `button` background\n * results in a loss of the default `button` focus styles.\n */\n\nbutton:focus {\n  outline: 1px dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n}\n\nfieldset {\n  border: 0;\n  margin: 0;\n  padding: 0;\n}\n\niframe {\n  border: 0;\n}\n\nol,\nul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\n/**\n * Suppress the focus outline on links that cannot be accessed via keyboard.\n * This prevents an unwanted focus outline from appearing around elements that\n * might still respond to pointer events.\n */\n\n[tabindex=\"-1\"]:focus {\n  outline: none !important;\n}\n\n/**\n * Word breaking\n *\n * Break strings when their length exceeds the width of their container.\n */\n\n.u-textBreak {\n  word-wrap: break-word !important;\n}\n\n/**\n * Horizontal text alignment\n */\n\n.u-textCenter {\n  text-align: center !important;\n}\n\n.u-textLeft {\n  text-align: left !important;\n}\n\n.u-textRight {\n  text-align: right !important;\n}\n\n/**\n * Inherit the ancestor's text color.\n */\n\n.u-textInheritColor {\n  color: inherit !important;\n}\n\n/**\n * Enables font kerning in all browsers.\n * http://blog.typekit.com/2014/02/05/kerning-on-the-web/\n *\n * 1. Chrome (not Windows), Firefox, Safari 6+, iOS, Android\n * 2. Chrome (not Windows), Firefox, IE 10+\n * 3. Safari 7 and future browsers\n */\n\n.u-textKern {\n  text-rendering: optimizeLegibility;\n  /* 1 */\n  font-feature-settings: \"kern\" 1;\n  /* 2 */\n  font-kerning: normal;\n  /* 3 */\n}\n\n/**\n * Prevent whitespace wrapping\n */\n\n.u-textNoWrap {\n  white-space: nowrap !important;\n}\n\n/**\n * Text truncation\n *\n * Prevent text from wrapping onto multiple lines, and truncate with an\n * ellipsis.\n *\n * 1. Ensure that the node has a maximum width after which truncation can\n *    occur.\n * 2. Fix for IE 8/9 if `word-wrap: break-word` is in effect on ancestor\n *    nodes.\n */\n\n.u-textTruncate {\n  max-width: 100%;\n  /* 1 */\n  overflow: hidden !important;\n  text-overflow: ellipsis !important;\n  white-space: nowrap !important;\n  word-wrap: normal !important;\n  /* 2 */\n}\n\n/* comment\n-------------------------------------------------- */\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 300;\n  src: url(/assets/fonts/Open_Sans_300.eot?#iefix) format('embedded-opentype'),\n    url(/assets/fonts/Open_Sans_300.woff) format('woff'),\n    url(/assets/fonts/Open_Sans_300.ttf) format('truetype'),\n    url(/assets/fonts/Open_Sans_300.svg#OpenSans) format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 400;\n  src: url(/assets/fonts/Open_Sans_400.eot?#iefix) format('embedded-opentype'),\n    url(/assets/fonts/Open_Sans_400.woff) format('woff'),\n    url(/assets/fonts/Open_Sans_400.ttf) format('truetype'),\n    url(/assets/fonts/Open_Sans_400.svg#OpenSans) format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 600;\n  src: url(/assets/fonts/Open_Sans_600.eot?#iefix) format('embedded-opentype'),\n    url(/assets/fonts/Open_Sans_600.woff) format('woff'),\n    url(/assets/fonts/Open_Sans_600.ttf) format('truetype'),\n    url(/assets/fonts/Open_Sans_600.svg#OpenSans) format('svg');\n}\n\n@font-face {\n  font-family: 'Open Sans';\n  font-style: normal;\n  font-weight: 700;\n  src: url(/assets/fonts/Open_Sans_700.eot?#iefix) format('embedded-opentype'),\n    url(/assets/fonts/Open_Sans_700.woff) format('woff'),\n    url(/assets/fonts/Open_Sans_700.ttf) format('truetype'),\n    url(/assets/fonts/Open_Sans_700.svg#OpenSans) format('svg');\n}\n\n\n\n.u-backface {\n  backface-visibility: visible;\n}\n\n.u-textHuge {\n  font-size: 60px;\n}\n\n.u-textUnderscore:before {\n  content: '_';\n}\n\n.u-textLarge {\n  font-size: 40px;\n}\n\n.u-textBold {\n  font-weight: bold;\n}\n\n.u-pad-top-5 {\n  padding-top: 5px;\n}\n\n.u-pad-top-10 {\n  padding-top: 10px;\n}\n\n.u-pad-top-20 {\n  padding-top: 20px;\n}\n\n.u-pad-left-20 {\n  padding-left: 20px;\n}\n\n.u-pad-bottom-10 {\n  padding-bottom: 10px;\n}\n\n.u-pad-bottom-20 {\n  padding-bottom: 20px;\n}\n\n\n\nhtml,\nbody {\n  font-family: 'Open Sans', sans-serif;\n  font-size: 22px;\n  color: rgb(0, 0, 0);\n  font-weight: 100;\n}\n\n/* title\n-------------------------------------------------- */\n\n.title {\n  font-family: 'Andale Mono';\n  font-weight: 100;\n}\n\n.title:before {\n  content: '_';\n}\n\n.title--intro {\n  font-size: 50px;\n}\n\n.title--section {\n  font-size: 40px;\n}\n\n.title--white {\n  color: rgb(255, 255, 255);\n}\n\n.title--yellow {\n  color: rgb(255, 255, 0);\n}\n\n.title--pink {\n  color: rgb(255, 31, 171);\n}\n\n/* stat\n-------------------------------------------------- */\n\n.stat-number {\n  font-size: 60px;\n  line-height: 60px;\n}\n\n.stat-sign {\n  font-size: 40px;\n  padding-top: 8px;\n}\n\n/* note\n-------------------------------------------------- */\n\n.note {\n  font-size: 18px;\n}\n\n.note--gray {\n  color: rgb(162, 169, 162);\n}\n\n/* ticker\n-------------------------------------------------- */\n\n.ticker--pink {\n  background-color: rgb(255, 31, 171);\n}\n\n.ticker--yellow {\n  background-color: rgb(255, 255, 0);\n}\n\n/* misc\n-------------------------------------------------- */\n\n.text--white {\n  color: rgb(255, 255, 255);\n}\n\n.text--gray {\n  color: rgb(162, 169, 162);\n}\n\n.text--big {\n  font-size: 28px;\n}\n\n.Grid-cell--withBorder {\n  border-left: 1px solid rgba(162, 169, 162, 0.5);\n  border-right: 1px solid rgba(162, 169, 162, 0.5);\n}", ""]);
 
 /***/ },
@@ -2803,7 +2640,7 @@
 /* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(35)();
+	exports = module.exports = __webpack_require__(37)();
 	exports.push([module.id, "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\n *\n * Owner: mark@famo.us\n * @license MPL 2.0\n * @copyright Famous Industries, Inc. 2014\n */\n\n.famous-root {\n  width: 100%;\n  height: 100%;\n  margin: 0px;\n  padding: 0px;\n  overflow: hidden;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n}\n\n.famous-container,\n.famous-group {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  bottom: 0px;\n  right: 0px;\n  overflow: visible;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n  -webkit-backface-visibility: visible;\n  backface-visibility: visible;\n  pointer-events: none;\n}\n\n.famous-group {\n  width: 0px;\n  height: 0px;\n  margin: 0px;\n  padding: 0px;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n}\n\n.famous-surface {\n  position: absolute;\n  -webkit-transform-origin: center center;\n  transform-origin: center center;\n  -webkit-backface-visibility: hidden;\n  backface-visibility: hidden;\n  -webkit-transform-style: preserve-3d;\n  transform-style: preserve-3d;\n  -webkit-box-sizing: border-box;\n  -moz-box-sizing: border-box;\n  box-sizing: border-box;\n  -webkit-tap-highlight-color: transparent;\n  pointer-events: auto;\n}\n\n.famous-container-group {\n  position: relative;\n  width: 100%;\n  height: 100%;\n}", ""]);
 
 /***/ },
@@ -2836,9 +2673,9 @@
 	     * @static
 	     * @class Engine
 	     */
-	    var Context = __webpack_require__(36);
-	    var EventHandler = __webpack_require__(37);
-	    var OptionsManager = __webpack_require__(38);
+	    var Context = __webpack_require__(38);
+	    var EventHandler = __webpack_require__(39);
+	    var OptionsManager = __webpack_require__(40);
 	
 	    var Engine = {};
 	
@@ -3897,8 +3734,8 @@
 	    var Transform = __webpack_require__(18);
 	
 	    /* TODO: remove these dependencies when deprecation complete */
-	    var Transitionable = __webpack_require__(39);
-	    var TransitionableTransform = __webpack_require__(40);
+	    var Transitionable = __webpack_require__(41);
+	    var TransitionableTransform = __webpack_require__(42);
 	
 	    /**
 	     *
@@ -4561,7 +4398,7 @@
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	    var Surface = __webpack_require__(28);
-	    var Context = __webpack_require__(36);
+	    var Context = __webpack_require__(38);
 	
 	    /**
 	     * ContainerSurface is an object designed to contain surfaces and
@@ -4681,10 +4518,10 @@
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	    var Modifier = __webpack_require__(19);
-	    var RenderNode = __webpack_require__(41);
+	    var RenderNode = __webpack_require__(43);
 	    var Transform = __webpack_require__(18);
-	    var Transitionable = __webpack_require__(39);
-	    var View = __webpack_require__(29);
+	    var Transitionable = __webpack_require__(41);
+	    var View = __webpack_require__(36);
 	
 	    /**
 	     * A dynamic view that can show or hide different renerables with transitions.
@@ -4988,7 +4825,7 @@
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
-	    var EventHandler = __webpack_require__(37);
+	    var EventHandler = __webpack_require__(39);
 	
 	    /**
 	     * Combines multiple types of sync classes (e.g. mouse, touch,
@@ -5118,8 +4955,8 @@
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(37);
-	    var OptionsManager = __webpack_require__(38);
+	    var EventHandler = __webpack_require__(39);
+	    var OptionsManager = __webpack_require__(40);
 	
 	    /**
 	     * Handles piped in mouse drag events. Outputs an object with the position delta from last frame, position from start,
@@ -5405,9 +5242,9 @@
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var TouchTracker = __webpack_require__(42);
-	    var EventHandler = __webpack_require__(37);
-	    var OptionsManager = __webpack_require__(38);
+	    var TouchTracker = __webpack_require__(44);
+	    var EventHandler = __webpack_require__(39);
+	    var OptionsManager = __webpack_require__(40);
 	
 	    /**
 	     * Handles piped in touch events. Emits 'start', 'update', and 'events'
@@ -5632,9 +5469,9 @@
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(37);
+	    var EventHandler = __webpack_require__(39);
 	    var Engine = __webpack_require__(17);
-	    var OptionsManager = __webpack_require__(38);
+	    var OptionsManager = __webpack_require__(40);
 	
 	    /**
 	     * Handles piped in mousewheel events.
@@ -5836,7 +5673,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var ElementOutput = __webpack_require__(43);
+	    var ElementOutput = __webpack_require__(45);
 	
 	    /**
 	     * A base class for viewable content and event
@@ -6323,7 +6160,8 @@
 /* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	var __WEBPACK_AMD_DEFINE_RESULT__;
+	/* This Source Code Form is subject to the terms of the Mozilla Public
 	 * License, v. 2.0. If a copy of the MPL was not distributed with this
 	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	 *
@@ -6333,105 +6171,116 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(37);
-	    var OptionsManager = __webpack_require__(38);
-	    var RenderNode = __webpack_require__(41);
-	    var Utility = __webpack_require__(21);
+	    var Surface = __webpack_require__(28);
 	
 	    /**
-	     * Useful for quickly creating elements within applications
-	     *   with large event systems.  Consists of a RenderNode paired with
-	     *   an input EventHandler and an output EventHandler.
-	     *   Meant to be extended by the developer.
+	     * A surface containing image content.
+	     *   This extends the Surface class.
 	     *
-	     * @class View
-	     * @uses EventHandler
-	     * @uses OptionsManager
-	     * @uses RenderNode
+	     * @class ImageSurface
+	     *
+	     * @extends Surface
 	     * @constructor
+	     * @param {Object} [options] overrides of default options
 	     */
-	    function View(options) {
-	        this._node = new RenderNode();
-	
-	        this._eventInput = new EventHandler();
-	        this._eventOutput = new EventHandler();
-	        EventHandler.setInputHandler(this, this._eventInput);
-	        EventHandler.setOutputHandler(this, this._eventOutput);
-	
-	        this.options = Utility.clone(this.constructor.DEFAULT_OPTIONS || View.DEFAULT_OPTIONS);
-	        this._optionsManager = new OptionsManager(this.options);
-	
-	        if (options) this.setOptions(options);
+	    function ImageSurface(options) {
+	        this._imageUrl = undefined;
+	        Surface.apply(this, arguments);
 	    }
 	
-	    View.DEFAULT_OPTIONS = {}; // no defaults
+	    var urlCache = [];
+	    var countCache = [];
+	    var nodeCache = [];
+	    var cacheEnabled = true;
 	
-	    /**
-	     * Look up options value by key
-	     * @method getOptions
-	     *
-	     * @param {string} key key
-	     * @return {Object} associated object
-	     */
-	    View.prototype.getOptions = function getOptions(key) {
-	        return this._optionsManager.getOptions(key);
+	    ImageSurface.enableCache = function enableCache() {
+	        cacheEnabled = true;
 	    };
 	
-	    /*
-	     *  Set internal options.
-	     *  No defaults options are set in View.
-	     *
-	     *  @method setOptions
-	     *  @param {Object} options
+	    ImageSurface.disableCache = function disableCache() {
+	        cacheEnabled = false;
+	    };
+	
+	    ImageSurface.clearCache = function clearCache() {
+	        urlCache = [];
+	        countCache = [];
+	        nodeCache = [];
+	    };
+	
+	    ImageSurface.getCache = function getCache() {
+	        return {
+	            urlCache: urlCache,
+	            countCache: countCache,
+	            nodeCache: countCache
+	        };
+	    };
+	
+	    ImageSurface.prototype = Object.create(Surface.prototype);
+	    ImageSurface.prototype.constructor = ImageSurface;
+	    ImageSurface.prototype.elementType = 'img';
+	    ImageSurface.prototype.elementClass = 'famous-surface';
+	
+	    /**
+	     * Set content URL.  This will cause a re-rendering.
+	     * @method setContent
+	     * @param {string} imageUrl
 	     */
-	    View.prototype.setOptions = function setOptions(options) {
-	        this._optionsManager.patch(options);
+	    ImageSurface.prototype.setContent = function setContent(imageUrl) {
+	        var urlIndex = urlCache.indexOf(this._imageUrl);
+	        if (urlIndex !== -1) {
+	            if (countCache[urlIndex] === 1) {
+	                urlCache.splice(urlIndex, 1);
+	                countCache.splice(urlIndex, 1);
+	                nodeCache.splice(urlIndex, 1);
+	            } else {
+	                countCache[urlIndex]--;
+	            }
+	        }
+	
+	        urlIndex = urlCache.indexOf(imageUrl);
+	        if (urlIndex === -1) {
+	            urlCache.push(imageUrl);
+	            countCache.push(1);
+	        }
+	        else {
+	            countCache[urlIndex]++;
+	        }
+	
+	        this._imageUrl = imageUrl;
+	        this._contentDirty = true;
 	    };
 	
 	    /**
-	     * Add a child renderable to the view.
-	     *   Note: This is meant to be used by an inheriting class
-	     *   rather than from outside the prototype chain.
-	     *
-	     * @method add
-	     * @return {RenderNode}
-	     * @protected
-	     */
-	    View.prototype.add = function add() {
-	        return this._node.add.apply(this._node, arguments);
-	    };
-	
-	    /**
-	     * Alias for add
-	     * @method _add
-	     */
-	    View.prototype._add = View.prototype.add;
-	
-	    /**
-	     * Generate a render spec from the contents of this component.
+	     * Place the document element that this component manages into the document.
 	     *
 	     * @private
-	     * @method render
-	     * @return {number} Render spec for this component
+	     * @method deploy
+	     * @param {Node} target document parent of this container
 	     */
-	    View.prototype.render = function render() {
-	        return this._node.render();
+	    ImageSurface.prototype.deploy = function deploy(target) {
+	        var urlIndex = urlCache.indexOf(this._imageUrl);
+	        if (nodeCache[urlIndex] === undefined && cacheEnabled) {
+	            var img = new Image();
+	            img.src = this._imageUrl || '';
+	            nodeCache[urlIndex] = img;
+	        }
+	
+	        target.src = this._imageUrl || '';
 	    };
 	
 	    /**
-	     * Return size of contained element.
+	     * Remove this component and contained content from the document
 	     *
-	     * @method getSize
-	     * @return {Array.Number} [width, height]
+	     * @private
+	     * @method recall
+	     *
+	     * @param {Node} target node to which the component was deployed
 	     */
-	    View.prototype.getSize = function getSize() {
-	        if (this._node && this._node.getSize) {
-	            return this._node.getSize.apply(this._node, arguments) || this.options.size;
-	        }
-	        else return this.options.size;
+	    ImageSurface.prototype.recall = function recall(target) {
+	        target.src = '';
 	    };
 	
-	    module.exports = View;
+	    module.exports = ImageSurface;
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
@@ -6451,8 +6300,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	    var Modifier = __webpack_require__(19);
 	    var Transform = __webpack_require__(18);
-	    var Transitionable = __webpack_require__(39);
-	    var TransitionableTransform = __webpack_require__(40);
+	    var Transitionable = __webpack_require__(41);
+	    var TransitionableTransform = __webpack_require__(42);
 	
 	    /**
 	     *  A collection of visual changes to be
@@ -6763,451 +6612,6 @@
 /* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*!
-	 * module deps
-	 */
-	
-	var SequentialLayout = __webpack_require__(44);
-	var Transitionable = __webpack_require__(39);
-	var OptionsManager = __webpack_require__(38);
-	var Transform = __webpack_require__(18);
-	var Utility = __webpack_require__(21);
-	
-	/*!
-	 * private
-	 */
-	
-	function _getState(returnFinal) {
-	  if (returnFinal) return this._isOpen ? 1 : 0;
-	  else return this.state.get();
-	}
-	
-	function _setState(pos, transition, callback) {
-	  this.state.halt();
-	  this.state.set(pos, transition, callback);
-	}
-	
-	/**
-	 * List Constructor
-	 */
-	
-	function List() {
-	  SequentialLayout.apply(this, arguments);
-	  this.state = new Transitionable(0);
-	  this._isOpen = false;
-	
-	  this.setOutputFunction(function(input, offset) {
-	    var state = _getState.call(this),
-	        transform = this.options.direction === Utility.Direction.Y
-	          ? Transform.translate(0, state * offset)
-	          : Transform.translate(state * offset, 0);
-	
-	    return {
-	        opacity: state < 0.5 ? 0: state,
-	        transform: transform,
-	        size: input.getSize(),
-	        target: input.render()
-	    };
-	  });
-	}
-	
-	/*!
-	 * extend SequentialLayout
-	 */
-	
-	List.prototype = Object.create(SequentialLayout.prototype);
-	List.prototype.constructor = List;
-	
-	/*!
-	 * defaults
-	 */
-	
-	List.DEFAULT_OPTIONS = OptionsManager.patch(SequentialLayout.DEFAULT_OPTIONS, {
-	  direction: Utility.Direction.Y,
-	  transition: {
-	    curve: 'easeInOut',
-	    duration: 500
-	  }
-	});
-	
-	
-	/**
-	 * open list
-	 */
-	
-	List.prototype.open = function(callback) {
-	    this._isOpen = true;
-	   _setState.call(this, 1, this.options.transition, callback);
-	};
-	
-	/**
-	 * for list
-	 */
-	
-	List.prototype.forEach = function(callback) {
-	  this._items._.array.forEach(callback);
-	};
-	
-	/**
-	 * close list
-	 */
-	
-	List.prototype.close = function(callback) {
-	    this._isOpen = false;
-	   _setState.call(this, 0, this.options.transition, callback);
-	};
-	
-	/*!
-	 * module exports
-	 */
-	
-	module.exports = List;
-
-/***/ },
-/* 32 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/*!
-	 * module deps
-	 */
-	
-	var Surface = __webpack_require__(28),
-	    Easing = __webpack_require__(34),
-	    ContainerSurface = __webpack_require__(22),
-	    Modifier = __webpack_require__(19),
-	    StateModifier = __webpack_require__(30),
-	    Transitionable = __webpack_require__(39),
-	    Transform = __webpack_require__(18),
-	    View = __webpack_require__(29);
-	
-	/*!
-	 * globals
-	 */
-	
-	var toRadian = Math.PI/180;
-	
-	/**
-	 * create view layout
-	 */
-	
-	function _createLayout(){
-	
-	  /*!
-	   * container
-	   */
-	
-	  this.container = {};
-	  this.container.surface = new ContainerSurface(this.options.container);
-	  this.container.modifier = new StateModifier();
-	
-	  /*!
-	   * number
-	   */
-	
-	  this.number = {};
-	  this.number.surface = new Surface({
-	    content: this.options.number.content,
-	    size: [true, true],
-	    classes: ['stat-number'],
-	  });
-	
-	  this.number.countModifier = new Modifier();
-	  this.number.modifier = new StateModifier({
-	    transform: this.options.number.transform
-	  });
-	
-	  /*!
-	   * sign
-	   */
-	
-	  if (this.options.sign) {
-	    this.sign = {};
-	    this.sign.surface = new Surface({
-	      content: this.options.sign.content,
-	      size: [true, true],
-	      classes: ['stat-sign']
-	    });
-	    this.sign.modifier = new StateModifier({
-	      transform: this.options.sign.transform
-	    });
-	  }
-	
-	  /*!
-	   * ticker
-	   */
-	
-	  if (this.options.ticker) {
-	    this.ticker = {};
-	    this.ticker.surface = new Surface({
-	      size: this.options.ticker.size,
-	      classes: ['ticker', 'ticker--yellow'],
-	      properties: {
-	        zIndex: -1
-	      }
-	    });
-	
-	    this.ticker.tickerModifier = new StateModifier({
-	      transform: Transform.skew(0, -39 * toRadian, 0)
-	    });
-	
-	    this.ticker.modifier = new StateModifier({
-	      transform: this.options.ticker.transform
-	    });
-	  }
-	
-	  /*!
-	   * label
-	   */
-	
-	  this.label = {};
-	  this.label.surface = new Surface({
-	    size: this.options.label.size,
-	    content: this.options.label.content,
-	    classes: ['stat-label']
-	  });
-	
-	  this.label.modifier = new StateModifier({
-	    transform: this.options.label.transform
-	  });
-	
-	  this
-	    .add(this.container.modifier)
-	    .add(this.container.surface);
-	
-	  this.container.surface
-	    .add(this.number.countModifier)
-	    .add(this.number.modifier)
-	    .add(this.number.surface);
-	
-	  if (this.sign) {
-	    this.container.surface
-	      .add(this.sign.modifier)
-	      .add(this.sign.surface);
-	  }
-	
-	  if (this.ticker) {
-	    this.container.surface
-	      .add(this.ticker.modifier)
-	      .add(this.ticker.tickerModifier)
-	      .add(this.ticker.surface);
-	  }
-	
-	  this.container.surface
-	    .add(this.label.modifier)
-	    .add(this.label.surface);
-	}
-	
-	/**
-	 * Stat Constructor
-	 */
-	
-	function Stat() {
-	  View.apply(this, arguments);
-	  _createLayout.call(this);
-	  // this.bump();
-	  // this.count();
-	}
-	
-	/*!
-	 * extend View
-	 */
-	
-	Stat.prototype = Object.create(View.prototype);
-	Stat.prototype.constructor = Stat;
-	
-	/**
-	 * animate number
-	 */
-	
-	Stat.prototype.bump = function() {
-	  this.number.modifier
-	    .setTransform(Transform.scale(1.1), this.options.bumpTransition)
-	    .setTransform(Transform.scale(1), this.options.countTransition
-	  );
-	};
-	
-	/**
-	 * animate number
-	 */
-	
-	Stat.prototype.count = function() {
-	  var transitionable = new Transitionable(0);
-	  transitionable.set(+this.options.number.content, this.options.countTransition);
-	
-	  this.number.countModifier.transformFrom(function() {
-	    this.number.surface.setContent(Math.floor(transitionable.get()));
-	  }.bind(this));
-	};
-	
-	Stat.prototype.getSize = function getSize() {
-	  return this.label.surface.getSize();
-	};
-	
-	
-	/**
-	 * animate ticker
-	 */
-	
-	Stat.prototype.tick = function() {
-	  // this.number.modifier
-	  //   .setTransform(Transform.scale(1.1), this.options.bumpTransition)
-	  //   .setTransform(Transform.scale(1), this.options.countTransition
-	  // );
-	};
-	
-	/*!
-	 * defaults
-	 */
-	
-	Stat.DEFAULT_OPTIONS = {
-	  countTransition: {
-	    curve: 'easeInOut',
-	    duration: 1000
-	  },
-	  bumpTransition: {
-	    curve: 'easeOutBounce',
-	    duration: 300
-	  }
-	};
-	
-	/*!
-	 * module exports
-	 */
-	
-	module.exports = Stat;
-
-/***/ },
-/* 33 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * Owner: mark@famo.us
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2014
-	 */
-	
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Surface = __webpack_require__(28);
-	
-	    /**
-	     * A surface containing image content.
-	     *   This extends the Surface class.
-	     *
-	     * @class ImageSurface
-	     *
-	     * @extends Surface
-	     * @constructor
-	     * @param {Object} [options] overrides of default options
-	     */
-	    function ImageSurface(options) {
-	        this._imageUrl = undefined;
-	        Surface.apply(this, arguments);
-	    }
-	
-	    var urlCache = [];
-	    var countCache = [];
-	    var nodeCache = [];
-	    var cacheEnabled = true;
-	
-	    ImageSurface.enableCache = function enableCache() {
-	        cacheEnabled = true;
-	    };
-	
-	    ImageSurface.disableCache = function disableCache() {
-	        cacheEnabled = false;
-	    };
-	
-	    ImageSurface.clearCache = function clearCache() {
-	        urlCache = [];
-	        countCache = [];
-	        nodeCache = [];
-	    };
-	
-	    ImageSurface.getCache = function getCache() {
-	        return {
-	            urlCache: urlCache,
-	            countCache: countCache,
-	            nodeCache: countCache
-	        };
-	    };
-	
-	    ImageSurface.prototype = Object.create(Surface.prototype);
-	    ImageSurface.prototype.constructor = ImageSurface;
-	    ImageSurface.prototype.elementType = 'img';
-	    ImageSurface.prototype.elementClass = 'famous-surface';
-	
-	    /**
-	     * Set content URL.  This will cause a re-rendering.
-	     * @method setContent
-	     * @param {string} imageUrl
-	     */
-	    ImageSurface.prototype.setContent = function setContent(imageUrl) {
-	        var urlIndex = urlCache.indexOf(this._imageUrl);
-	        if (urlIndex !== -1) {
-	            if (countCache[urlIndex] === 1) {
-	                urlCache.splice(urlIndex, 1);
-	                countCache.splice(urlIndex, 1);
-	                nodeCache.splice(urlIndex, 1);
-	            } else {
-	                countCache[urlIndex]--;
-	            }
-	        }
-	
-	        urlIndex = urlCache.indexOf(imageUrl);
-	        if (urlIndex === -1) {
-	            urlCache.push(imageUrl);
-	            countCache.push(1);
-	        }
-	        else {
-	            countCache[urlIndex]++;
-	        }
-	
-	        this._imageUrl = imageUrl;
-	        this._contentDirty = true;
-	    };
-	
-	    /**
-	     * Place the document element that this component manages into the document.
-	     *
-	     * @private
-	     * @method deploy
-	     * @param {Node} target document parent of this container
-	     */
-	    ImageSurface.prototype.deploy = function deploy(target) {
-	        var urlIndex = urlCache.indexOf(this._imageUrl);
-	        if (nodeCache[urlIndex] === undefined && cacheEnabled) {
-	            var img = new Image();
-	            img.src = this._imageUrl || '';
-	            nodeCache[urlIndex] = img;
-	        }
-	
-	        target.src = this._imageUrl || '';
-	    };
-	
-	    /**
-	     * Remove this component and contained content from the document
-	     *
-	     * @private
-	     * @method recall
-	     *
-	     * @param {Node} target node to which the component was deployed
-	     */
-	    ImageSurface.prototype.recall = function recall(target) {
-	        target.src = '';
-	    };
-	
-	    module.exports = ImageSurface;
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-
-/***/ },
-/* 34 */
-/***/ function(module, exports, __webpack_require__) {
-
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
 	 * License, v. 2.0. If a copy of the MPL was not distributed with this
 	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7503,7 +6907,568 @@
 
 
 /***/ },
+/* 32 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var View = __webpack_require__(36);
+	
+	
+	/**
+	 * Slide Constructor
+	 */
+	
+	function Slide() {
+	  View.apply(this, arguments);
+	  this._currentStep = -1;
+	  this._animations;
+	  this._steps = [];
+	}
+	
+	/*!
+	 * extend View
+	 */
+	
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	
+	function haltCurrentAnimation() {
+	}
+	
+	Slide.prototype.didEnter = function() {};
+	Slide.prototype.didLeave = function() {};
+	
+	Slide.prototype.willEnter = function() {
+	  this._eventInput.on('change-slide', function(e) {
+	    if (e.detail.direction === -1) {
+	      // this._currentStep = -1;
+	    } else if (this._steps[this._currentStep + 1]) {
+	      e.preventDefault();
+	      this.playNextAnimation();
+	    }
+	  }.bind(this));
+	};
+	
+	Slide.prototype.willLeave = function(data) {
+	  if (data.direction === -1) this._currentStep = -1;
+	};
+	
+	Slide.prototype.playNextAnimation = function() {
+	  haltCurrentAnimation.call(this);
+	  this._currentStep++;
+	  if (this._steps[this._currentStep]) {
+	    this._animations = this._steps[this._currentStep].call(this);
+	  }
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = Slide;
+
+/***/ },
+/* 33 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var View = __webpack_require__(36);
+	
+	
+	/**
+	 * Slide Constructor
+	 */
+	
+	function Slide() {
+	  View.apply(this, arguments);
+	  this._currentStep = -1;
+	  this._animations;
+	  this._steps = [];
+	}
+	
+	/*!
+	 * extend View
+	 */
+	
+	Slide.prototype = Object.create(View.prototype);
+	Slide.prototype.constructor = Slide;
+	
+	function haltCurrentAnimation() {
+	}
+	
+	Slide.prototype.didEnter = function() {};
+	Slide.prototype.didLeave = function() {};
+	
+	Slide.prototype.willEnter = function() {
+	  this._eventInput.on('change-slide', function(e) {
+	    if (e.detail.direction === -1) {
+	      // this._currentStep = -1;
+	    } else if (this._steps[this._currentStep + 1]) {
+	      e.preventDefault();
+	      this.playNextAnimation();
+	    }
+	  }.bind(this));
+	};
+	
+	Slide.prototype.willLeave = function(data) {
+	  if (data.direction === -1) this._currentStep = -1;
+	};
+	
+	Slide.prototype.playNextAnimation = function() {
+	  haltCurrentAnimation.call(this);
+	  this._currentStep++;
+	  if (this._steps[this._currentStep]) {
+	    this._animations = this._steps[this._currentStep].call(this);
+	  }
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = Slide;
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var SequentialLayout = __webpack_require__(46);
+	var Transitionable = __webpack_require__(41);
+	var OptionsManager = __webpack_require__(40);
+	var Transform = __webpack_require__(18);
+	var Utility = __webpack_require__(21);
+	
+	/*!
+	 * private
+	 */
+	
+	function _getState(returnFinal) {
+	  if (returnFinal) return this._isOpen ? 1 : 0;
+	  else return this.state.get();
+	}
+	
+	function _setState(pos, transition, callback) {
+	  this.state.halt();
+	  this.state.set(pos, transition, callback);
+	}
+	
+	/**
+	 * List Constructor
+	 */
+	
+	function List() {
+	  SequentialLayout.apply(this, arguments);
+	  this.state = new Transitionable(0);
+	  this._isOpen = false;
+	
+	  this.setOutputFunction(function(input, offset) {
+	    var state = _getState.call(this),
+	        transform = this.options.direction === Utility.Direction.Y
+	          ? Transform.translate(0, state * offset)
+	          : Transform.translate(state * offset, 0);
+	
+	    return {
+	        opacity: state < 0.5 ? 0: state,
+	        transform: transform,
+	        size: input.getSize(),
+	        target: input.render()
+	    };
+	  });
+	}
+	
+	/*!
+	 * extend SequentialLayout
+	 */
+	
+	List.prototype = Object.create(SequentialLayout.prototype);
+	List.prototype.constructor = List;
+	
+	/*!
+	 * defaults
+	 */
+	
+	List.DEFAULT_OPTIONS = OptionsManager.patch(SequentialLayout.DEFAULT_OPTIONS, {
+	  direction: Utility.Direction.Y,
+	  transition: {
+	    curve: 'easeInOut',
+	    duration: 500
+	  }
+	});
+	
+	
+	/**
+	 * open list
+	 */
+	
+	List.prototype.open = function(callback) {
+	    this._isOpen = true;
+	   _setState.call(this, 1, this.options.transition, callback);
+	};
+	
+	/**
+	 * for list
+	 */
+	
+	List.prototype.forEach = function(callback) {
+	  this._items._.array.forEach(callback);
+	};
+	
+	/**
+	 * close list
+	 */
+	
+	List.prototype.close = function(callback) {
+	    this._isOpen = false;
+	   _setState.call(this, 0, this.options.transition, callback);
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = List;
+
+/***/ },
 /* 35 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*!
+	 * module deps
+	 */
+	
+	var Surface = __webpack_require__(28),
+	    Easing = __webpack_require__(31),
+	    ContainerSurface = __webpack_require__(22),
+	    Modifier = __webpack_require__(19),
+	    StateModifier = __webpack_require__(30),
+	    Transitionable = __webpack_require__(41),
+	    Transform = __webpack_require__(18),
+	    View = __webpack_require__(36);
+	
+	/*!
+	 * globals
+	 */
+	
+	var toRadian = Math.PI/180;
+	
+	/**
+	 * create view layout
+	 */
+	
+	function _createLayout(){
+	
+	  /*!
+	   * container
+	   */
+	
+	  this.container = {};
+	  this.container.surface = new ContainerSurface(this.options.container);
+	  this.container.modifier = new StateModifier();
+	
+	  /*!
+	   * number
+	   */
+	
+	  this.number = {};
+	  this.number.surface = new Surface({
+	    content: this.options.number.content,
+	    size: [true, true],
+	    classes: ['stat-number'],
+	  });
+	
+	  this.number.countModifier = new Modifier();
+	  this.number.modifier = new StateModifier({
+	    transform: this.options.number.transform
+	  });
+	
+	  /*!
+	   * sign
+	   */
+	
+	  if (this.options.sign) {
+	    this.sign = {};
+	    this.sign.surface = new Surface({
+	      content: this.options.sign.content,
+	      size: [true, true],
+	      classes: ['stat-sign']
+	    });
+	    this.sign.modifier = new StateModifier({
+	      transform: this.options.sign.transform
+	    });
+	  }
+	
+	  /*!
+	   * ticker
+	   */
+	
+	  if (this.options.ticker) {
+	    this.ticker = {};
+	    this.ticker.surface = new Surface({
+	      size: this.options.ticker.size,
+	      classes: ['ticker', 'ticker--yellow'],
+	      properties: {
+	        zIndex: -1
+	      }
+	    });
+	
+	    this.ticker.tickerModifier = new StateModifier({
+	      transform: Transform.skew(0, -39 * toRadian, 0)
+	    });
+	
+	    this.ticker.modifier = new StateModifier({
+	      transform: this.options.ticker.transform
+	    });
+	  }
+	
+	  /*!
+	   * label
+	   */
+	
+	  this.label = {};
+	  this.label.surface = new Surface({
+	    size: this.options.label.size,
+	    content: this.options.label.content,
+	    classes: ['stat-label']
+	  });
+	
+	  this.label.modifier = new StateModifier({
+	    transform: this.options.label.transform
+	  });
+	
+	  this
+	    .add(this.container.modifier)
+	    .add(this.container.surface);
+	
+	  this.container.surface
+	    .add(this.number.countModifier)
+	    .add(this.number.modifier)
+	    .add(this.number.surface);
+	
+	  if (this.sign) {
+	    this.container.surface
+	      .add(this.sign.modifier)
+	      .add(this.sign.surface);
+	  }
+	
+	  if (this.ticker) {
+	    this.container.surface
+	      .add(this.ticker.modifier)
+	      .add(this.ticker.tickerModifier)
+	      .add(this.ticker.surface);
+	  }
+	
+	  this.container.surface
+	    .add(this.label.modifier)
+	    .add(this.label.surface);
+	}
+	
+	/**
+	 * Stat Constructor
+	 */
+	
+	function Stat() {
+	  View.apply(this, arguments);
+	  _createLayout.call(this);
+	  // this.bump();
+	  // this.count();
+	}
+	
+	/*!
+	 * extend View
+	 */
+	
+	Stat.prototype = Object.create(View.prototype);
+	Stat.prototype.constructor = Stat;
+	
+	/**
+	 * animate number
+	 */
+	
+	Stat.prototype.bump = function() {
+	  this.number.modifier
+	    .setTransform(Transform.scale(1.1), this.options.bumpTransition)
+	    .setTransform(Transform.scale(1), this.options.countTransition
+	  );
+	};
+	
+	/**
+	 * animate number
+	 */
+	
+	Stat.prototype.count = function() {
+	  var transitionable = new Transitionable(0);
+	  transitionable.set(+this.options.number.content, this.options.countTransition);
+	
+	  this.number.countModifier.transformFrom(function() {
+	    this.number.surface.setContent(Math.floor(transitionable.get()));
+	  }.bind(this));
+	};
+	
+	Stat.prototype.getSize = function getSize() {
+	  return this.label.surface.getSize();
+	};
+	
+	
+	/**
+	 * animate ticker
+	 */
+	
+	Stat.prototype.tick = function() {
+	  // this.number.modifier
+	  //   .setTransform(Transform.scale(1.1), this.options.bumpTransition)
+	  //   .setTransform(Transform.scale(1), this.options.countTransition
+	  // );
+	};
+	
+	/*!
+	 * defaults
+	 */
+	
+	Stat.DEFAULT_OPTIONS = {
+	  countTransition: {
+	    curve: 'easeInOut',
+	    duration: 1000
+	  },
+	  bumpTransition: {
+	    curve: 'easeOutBounce',
+	    duration: 300
+	  }
+	};
+	
+	/*!
+	 * module exports
+	 */
+	
+	module.exports = Stat;
+
+/***/ },
+/* 36 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2014
+	 */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var EventHandler = __webpack_require__(39);
+	    var OptionsManager = __webpack_require__(40);
+	    var RenderNode = __webpack_require__(43);
+	    var Utility = __webpack_require__(21);
+	
+	    /**
+	     * Useful for quickly creating elements within applications
+	     *   with large event systems.  Consists of a RenderNode paired with
+	     *   an input EventHandler and an output EventHandler.
+	     *   Meant to be extended by the developer.
+	     *
+	     * @class View
+	     * @uses EventHandler
+	     * @uses OptionsManager
+	     * @uses RenderNode
+	     * @constructor
+	     */
+	    function View(options) {
+	        this._node = new RenderNode();
+	
+	        this._eventInput = new EventHandler();
+	        this._eventOutput = new EventHandler();
+	        EventHandler.setInputHandler(this, this._eventInput);
+	        EventHandler.setOutputHandler(this, this._eventOutput);
+	
+	        this.options = Utility.clone(this.constructor.DEFAULT_OPTIONS || View.DEFAULT_OPTIONS);
+	        this._optionsManager = new OptionsManager(this.options);
+	
+	        if (options) this.setOptions(options);
+	    }
+	
+	    View.DEFAULT_OPTIONS = {}; // no defaults
+	
+	    /**
+	     * Look up options value by key
+	     * @method getOptions
+	     *
+	     * @param {string} key key
+	     * @return {Object} associated object
+	     */
+	    View.prototype.getOptions = function getOptions(key) {
+	        return this._optionsManager.getOptions(key);
+	    };
+	
+	    /*
+	     *  Set internal options.
+	     *  No defaults options are set in View.
+	     *
+	     *  @method setOptions
+	     *  @param {Object} options
+	     */
+	    View.prototype.setOptions = function setOptions(options) {
+	        this._optionsManager.patch(options);
+	    };
+	
+	    /**
+	     * Add a child renderable to the view.
+	     *   Note: This is meant to be used by an inheriting class
+	     *   rather than from outside the prototype chain.
+	     *
+	     * @method add
+	     * @return {RenderNode}
+	     * @protected
+	     */
+	    View.prototype.add = function add() {
+	        return this._node.add.apply(this._node, arguments);
+	    };
+	
+	    /**
+	     * Alias for add
+	     * @method _add
+	     */
+	    View.prototype._add = View.prototype.add;
+	
+	    /**
+	     * Generate a render spec from the contents of this component.
+	     *
+	     * @private
+	     * @method render
+	     * @return {number} Render spec for this component
+	     */
+	    View.prototype.render = function render() {
+	        return this._node.render();
+	    };
+	
+	    /**
+	     * Return size of contained element.
+	     *
+	     * @method getSize
+	     * @return {Array.Number} [width, height]
+	     */
+	    View.prototype.getSize = function getSize() {
+	        if (this._node && this._node.getSize) {
+	            return this._node.getSize.apply(this._node, arguments) || this.options.size;
+	        }
+	        else return this.options.size;
+	    };
+	
+	    module.exports = View;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function() {
@@ -7524,7 +7489,7 @@
 	}
 
 /***/ },
-/* 36 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7537,11 +7502,11 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var RenderNode = __webpack_require__(41);
-	    var EventHandler = __webpack_require__(37);
-	    var ElementAllocator = __webpack_require__(45);
+	    var RenderNode = __webpack_require__(43);
+	    var EventHandler = __webpack_require__(39);
+	    var ElementAllocator = __webpack_require__(47);
 	    var Transform = __webpack_require__(18);
-	    var Transitionable = __webpack_require__(39);
+	    var Transitionable = __webpack_require__(41);
 	
 	    var _zeroZero = [0, 0];
 	    var usePrefix = !('perspective' in document.documentElement.style);
@@ -7763,7 +7728,7 @@
 
 
 /***/ },
-/* 37 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7776,7 +7741,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventEmitter = __webpack_require__(46);
+	    var EventEmitter = __webpack_require__(48);
 	
 	    /**
 	     * EventHandler forwards received events to a set of provided callback functions.
@@ -7975,7 +7940,7 @@
 
 
 /***/ },
-/* 38 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -7988,7 +7953,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(37);
+	    var EventHandler = __webpack_require__(39);
 	
 	    /**
 	     *  A collection of methods for setting options which can be extended
@@ -8182,7 +8147,7 @@
 
 
 /***/ },
-/* 39 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8195,8 +8160,8 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var MultipleTransition = __webpack_require__(47);
-	    var TweenTransition = __webpack_require__(48);
+	    var MultipleTransition = __webpack_require__(49);
+	    var TweenTransition = __webpack_require__(50);
 	
 	    /**
 	     * A state maintainer for a smooth transition between
@@ -8410,7 +8375,7 @@
 
 
 /***/ },
-/* 40 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8423,7 +8388,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Transitionable = __webpack_require__(39);
+	    var Transitionable = __webpack_require__(41);
 	    var Transform = __webpack_require__(18);
 	    var Utility = __webpack_require__(21);
 	
@@ -8646,7 +8611,7 @@
 
 
 /***/ },
-/* 41 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8659,8 +8624,8 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(49);
-	    var SpecParser = __webpack_require__(50);
+	    var Entity = __webpack_require__(51);
+	    var SpecParser = __webpack_require__(52);
 	
 	    /**
 	     * A wrapper for inserting a renderable component (like a Modifer or
@@ -8819,7 +8784,7 @@
 
 
 /***/ },
-/* 42 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8831,7 +8796,7 @@
 	 * @copyright Famous Industries, Inc. 2014
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var EventHandler = __webpack_require__(37);
+	    var EventHandler = __webpack_require__(39);
 	
 	    var _now = Date.now;
 	
@@ -8949,7 +8914,7 @@
 
 
 /***/ },
-/* 43 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -8962,8 +8927,8 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Entity = __webpack_require__(49);
-	    var EventHandler = __webpack_require__(37);
+	    var Entity = __webpack_require__(51);
+	    var EventHandler = __webpack_require__(39);
 	    var Transform = __webpack_require__(18);
 	
 	    var usePrefix = !('transform' in document.documentElement.style);
@@ -9283,7 +9248,7 @@
 
 
 /***/ },
-/* 44 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9296,9 +9261,9 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var OptionsManager = __webpack_require__(38);
+	    var OptionsManager = __webpack_require__(40);
 	    var Transform = __webpack_require__(18);
-	    var ViewSequence = __webpack_require__(51);
+	    var ViewSequence = __webpack_require__(53);
 	    var Utility = __webpack_require__(21);
 	
 	    /**
@@ -9436,7 +9401,7 @@
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 45 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9548,7 +9513,7 @@
 
 
 /***/ },
-/* 46 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9649,7 +9614,7 @@
 
 
 /***/ },
-/* 47 */
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -9732,7 +9697,7 @@
 
 
 /***/ },
-/* 48 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10164,7 +10129,7 @@
 
 
 /***/ },
-/* 49 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10247,7 +10212,7 @@
 
 
 /***/ },
-/* 50 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10429,7 +10394,7 @@
 
 
 /***/ },
-/* 51 */
+/* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
