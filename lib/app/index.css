@@ -4,6 +4,8 @@
 @import './utilities';
 @import './variables';
 
+
+
 :root {
   --Grid-gutter-size: 40px;
 }
@@ -29,8 +31,8 @@ a:hover {
 -------------------------------------------------- */
 
 .title {
-  font-family: 'Andale Mono', 'Source Code Pro';
-  font-weight: 400;
+  font-family: 'Andale Mono';
+  font-weight: 100;
 }
 
 .title:before {
