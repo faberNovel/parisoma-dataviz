@@ -117,18 +117,18 @@ a:hover {
 
 
 .share--twitter {
-  background-image: url(/assets/images/social-twitter.svg);
+  background-image: url(../../assets/images/social-twitter.svg);
 }
 .share--twitter:hover {
-  background-image: url(/assets/images/social-twitter-active.svg);
+  background-image: url(../../assets/images/social-twitter-active.svg);
 }
 
 .share--facebook {
-  background-image: url(/assets/images/social-facebook.svg);
+  background-image: url(../../assets/images/social-facebook.svg);
 }
 
 .share--facebook:hover {
-  background-image: url(/assets/images/social-facebook-active.svg);
+  background-image: url(../../assets/images/social-facebook-active.svg);
 }
 
 /* misc

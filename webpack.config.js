@@ -27,13 +27,8 @@ module.exports = {
         loader: 'style-loader!css-loader!rework-loader'
       },
 
-      { test: /\.woff$/,   loader: 'url-loader' },
-      { test: /\.ttf$/,    loader: 'url-loader' },
-      { test: /\.eot$/,    loader: 'url-loader' },
-      { test: /\.svg$/,    loader: 'url-loader' },
-
-
-
+      { test: /\.png$/, loader: 'url-loader' },
+      { test: /\.svg$/, loader: 'url-loader' }
 
       // {
       //   test: /\.css$/,
