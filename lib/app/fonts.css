@@ -2,6 +2,17 @@
 -------------------------------------------------- */
 
 @font-face {
+  font-family: 'Source Code Pro';
+  font-style: normal;
+  font-weight: 400;
+  src:
+    url(/assets/fonts/Source_Code_Pro_400.eot?#iefix) format('embedded-opentype'),
+    url(/assets/fonts/Source_Code_Pro_400.woff) format('woff'),
+    url(/assets/fonts/Source_Code_Pro_400.ttf) format('truetype'),
+    url(/assets/fonts/Source_Code_Pro_400.svg#SourceCodePro) format('svg');
+}
+
+@font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 300;

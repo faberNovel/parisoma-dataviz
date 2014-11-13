@@ -4,8 +4,6 @@
 @import './utilities';
 @import './variables';
 
-
-
 :root {
   --Grid-gutter-size: 40px;
 }
@@ -18,13 +16,21 @@ html, body {
   font-weight: 100;
 }
 
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+a:hover {
+  color: var(--color-pink);
+}
 
 /* title
 -------------------------------------------------- */
 
 .title {
-  font-family: 'Andale Mono';
-  font-weight: 100;
+  font-family: 'Andale Mono', 'Source Code Pro';
+  font-weight: 400;
 }
 
 .title:before {
@@ -86,6 +92,44 @@ html, body {
   background-color: var(--color-yellow);
 }
 
+/* contact
+-------------------------------------------------- */
+
+.contact a {
+  display: block
+}
+
+/* share
+-------------------------------------------------- */
+
+.share {
+  display: inline-block;
+  width: 30px; height: 30px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: 50% 50%;
+}
+
+.big .share {
+  width: 50px; height: 50px;
+}
+
+
+.share--twitter {
+  background-image: url(/assets/images/social-twitter.svg);
+}
+.share--twitter:hover {
+  background-image: url(/assets/images/social-twitter-active.svg);
+}
+
+.share--facebook {
+  background-image: url(/assets/images/social-facebook.svg);
+}
+
+.share--facebook:hover {
+  background-image: url(/assets/images/social-facebook-active.svg);
+}
+
 /* misc
 -------------------------------------------------- */
 
@@ -97,6 +141,9 @@ html, body {
   color: var(--color-gray);
 }
 
+.text--pink {
+  color: var(--color-pink);
+}
 
 .text--big {
   font-size: var(--size-big);
