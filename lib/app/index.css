@@ -62,14 +62,22 @@ a:hover {
 -------------------------------------------------- */
 
 .stat-number {
+  z-index: 1 !important;
   font-size: var(--size-huge);
   line-height: var(--size-huge);
 }
 
 .stat-sign {
+  z-index: 1 !important;
   font-size: var(--size-large);
   padding-top: 8px
 }
+
+.stat-label {
+  z-index: 1 !important;
+}
+
+
 
 /* note
 -------------------------------------------------- */
@@ -87,10 +95,12 @@ a:hover {
 
 .ticker--pink {
   background-color: var(--color-pink);
+  /*outline: 1px solid var(--color-pink);*/
 }
 
 .ticker--yellow {
   background-color: var(--color-yellow);
+  /*outline: 1px solid var(--color-yellow);*/
 }
 
 /* contact
