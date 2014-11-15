@@ -13,6 +13,8 @@
     "connect-livereload": "^0.5.0",
     "css-loader": "^0.9.0",
     "extract-text-webpack-plugin": "^0.3.3",
+    "famous": "^0.3.1",
+    "file-loader": "^0.8.1",
     "gulp": "^3.8.9",
     "gulp-livereload": "^2.1.1",
     "gulp-webpack": "^1.0.0",
@@ -24,6 +26,7 @@
     "suitcss-base": "^0.8.0",
     "suitcss-utils-offset": "^0.5.1",
     "suitcss-utils-text": "^0.4.2",
+    "url-loader": "^0.5.5",
     "webpack": "^1.4.9"
   },
   "dependencies": {
